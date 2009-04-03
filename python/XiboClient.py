@@ -3,7 +3,7 @@
 
 from libavg import avg, anim
 from xml.dom import minidom
-import time, Queue
+import time, Queue, ConfigParser
 import os
 import re
 import time
@@ -49,10 +49,15 @@ class XiboMedia(Thread):
         pass
 
 class XiboScheduler(Thread):
-    def __init__(self):
-        pass
+    "Abstract Class - Interface for Schedulers"
+    
+    def run(): abstract
+    
+    def nextLayout(): abstract
+    
+    def hasNext(): abstract
 
-class DummyScheduler(Thread):
+class DummyScheduler(XiboScheduler):
     "Dummy scheduler - returns a list of layouts in rotation forever"
     layoutList = ['1', '2', '3']
     layoutIndex = 0
@@ -83,6 +88,9 @@ class XiboClient:
 
     def __init__(self):
         self.dm = XiboDisplayManager()
+        self.config = ConfigParser.ConfigParser()
+        self.config.readfp(open('defaults.cfg'))
+        config.read(['site.cfg', os.path.expanduser('~/.xibo')])
 
     def play(self):
         self.dm.run()
