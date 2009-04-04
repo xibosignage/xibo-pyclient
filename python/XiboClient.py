@@ -10,12 +10,44 @@ import time
 import sys
 from threading import Thread
 
+version = "1.1.0"
+
+class XiboLog:
+    def log(self,level,category,message): abstract
+    
+    def stat(self,type, message, layoutID, scheduleID, mediaID): abstract
+    
+class XiboLogFile(XiboLog):
+    def log(self,level, category, message):
+        pass
+    
+    def stat(self,type, message, layoutID, scheduleID, mediaID):
+        pass
+
+class XiboLogScreen(XiboLog):
+    def __init__(self):
+        self.log(2,"info","XiboLogScreen logger started")
+    
+    def log(self, level, category, message):
+        print "LOG: " + str(level) + " " + category + " " + message
+    
+    def stat(self, type, message, layoutID, scheduleID, mediaID=""):
+        print "STAT: " + type + " " + message + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
+
+
+class XiboLogXmds(XiboLog):
+    def log(self,level, category, message):
+        pass
+    
+    def stat(self,type, message, layoutID, scheduleID, mediaID):
+        pass
+
 class XiboDisplayManager:
     def __init__(self):
         pass
     
     def run(ClientRef):
-        pass
+        log.log(2,"info","New DisplayManager started")
     
 class XiboDownloadManager(Thread):
     def __init__(self):
@@ -87,12 +119,31 @@ class XiboClient:
     "Main Xibo DisplayClient Class. May host many DisplayManager classes"
 
     def __init__(self):
-        self.dm = XiboDisplayManager()
-        self.config = ConfigParser.ConfigParser()
-        self.config.readfp(open('defaults.cfg'))
-        config.read(['site.cfg', os.path.expanduser('~/.xibo')])
-
+        pass
+        
     def play(self):
+        global version
+        print "Xibo Client v" + version
+        
+        print "Reading default configuration"
+        global config
+        config = ConfigParser.ConfigParser()
+        config.readfp(open('defaults.cfg'))
+        
+        print "Reading user configuration"
+        config.read(['site.cfg', os.path.expanduser('~/.xibo')])
+        
+        print "Log Level is: " + config.get('Main','logLevel');
+        print "Logging will be handled by: " + config.get('Main','logWriter')
+        print "Switching to new logger"
+        
+        global log
+        logWriter = config.get('Main','logWriter')
+        log = eval(logWriter)()
+        log.log(2,"info","Switched to new logger")
+        
+        self.dm = XiboDisplayManager()
+        
         self.dm.run()
 
 # Main - create a XiboClient and run
