@@ -3,7 +3,7 @@
 
 from libavg import avg, anim
 from xml.dom import minidom
-import time, Queue, ConfigParser
+import time, Queue, ConfigParser, gettext
 import os
 import re
 import time
@@ -123,29 +123,36 @@ class XiboClient:
         
     def play(self):
         global version
-        print "Xibo Client v" + version
+        print _("Xibo Client v") + version
         
-        print "Reading default configuration"
+        print _("Reading default configuration")
         global config
         config = ConfigParser.ConfigParser()
         config.readfp(open('defaults.cfg'))
         
-        print "Reading user configuration"
+        print _("Reading user configuration")
         config.read(['site.cfg', os.path.expanduser('~/.xibo')])
         
-        print "Log Level is: " + config.get('Main','logLevel');
-        print "Logging will be handled by: " + config.get('Main','logWriter')
-        print "Switching to new logger"
+        print _("Log Level is: ") + config.get('Logging','logLevel');
+        print _("Logging will be handled by: ") + config.get('Logging','logWriter')
+        print _("Switching to new logger")
         
         global log
-        logWriter = config.get('Main','logWriter')
+        logWriter = config.get('Logging','logWriter')
         log = eval(logWriter)()
-        log.log(2,"info","Switched to new logger")
+        
+        try:
+            log.log(2,"info",_("Switched to new logger"))
+        except:
+            print logWriter + _(" does not implement the methods required to be a Xibo logWriter or does not exist.")
+            print _("Please check your logWriter configuration.")
         
         self.dm = XiboDisplayManager()
         
         self.dm.run()
 
 # Main - create a XiboClient and run
+gettext.install("messages", "locale")
+
 xc = XiboClient()
 xc.play()
