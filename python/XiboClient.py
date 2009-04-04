@@ -14,7 +14,6 @@ version = "1.1.0"
 
 class XiboLog:
     def log(self,level,category,message): abstract
-    
     def stat(self,type, message, layoutID, scheduleID, mediaID): abstract
     
 class XiboLogFile(XiboLog):
@@ -26,7 +25,7 @@ class XiboLogFile(XiboLog):
 
 class XiboLogScreen(XiboLog):
     def __init__(self):
-        self.log(2,"info","XiboLogScreen logger started")
+        self.log(2,"info",_("XiboLogScreen logger started"))
     
     def log(self, level, category, message):
         print "LOG: " + str(level) + " " + category + " " + message
@@ -46,8 +45,22 @@ class XiboDisplayManager:
     def __init__(self):
         pass
     
-    def run(ClientRef):
-        log.log(2,"info","New DisplayManager started")
+    def run(self):
+        log.log(2,"info",_("New DisplayManager started"))
+        
+        schedulerName = config.get('Main','scheduler')
+        self.scheduler = eval(schedulerName)().start()
+        self.scheduler = DummyScheduler
+
+        try:
+            
+            log.log(2,"info",_("Loaded Scheduler ") + schedulerName)
+        except:
+            log.log(0,"error",schedulerName + _(" does not implement the methods required to be a Xibo Scheduler or does not exist."))
+            log.log(0,"error",_("Please check your scheduler configuration."))
+            exit(1)
+        
+        self.scheduler.start()
     
 class XiboDownloadManager(Thread):
     def __init__(self):
@@ -82,12 +95,9 @@ class XiboMedia(Thread):
 
 class XiboScheduler(Thread):
     "Abstract Class - Interface for Schedulers"
-    
-    def run(): abstract
-    
-    def nextLayout(): abstract
-    
-    def hasNext(): abstract
+    def run(self): abstract
+    def nextLayout(self): abstract
+    def hasNext(self): abstract
 
 class DummyScheduler(XiboScheduler):
     "Dummy scheduler - returns a list of layouts in rotation forever"
@@ -95,12 +105,12 @@ class DummyScheduler(XiboScheduler):
     layoutIndex = 0
     
     def __init__(self):
-        pass
+        Thread.__init__()
     
     def run(self):
         pass
     
-    def nextLayout():
+    def nextLayout(self):
         "Return the next valid layout"
         
         layout = XiboLayout(self.layoutList[self.layoutIndex])
@@ -111,7 +121,7 @@ class DummyScheduler(XiboScheduler):
             
         return layout
     
-    def hasNext():
+    def hasNext(self):
         "Return true if there are more layouts, otherwise false"
         return true
 
@@ -139,13 +149,13 @@ class XiboClient:
         
         global log
         logWriter = config.get('Logging','logWriter')
-        log = eval(logWriter)()
-        
         try:
+            log = eval(logWriter)()
             log.log(2,"info",_("Switched to new logger"))
         except:
             print logWriter + _(" does not implement the methods required to be a Xibo logWriter or does not exist.")
             print _("Please check your logWriter configuration.")
+            exit(1)
         
         self.dm = XiboDisplayManager()
         
