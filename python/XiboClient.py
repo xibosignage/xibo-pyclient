@@ -49,11 +49,10 @@ class XiboDisplayManager:
         log.log(2,"info",_("New DisplayManager started"))
         
         schedulerName = config.get('Main','scheduler')
-        self.scheduler = eval(schedulerName)().start()
-        self.scheduler = DummyScheduler
+        self.scheduler = eval(schedulerName)()
 
         try:
-            
+            self.scheduler.hasNext
             log.log(2,"info",_("Loaded Scheduler ") + schedulerName)
         except:
             log.log(0,"error",schedulerName + _(" does not implement the methods required to be a Xibo Scheduler or does not exist."))
@@ -105,7 +104,7 @@ class DummyScheduler(XiboScheduler):
     layoutIndex = 0
     
     def __init__(self):
-        Thread.__init__()
+        Thread.__init__(self)
     
     def run(self):
         pass
