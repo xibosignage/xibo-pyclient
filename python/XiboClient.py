@@ -90,7 +90,31 @@ class XiboDisplayManager:
             log.log(0,"error",_("Please check your scheduler configuration."))
             exit(1)
         # End of scheduler init
+        
+        # Final job. Create a libavg player, load an empty avg file and play it.
+        self.Player = avg.Player()
+        self.Player.showCursor(0);
+        #self.Player.loadString("<avg id=\"main\" width=\"800\" height=\"600\"><div id=\"bg\" width=\"800\" height=\"600\" x=\"0\" y=\"0\" opacity=\"1\"></div></avg>")
+        self.Player.loadFile("player.avg")
+        self.bg = self.Player.getElementByID("bg")
+        
+        # Call a next Layout event now...
+        self.nextLayout()
+        
+        # Start libavg running...
+        self.Player.play()
+        # play() blocks until we quit.
     
+    def nextLayout(self):
+        # Deal with any existing LayoutManagers that might still be running
+        ##if self.currentLM.isRunning == true:
+        ##    self.currentLM.dispose()
+        
+        # New LayoutManager
+        self.currentLM = XiboLayoutManager(self, self.Player, self.bg, self.scheduler.nextLayout())
+        self.currentLM.start()
+        
+
 class XiboDownloadManager(Thread):
     def __init__(self):
         Thread.__init__(self)
@@ -104,15 +128,29 @@ class XiboDownloadThread(Thread):
 
 class XiboLayout:
     def __init__(self,layoutID):
-        pass
+        self.layoutID = layoutID
 
 class Xmds:
     def __init__(self):
         pass
 
 class XiboLayoutManager(Thread):
-    def __init__(self):
+    def __init__(self,parent,player,background,layout):
+        self.p = player
+        self.bg = background
+        self.l = layout
+        self.parent = parent
         Thread.__init__(self)
+    
+    def run(self):
+        region1 = self.p.createNode('<div id="region1" x="30" y="30" width="300" height="30" opacity="1"><words id="ClashText" x="" y="" font="arial" text="Layout ID ' + str(self.l.layoutID) +'" /></div>')
+        self.bg.appendChild(region1)
+        time.sleep(10)
+        self.bg.removeChild(0)
+        parent.nextLayout()
+    
+    def dispose(self):
+        pass
 
 class XiboRegionManager(Thread):
     def __init__(self):
