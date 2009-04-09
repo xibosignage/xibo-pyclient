@@ -48,26 +48,48 @@ class XiboDisplayManager:
     def run(self):
         log.log(2,"info",_("New DisplayManager started"))
         
-        schedulerName = config.get('Main','scheduler')
-        self.scheduler = eval(schedulerName)()
-
+        # Load a DownloadManager and start it running in its own thread
         try:
-            self.scheduler.hasNext
+            downloaderName = config.get('Main','downloader')
+            self.downloader = eval(downloaderName)()
+            self.downloader.start()
+            log.log(2,"info",_("Loaded Download Manager ") + downloaderName)
+        except ConfigParser.NoOptionError:
+            log.log(0,"error",_("No DownloadManager specified in your configuration."))
+            log.log(0,"error",_("Please check your Download Manager configuration."))
+            exit(1)
+        except:
+            log.log(0,"error",downloaderName + _(" does not implement the methods required to be a Xibo DownloadManager or does not exist."))
+            log.log(0,"error",_("Please check your Download Manager configuration."))
+            exit(1)
+        # End of DownloadManager init
+        
+        # Load a scheduler and start it running in its own thread
+        try:
+            schedulerName = config.get('Main','scheduler')
+            self.scheduler = eval(schedulerName)()
+            self.scheduler.start()
             log.log(2,"info",_("Loaded Scheduler ") + schedulerName)
+        except ConfigParser.NoOptionError:
+            log.log(0,"error",_("No Scheduler specified in your configuration"))
+            log.log(0,"error",_("Please check your scheduler configuration."))
+            exit(1)
         except:
             log.log(0,"error",schedulerName + _(" does not implement the methods required to be a Xibo Scheduler or does not exist."))
             log.log(0,"error",_("Please check your scheduler configuration."))
             exit(1)
-        
-        self.scheduler.start()
+        # End of scheduler init
     
 class XiboDownloadManager(Thread):
     def __init__(self):
+        Thread.__init__(self)
+    
+    def run(self):
         pass
 
 class XiboDownloadThread(Thread):
     def __init__(self):
-        pass
+        Thread.__init__(self)
 
 class XiboLayout:
     def __init__(self,layoutID):
@@ -79,18 +101,18 @@ class Xmds:
 
 class XiboLayoutManager(Thread):
     def __init__(self):
-        pass
+        Thread.__init__(self)
 
 class XiboRegionManager(Thread):
     def __init__(self):
-        pass
+        Thread.__init__(self)
 
 class XiboMediaInterface:
     pass
 
 class XiboMedia(Thread):
     def __init__(self):
-        pass
+        Thread.__init__(self)
 
 class XiboScheduler(Thread):
     "Abstract Class - Interface for Schedulers"
