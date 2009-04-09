@@ -13,10 +13,15 @@ from threading import Thread
 version = "1.1.0"
 
 class XiboLog:
+    level=0
+    def __init__(self,level): abstract
     def log(self,level,category,message): abstract
     def stat(self,type, message, layoutID, scheduleID, mediaID): abstract
     
 class XiboLogFile(XiboLog):
+    def __init__(self,level):
+        pass
+        
     def log(self,level, category, message):
         pass
     
@@ -24,11 +29,17 @@ class XiboLogFile(XiboLog):
         pass
 
 class XiboLogScreen(XiboLog):
-    def __init__(self):
-        self.log(2,"info",_("XiboLogScreen logger started"))
+    def __init__(self,level):
+        # Make sure level is sane
+        if level == "" or int(level) < 0:
+            level=0
+        self.level = int(level)
+        
+        self.log(2,"info",_("XiboLogScreen logger started at level ") + str(level))
     
-    def log(self, level, category, message):
-        print "LOG: " + str(level) + " " + category + " " + message
+    def log(self, severity, category, message):
+        if self.level >= severity:
+            print "LOG: " + str(severity) + " " + category + " " + message
     
     def stat(self, type, message, layoutID, scheduleID, mediaID=""):
         print "STAT: " + type + " " + message + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
@@ -164,14 +175,16 @@ class XiboClient:
         print _("Reading user configuration")
         config.read(['site.cfg', os.path.expanduser('~/.xibo')])
         
-        print _("Log Level is: ") + config.get('Logging','logLevel');
+        logLevel = config.get('Logging','logLevel');
+        print _("Log Level is: ") + logLevel;
         print _("Logging will be handled by: ") + config.get('Logging','logWriter')
         print _("Switching to new logger")
         
         global log
         logWriter = config.get('Logging','logWriter')
+        log = eval(logWriter)(logLevel)
         try:
-            log = eval(logWriter)()
+
             log.log(2,"info",_("Switched to new logger"))
         except:
             print logWriter + _(" does not implement the methods required to be a Xibo logWriter or does not exist.")
