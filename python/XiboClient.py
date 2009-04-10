@@ -64,10 +64,11 @@ class XiboLogXmds(XiboLog):
 #### Download Manager        
 class XiboDownloadManager(Thread):
     def __init__(self):
+        log.log(3,"info",_("New XiboDownloadManager instance created."))
         Thread.__init__(self)
     
     def run(self):
-        pass
+        log.log(2,"info",_("New XiboDownloadManager instance started."))
 
 class XiboDownloadThread(Thread):
     def __init__(self):
@@ -83,6 +84,7 @@ class Xmds:
 #### Layout/Region Management
 class XiboLayoutManager(Thread):
     def __init__(self,parent,player,background,layout):
+        log.log(3,"info",_("New XiboLayoutManager instance created."))
         self.p = player
         self.bg = background
         self.l = layout
@@ -90,11 +92,12 @@ class XiboLayoutManager(Thread):
         Thread.__init__(self)
     
     def run(self):
-        region1 = self.p.createNode('<div id="region1" x="30" y="30" width="300" height="30" opacity="1"><words id="ClashText" x="" y="" font="arial" text="Layout ID ' + str(self.l.layoutID) +'" /></div>')
+        log.log(2,"info",_("XiboLayoutManager instance running."))
+        region1 = self.p.createNode('<div id="region' + self.l.layoutID +'" x="30" y="30" width="300" height="30" opacity="1"><words id="text' + self.l.layoutID +'" x="" y="" font="arial" text="Layout ID ' + str(self.l.layoutID) +'" /></div>')
         self.bg.appendChild(region1)
         time.sleep(10)
-        self.bg.removeChild(0)
-        parent.nextLayout()
+        # self.bg.removeChild(self.bg.indexOf(region1))
+        self.parent.nextLayout()
     
     def dispose(self):
         pass
@@ -137,11 +140,13 @@ class DummyScheduler(XiboScheduler):
 
         if self.layoutIndex == len(self.layoutList):
             self.layoutIndex = 0
-            
+        
+        log.log(3,"info",_("DummyScheduler: nextLayout() -> ") + str(layout.layoutID))
         return layout
     
     def hasNext(self):
         "Return true if there are more layouts, otherwise false"
+        log.log(3,"info",_("DummyScheduler: hasNext() -> true"))
         return true
 #### Finish Scheduler Classes
 
@@ -205,6 +210,7 @@ class XiboDisplayManager:
         
         # New LayoutManager
         self.currentLM = XiboLayoutManager(self, self.Player, self.bg, self.scheduler.nextLayout())
+        log.log(2,"info",_("XiboLayoutManager: nextLayout() -> Starting new XiboLayoutManager with layout ") + str(self.currentLM.l.layoutID))
         self.currentLM.start()
 
 class XiboClient:
