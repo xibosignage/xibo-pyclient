@@ -12,12 +12,21 @@ from threading import Thread
 
 version = "1.1.0"
 
+#### Abstract Classes
 class XiboLog:
     level=0
     def __init__(self,level): abstract
     def log(self,level,category,message): abstract
     def stat(self,type, message, layoutID, scheduleID, mediaID): abstract
-    
+
+class XiboScheduler(Thread):
+    "Abstract Class - Interface for Schedulers"
+    def run(self): abstract
+    def nextLayout(self): abstract
+    def hasNext(self): abstract
+#### Finish Abstract Classes
+
+#### Log Classes
 class XiboLogFile(XiboLog):
     def __init__(self,level):
         pass
@@ -44,13 +53,97 @@ class XiboLogScreen(XiboLog):
     def stat(self, type, message, layoutID, scheduleID, mediaID=""):
         print "STAT: " + type + " " + message + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
 
-
 class XiboLogXmds(XiboLog):
     def log(self,level, category, message):
         pass
     
     def stat(self,type, message, layoutID, scheduleID, mediaID):
         pass
+#### Finish Log Classes
+
+#### Download Manager        
+class XiboDownloadManager(Thread):
+    def __init__(self):
+        Thread.__init__(self)
+    
+    def run(self):
+        pass
+
+class XiboDownloadThread(Thread):
+    def __init__(self):
+        Thread.__init__(self)
+#### Finish Download Manager
+        
+#### Webservice
+class Xmds:
+    def __init__(self):
+        pass
+#### Finish Webservice
+
+#### Layout/Region Management
+class XiboLayoutManager(Thread):
+    def __init__(self,parent,player,background,layout):
+        self.p = player
+        self.bg = background
+        self.l = layout
+        self.parent = parent
+        Thread.__init__(self)
+    
+    def run(self):
+        region1 = self.p.createNode('<div id="region1" x="30" y="30" width="300" height="30" opacity="1"><words id="ClashText" x="" y="" font="arial" text="Layout ID ' + str(self.l.layoutID) +'" /></div>')
+        self.bg.appendChild(region1)
+        time.sleep(10)
+        self.bg.removeChild(0)
+        parent.nextLayout()
+    
+    def dispose(self):
+        pass
+
+class XiboRegionManager(Thread):
+    def __init__(self):
+        Thread.__init__(self)
+#### Finish Layout/Region Managment
+
+#### Media
+class XiboMediaInterface:
+    pass
+
+class XiboMedia(Thread):
+    def __init__(self):
+        Thread.__init__(self)
+#### Finish Media
+
+#### Scheduler Classes
+class XiboLayout:
+    def __init__(self,layoutID):
+        self.layoutID = layoutID
+        
+class DummyScheduler(XiboScheduler):
+    "Dummy scheduler - returns a list of layouts in rotation forever"
+    layoutList = ['1', '2', '3']
+    layoutIndex = 0
+    
+    def __init__(self):
+        Thread.__init__(self)
+    
+    def run(self):
+        pass
+    
+    def nextLayout(self):
+        "Return the next valid layout"
+        
+        layout = XiboLayout(self.layoutList[self.layoutIndex])
+        self.layoutIndex = self.layoutIndex + 1
+
+        if self.layoutIndex == len(self.layoutList):
+            self.layoutIndex = 0
+            
+        return layout
+    
+    def hasNext(self):
+        "Return true if there are more layouts, otherwise false"
+        return true
+#### Finish Scheduler Classes
 
 class XiboDisplayManager:
     def __init__(self):
@@ -113,87 +206,6 @@ class XiboDisplayManager:
         # New LayoutManager
         self.currentLM = XiboLayoutManager(self, self.Player, self.bg, self.scheduler.nextLayout())
         self.currentLM.start()
-        
-
-class XiboDownloadManager(Thread):
-    def __init__(self):
-        Thread.__init__(self)
-    
-    def run(self):
-        pass
-
-class XiboDownloadThread(Thread):
-    def __init__(self):
-        Thread.__init__(self)
-
-class XiboLayout:
-    def __init__(self,layoutID):
-        self.layoutID = layoutID
-
-class Xmds:
-    def __init__(self):
-        pass
-
-class XiboLayoutManager(Thread):
-    def __init__(self,parent,player,background,layout):
-        self.p = player
-        self.bg = background
-        self.l = layout
-        self.parent = parent
-        Thread.__init__(self)
-    
-    def run(self):
-        region1 = self.p.createNode('<div id="region1" x="30" y="30" width="300" height="30" opacity="1"><words id="ClashText" x="" y="" font="arial" text="Layout ID ' + str(self.l.layoutID) +'" /></div>')
-        self.bg.appendChild(region1)
-        time.sleep(10)
-        self.bg.removeChild(0)
-        parent.nextLayout()
-    
-    def dispose(self):
-        pass
-
-class XiboRegionManager(Thread):
-    def __init__(self):
-        Thread.__init__(self)
-
-class XiboMediaInterface:
-    pass
-
-class XiboMedia(Thread):
-    def __init__(self):
-        Thread.__init__(self)
-
-class XiboScheduler(Thread):
-    "Abstract Class - Interface for Schedulers"
-    def run(self): abstract
-    def nextLayout(self): abstract
-    def hasNext(self): abstract
-
-class DummyScheduler(XiboScheduler):
-    "Dummy scheduler - returns a list of layouts in rotation forever"
-    layoutList = ['1', '2', '3']
-    layoutIndex = 0
-    
-    def __init__(self):
-        Thread.__init__(self)
-    
-    def run(self):
-        pass
-    
-    def nextLayout(self):
-        "Return the next valid layout"
-        
-        layout = XiboLayout(self.layoutList[self.layoutIndex])
-        self.layoutIndex = self.layoutIndex + 1
-
-        if self.layoutIndex == len(self.layoutList):
-            self.layoutIndex = 0
-            
-        return layout
-    
-    def hasNext(self):
-        "Return true if there are more layouts, otherwise false"
-        return true
 
 class XiboClient:
     "Main Xibo DisplayClient Class. May host many DisplayManager classes"
