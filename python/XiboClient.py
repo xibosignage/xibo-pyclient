@@ -93,8 +93,8 @@ class XiboLayoutManager(Thread):
     
     def run(self):
         log.log(2,"info",_("XiboLayoutManager instance running."))
-#        region1 = self.p.createNode('<div id="region' + self.l.layoutID + '" x="30" y="30" width="300" height="30" opacity="1"><words id="text' + self.l.layoutID + '" x="" y="" font="arial" text="Layout ID ' + self.l.layoutID + '" /></div>')
-        region1 = self.p.createNode('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" x="" y="" font="arial" text="Layout ID 1" /></div>')
+        region1 = self.p.createNode('<div id="region' + self.l.layoutID + '" x="30" y="30" width="300" height="30" opacity="1"><words id="text' + self.l.layoutID + '" font="arial" text="Layout ID ' + self.l.layoutID + '" /></div>')
+#        region1 = self.p.createNode('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" font="arial" text="Layout ID 1" /></div>')
 
         self.bg.appendChild(region1)
         time.sleep(10)
