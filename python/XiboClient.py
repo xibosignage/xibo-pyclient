@@ -93,14 +93,16 @@ class XiboLayoutManager(Thread):
     
     def run(self):
         log.log(2,"info",_("XiboLayoutManager instance running."))
-        region1 = self.p.createNode('<div id="region' + self.l.layoutID + '" x="30" y="30" width="300" height="30" opacity="1"><words id="text' + self.l.layoutID + '" font="arial" text="Layout ID ' + self.l.layoutID + '" /></div>')
+ #       region1 = self.p.createNode('<div id="region' + self.l.layoutID + '" x="30" y="30" width="300" height="30" opacity="1"><words id="text' + self.l.layoutID + '" font="arial" text="Layout ID ' + self.l.layoutID + '" /></div>')
 #        region1 = self.p.createNode('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" font="arial" text="Layout ID 1" /></div>')
 
-        self.bg.appendChild(region1)
+#        self.bg.appendChild(region1)
+	self.p.enqueue("add la")
         time.sleep(10)
         #### Calling removeChild should remove region1 and its contents from bg, but it's
         #### causing Player to quit. Not sure why that should be. bug?
         # self.bg.removeChild(self.bg.indexOf(region1))
+	self.p.enqueue("del la")
         self.parent.nextLayout()
     
     def dispose(self):
@@ -194,17 +196,18 @@ class XiboDisplayManager:
         # End of scheduler init
         
         # Final job. Create a libavg player, load an empty avg file and play it.
-        self.Player = avg.Player()
-        self.Player.showCursor(0);
+        self.Player = XiboPlayer()
+	self.Player.start()
+#        self.Player.showCursor(0);
         #self.Player.loadString("<avg id=\"main\" width=\"800\" height=\"600\"><div id=\"bg\" width=\"800\" height=\"600\" x=\"0\" y=\"0\" opacity=\"1\"></div></avg>")
-        self.Player.loadFile("player.avg")
-        self.bg = self.Player.getElementByID("bg")
+#        self.Player.loadFile("player.avg")
+        self.bg = "background"
         
         # Call a next Layout event now...
         self.nextLayout()
         
         # Start libavg running...
-        self.Player.play()
+#        self.Player.play()
         # play() blocks until we quit.
     
     def nextLayout(self):
@@ -216,6 +219,39 @@ class XiboDisplayManager:
         self.currentLM = XiboLayoutManager(self, self.Player, self.bg, self.scheduler.nextLayout())
         log.log(2,"info",_("XiboLayoutManager: nextLayout() -> Starting new XiboLayoutManager with layout ") + str(self.currentLM.l.layoutID))
         self.currentLM.start()
+
+class XiboPlayer(Thread):
+	"Class to handle libavg interactions"
+	def __init__(self):
+		Thread.__init__(self)
+		self.q = Queue.Queue(0)
+
+	def run(self):
+		self.player = avg.Player()
+		self.player.showCursor(0)
+		self.player.loadFile("player.avg")
+		self.player.setOnFrameHandler(self.frameHandle)
+		self.player.play()
+
+	def enqueue(self,command):
+		log.log(1,"info","Enqueue: " + str(command))
+		self.q.put(command)
+
+	def frameHandle(self):
+		try:
+			cmd = self.q.get(False)
+			if cmd == "add la":
+				region1 = self.player.createNode('<div id="regionla" x="30" y="30" width="300" height="30" opacity="1"><words id="text" font="arial" text="Layout ID ' + str(cmd) + '" /></div>')
+				bg = self.player.getElementByID("bg")
+				bg.appendChild(region1)
+			elif cmd == "del la":
+				region = self.player.getElementByID("regionla")
+				bg = self.player.getElementByID("bg")
+				bg.removeChild(region)
+			self.q.task_done()
+			log.log(1,"info","Task done")
+		except Queue.Empty:
+			pass
 
 class XiboClient:
     "Main Xibo DisplayClient Class. May host many DisplayManager classes"
