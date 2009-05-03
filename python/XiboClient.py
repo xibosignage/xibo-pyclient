@@ -94,9 +94,11 @@ class XiboLayoutManager(Thread):
         log.log(2,"info",_("XiboLayoutManager instance running."))
         self.p.enqueue('add',('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" opacity="0" font="arial" text="Layout ID' + self.l.layoutID + '" /></div>','bg'))
 	self.p.enqueue('anim',('fadeIn','text1',3000))
-        time.sleep(10)
-#	self.p.enqueue("del","region")
-	self.p.enqueue("reset","")
+        time.sleep(7)
+	self.p.enqueue('anim',('fadeOut','text1',3000))
+	time.sleep(3)
+	self.p.enqueue("del","region")	
+#	self.p.enqueue("reset","")
         self.parent.nextLayout()
     
     def dispose(self):
