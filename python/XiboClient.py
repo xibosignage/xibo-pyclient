@@ -94,15 +94,15 @@ class XiboLayoutManager(Thread):
     def run(self):
         log.log(2,"info",_("XiboLayoutManager instance running."))
  #       region1 = self.p.createNode('<div id="region' + self.l.layoutID + '" x="30" y="30" width="300" height="30" opacity="1"><words id="text' + self.l.layoutID + '" font="arial" text="Layout ID ' + self.l.layoutID + '" /></div>')
-#        region1 = self.p.createNode('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" font="arial" text="Layout ID 1" /></div>')
+        self.p.enqueue('add',('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" font="arial" text="Layout ID' + self.l.layoutID + '" /></div>','bg'))
 
 #        self.bg.appendChild(region1)
-	self.p.enqueue("add la")
+#	self.p.enqueue("add la")
         time.sleep(10)
         #### Calling removeChild should remove region1 and its contents from bg, but it's
         #### causing Player to quit. Not sure why that should be. bug?
         # self.bg.removeChild(self.bg.indexOf(region1))
-	self.p.enqueue("del la")
+	self.p.enqueue("del","region")
         self.parent.nextLayout()
     
     def dispose(self):
@@ -233,21 +233,23 @@ class XiboPlayer(Thread):
 		self.player.setOnFrameHandler(self.frameHandle)
 		self.player.play()
 
-	def enqueue(self,command):
-		log.log(1,"info","Enqueue: " + str(command))
-		self.q.put(command)
+	def enqueue(self,command,data):
+		log.log(1,"info","Enqueue: " + str(command) + " " + str(data))
+		self.q.put((command,data))
 
 	def frameHandle(self):
 		try:
-			cmd = self.q.get(False)
-			if cmd == "add la":
-				region1 = self.player.createNode('<div id="regionla" x="30" y="30" width="300" height="30" opacity="1"><words id="text" font="arial" text="Layout ID ' + str(cmd) + '" /></div>')
-				bg = self.player.getElementByID("bg")
-				bg.appendChild(region1)
-			elif cmd == "del la":
-				region = self.player.getElementByID("regionla")
-				bg = self.player.getElementByID("bg")
-				bg.removeChild(region)
+			result = self.q.get(False)
+			cmd = result[0]
+			data = result[1]
+			if cmd == "add":
+				newNode = self.player.createNode(data[0])
+				parentNode = self.player.getElementByID(data[1])
+				parentNode.appendChild(newNode)
+			elif cmd == "del":
+				currentNode = self.player.getElementByID(data)
+				parentNode = currentNode.getParent()
+				parentNode.removeChild(currentNode)
 			self.q.task_done()
 			log.log(1,"info","Task done")
 		except Queue.Empty:
