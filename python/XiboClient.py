@@ -92,7 +92,8 @@ class XiboLayoutManager(Thread):
     
     def run(self):
         log.log(2,"info",_("XiboLayoutManager instance running."))
-        self.p.enqueue('add',('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" font="arial" text="Layout ID' + self.l.layoutID + '" /></div>','bg'))
+        self.p.enqueue('add',('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" opacity="0" font="arial" text="Layout ID' + self.l.layoutID + '" /></div>','bg'))
+	self.p.enqueue('anim',('fadeIn','text1',3000))
         time.sleep(10)
 #	self.p.enqueue("del","region")
 	self.p.enqueue("reset","")
@@ -249,6 +250,12 @@ class XiboPlayer(Thread):
 						log.log(5,"debug","Removed child node at position " + str(i))
 					except:
 						pass
+			elif cmd == "anim":
+				currentNode = self.player.getElementByID(data[1])
+				if data[0] == "fadeIn":
+					animation = anim.fadeIn(currentNode,data[2])
+				if data[0] == "fadeOut":
+					animation = anim.fadeOut(currentNode,data[2])
 			self.q.task_done()
 			# Call ourselves again to action any remaining queued items
 			# This does not make an infinite loop since when all queued items are processed
