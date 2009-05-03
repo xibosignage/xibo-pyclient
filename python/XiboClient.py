@@ -83,25 +83,17 @@ class Xmds:
 
 #### Layout/Region Management
 class XiboLayoutManager(Thread):
-    def __init__(self,parent,player,background,layout):
+    def __init__(self,parent,player,layout):
         log.log(3,"info",_("New XiboLayoutManager instance created."))
         self.p = player
-        self.bg = background
         self.l = layout
         self.parent = parent
         Thread.__init__(self)
     
     def run(self):
         log.log(2,"info",_("XiboLayoutManager instance running."))
- #       region1 = self.p.createNode('<div id="region' + self.l.layoutID + '" x="30" y="30" width="300" height="30" opacity="1"><words id="text' + self.l.layoutID + '" font="arial" text="Layout ID ' + self.l.layoutID + '" /></div>')
         self.p.enqueue('add',('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" font="arial" text="Layout ID' + self.l.layoutID + '" /></div>','bg'))
-
-#        self.bg.appendChild(region1)
-#	self.p.enqueue("add la")
         time.sleep(10)
-        #### Calling removeChild should remove region1 and its contents from bg, but it's
-        #### causing Player to quit. Not sure why that should be. bug?
-        # self.bg.removeChild(self.bg.indexOf(region1))
 	self.p.enqueue("del","region")
         self.parent.nextLayout()
     
@@ -198,25 +190,17 @@ class XiboDisplayManager:
         # Final job. Create a libavg player, load an empty avg file and play it.
         self.Player = XiboPlayer()
 	self.Player.start()
-#        self.Player.showCursor(0);
-        #self.Player.loadString("<avg id=\"main\" width=\"800\" height=\"600\"><div id=\"bg\" width=\"800\" height=\"600\" x=\"0\" y=\"0\" opacity=\"1\"></div></avg>")
-#        self.Player.loadFile("player.avg")
-        self.bg = "background"
         
         # Call a next Layout event now...
         self.nextLayout()
-        
-        # Start libavg running...
-#        self.Player.play()
-        # play() blocks until we quit.
-    
+            
     def nextLayout(self):
         # Deal with any existing LayoutManagers that might still be running
         ##if self.currentLM.isRunning == true:
         ##    self.currentLM.dispose()
         
         # New LayoutManager
-        self.currentLM = XiboLayoutManager(self, self.Player, self.bg, self.scheduler.nextLayout())
+        self.currentLM = XiboLayoutManager(self, self.Player, self.scheduler.nextLayout())
         log.log(2,"info",_("XiboLayoutManager: nextLayout() -> Starting new XiboLayoutManager with layout ") + str(self.currentLM.l.layoutID))
         self.currentLM.start()
 
@@ -238,6 +222,7 @@ class XiboPlayer(Thread):
 		self.q.put((command,data))
 
 	def frameHandle(self):
+		"Called on each new libavg frame. Takes queued commands and executes them"
 		try:
 			result = self.q.get(False)
 			cmd = result[0]
@@ -246,12 +231,17 @@ class XiboPlayer(Thread):
 				newNode = self.player.createNode(data[0])
 				parentNode = self.player.getElementByID(data[1])
 				parentNode.appendChild(newNode)
+				log.log(5,"debug","Added new node to " + str(data[1]))
 			elif cmd == "del":
 				currentNode = self.player.getElementByID(data)
 				parentNode = currentNode.getParent()
 				parentNode.removeChild(currentNode)
+				log.log(5,"debug","Removed node " + str(data))
 			self.q.task_done()
-			log.log(1,"info","Task done")
+			# Call ourselves again to action any remaining queued items
+			# This does not make an infinite loop since when all queued items are processed
+			# A Queue.Empty exception is thrown and this whole block is skipped.
+			self.frameHandle()
 		except Queue.Empty:
 			pass
 
