@@ -90,9 +90,11 @@ class XiboLayoutManager(Thread):
         self.parent = parent
 	self.regions = []
 	self.layoutExpired = False
+	self.isPlaying = False
         Thread.__init__(self)
     
     def run(self):
+	self.isPlaying = True
         log.log(2,"info",_("XiboLayoutManager instance running."))
 #       self.p.enqueue('add',('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" opacity="0" font="arial" text="Layout ID' + self.l.layoutID + '" /></div>','bg'))
 #	self.p.enqueue('anim',('fadeIn','text1',3000))
@@ -170,7 +172,7 @@ class DummyScheduler(XiboScheduler):
     def hasNext(self):
         "Return true if there are more layouts, otherwise false"
         log.log(3,"info",_("DummyScheduler: hasNext() -> true"))
-        return true
+        return True
 #### Finish Scheduler Classes
 
 class XiboDisplayManager:
@@ -221,8 +223,11 @@ class XiboDisplayManager:
             
     def nextLayout(self):
         # Deal with any existing LayoutManagers that might still be running
-        ##if self.currentLM.isRunning == true:
-        ##    self.currentLM.dispose()
+	try:        
+		if self.currentLM.isRunning == True:
+        	    self.currentLM.dispose()
+	except:
+		pass
         
         # New LayoutManager
         self.currentLM = XiboLayoutManager(self, self.Player, self.scheduler.nextLayout())
@@ -236,6 +241,7 @@ class XiboPlayer(Thread):
 		self.q = Queue.Queue(0)
 
 	def run(self):
+		log.log(1,"info",_("New XiboPlayer running"))
 		self.player = avg.Player()
 		self.player.showCursor(0)
 		self.player.loadFile("player.avg")
@@ -243,8 +249,9 @@ class XiboPlayer(Thread):
 		self.player.play()
 
 	def enqueue(self,command,data):
-		log.log(1,"info","Enqueue: " + str(command) + " " + str(data))
+		log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
 		self.q.put((command,data))
+		log.log(3,"info",_("Queue length is now") + " " + str(self.q.qsize()))
 
 	def frameHandle(self):
 		"Called on each new libavg frame. Takes queued commands and executes them"
@@ -288,7 +295,7 @@ class XiboPlayer(Thread):
 			pass
 
 class XiboClient:
-    "Main Xibo DisplayClient Class. May host many DisplayManager classes"
+    "Main Xibo DisplayClient Class. May (in time!) host many DisplayManager classes"
 
     def __init__(self):
         pass
