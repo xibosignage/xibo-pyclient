@@ -88,25 +88,46 @@ class XiboLayoutManager(Thread):
         self.p = player
         self.l = layout
         self.parent = parent
+	self.regions = []
+	self.layoutExpired = False
         Thread.__init__(self)
     
     def run(self):
         log.log(2,"info",_("XiboLayoutManager instance running."))
-        self.p.enqueue('add',('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" opacity="0" font="arial" text="Layout ID' + self.l.layoutID + '" /></div>','bg'))
-	self.p.enqueue('anim',('fadeIn','text1',3000))
-        time.sleep(7)
-	self.p.enqueue('anim',('fadeOut','text1',3000))
-	time.sleep(3)
-	self.p.enqueue("del","region")	
+#       self.p.enqueue('add',('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" opacity="0" font="arial" text="Layout ID' + self.l.layoutID + '" /></div>','bg'))
+#	self.p.enqueue('anim',('fadeIn','text1',3000))
+#       time.sleep(7)
+#	self.p.enqueue('anim',('fadeOut','text1',3000))
+#	time.sleep(3)
+#	self.p.enqueue("del","region")	
 #	self.p.enqueue("reset","")
-        self.parent.nextLayout()
+#       self.parent.nextLayout()
+	# Break layout in to regions
+	# Spawn a region manager for each region and then start them all running
+	# Log each region in an array for checking later.
     
+    def regionElapsed(self):
+	log.log(2,"info",_("Region elapsed. Checking if layout has elapsed"))
+
+	allExpired = True
+	for i in self.regions:
+		if i.regionExpired == False:
+			log.log(3,"info",_("Region " + i.regionName + " has not expired. Waiting"))
+			allExpired = False
+
+	if allExpired:
+		log.log(2,"info",_("All regions have expired. Marking layout as expired"))
+		self.layoutExpired = True
+		self.parent.nextLayout()
+
     def dispose(self):
-        pass
+        self.p.enqueue("reset","")
 
 class XiboRegionManager(Thread):
     def __init__(self):
         Thread.__init__(self)
+	self.regionName = ""
+	self.regionExpired = False
 #### Finish Layout/Region Managment
 
 #### Media
