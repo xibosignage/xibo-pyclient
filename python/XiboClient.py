@@ -11,6 +11,7 @@ import sys
 from threading import Thread
 
 version = "1.1.0"
+schemaVersion = 1
 
 #### Abstract Classes
 class XiboLog:
@@ -107,6 +108,10 @@ class XiboLayoutManager(Thread):
 	# Break layout in to regions
 	# Spawn a region manager for each region and then start them all running
 	# Log each region in an array for checking later.
+	for cn in self.l.children():
+		log.log(1,"info","node")
+		if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "region":
+			log.log(1,"info","Encountered region")
     
     def regionElapsed(self):
 	log.log(2,"info",_("Region elapsed. Checking if layout has elapsed"))
@@ -145,6 +150,91 @@ class XiboMedia(Thread):
 class XiboLayout:
     def __init__(self,layoutID):
         self.layoutID = layoutID
+	self.builtWithNoXLF = False
+	self.schedule = ""
+	self.layoutNode = None
+	self.iter = None
+	
+	# Attributes
+	self.width = None
+	self.height = None
+	self.sWidth = None
+	self.sHeight = None
+	self.offsetX = 0
+	self.offsetY = 0
+	self.scaleFactor = 1
+	self.backgroundImage = None
+	self.backgroundColour = None
+
+	# Checks
+	self.schemaCheck = False
+	self.mediaCheck = False
+
+	# Read XLF from file (if it exists)
+	# Set builtWithNoXLF = True if it doesn't
+	try:
+		log.log(3,"info",_("Loading layout ID") + " " + self.layoutID + " " + _("from file") + " " + config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf')
+		self.doc = minidom.parse(config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf')
+
+		# Find the layout node and store it
+		for e in self.doc.childNodes:
+			if e.nodeType == e.ELEMENT_NODE and e.localName == "layout":
+				self.layoutNode = e
+
+		# Check the layout's schemaVersion matches the version this client understands
+		try:
+			xlfSchemaVersion = int(self.layoutNode.attributes['schemaVersion'].value)
+		except KeyError:
+			log.log(1,"error",_("Layout has no schemaVersion attribute and cannot be shown by this client"))
+			self.schemaCheck = False
+			return			
+
+		if xlfSchemaVersion != schemaVersion:
+			# Layout has incorrect schemaVersion.
+			# Set the flag so the scheduler doesn't present this to the display
+			log.log(1,"error",_("Layout has incorrect schemaVersion attribute and cannot be shown by this client.") + " " + str(xlfSchemaVersion) + " != " + str(schemaVersion))
+			self.schemaCheck = False
+			return
+		else:
+			self.schemaCheck = True
+
+		# Setup variables from the layout node
+		try:
+			self.width = self.layoutNode.attributes['width'].value
+			self.height = self.layoutNode.attributes['height'].value
+			self.backgroundColour = self.layoutNode.attributes['bgcolor'].value
+		except KeyError:
+			# Layout invalid as a required key was not present
+			log.log(1,"error",_("Layout XLF is invalid. Missing required attributes"))
+
+		try:
+			self.backgroundImage = self.layoutNode.attributes['background'].value
+		except KeyError:
+			# Optional attributes, so pass on error.
+			pass
+
+		# TODO: Work out layout scaling and offset and set appropriate variables
+
+		# Present the children of the layout node for further parsing
+		self.iter = self.layoutNode.childNodes
+
+	except IOError:
+		# File doesn't exist. Keep the layout object for the
+		# schedule information it may contain later.
+		log.log(3,"info",_("File does not exist. Marking layout built without XLF file"))
+		self.builtWithNoXLF = True
+
+    def resetSchedule(self):
+	pass
+
+    def addSchedule(self,fromDt,toDt):
+	pass
+
+    def canRun(self):
+	return True
+
+    def children(self):
+	return self.iter
         
 class DummyScheduler(XiboScheduler):
     "Dummy scheduler - returns a list of layouts in rotation forever"
@@ -214,7 +304,7 @@ class XiboDisplayManager:
             exit(1)
         # End of scheduler init
         
-        # Final job. Create a libavg player, load an empty avg file and play it.
+        # Final job. Create a XiboPlayer and start it running.
         self.Player = XiboPlayer()
 	self.Player.start()
         
@@ -303,6 +393,8 @@ class XiboClient:
     def play(self):
         global version
         print _("Xibo Client v") + version
+
+	global schemaVersion
         
         print _("Reading default configuration")
         global config
