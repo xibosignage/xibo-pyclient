@@ -200,8 +200,8 @@ class XiboLayout:
 
 		# Setup variables from the layout node
 		try:
-			self.width = self.layoutNode.attributes['width'].value
-			self.height = self.layoutNode.attributes['height'].value
+			self.width = int(self.layoutNode.attributes['width'].value)
+			self.height = int(self.layoutNode.attributes['height'].value)
 			self.backgroundColour = self.layoutNode.attributes['bgcolor'].value
 		except KeyError:
 			# Layout invalid as a required key was not present
@@ -213,7 +213,18 @@ class XiboLayout:
 			# Optional attributes, so pass on error.
 			pass
 
-		# TODO: Work out layout scaling and offset and set appropriate variables
+		# Work out layout scaling and offset and set appropriate variables
+		self.scaleFactor = min((800 / float(self.width)),(600 / float(self.height)))
+		self.sWidth = int(self.width * self.scaleFactor)
+		self.sHeight = int(self.height * self.scaleFactor)
+		self.offsetX = abs(800 - self.sWidth) / 2
+		self.offsetY = abs(600 - self.sHeight) / 2
+
+		log.log(5,"debug","Screen Dimensions: 800x600")
+		log.log(5,"debug",_("Layout Dimensions:") + " " + str(self.width) + "x" + str(self.height))
+		log.log(5,"debug",_("Scaled Dimensions:") + " " + str(self.sWidth) + "x" + str(self.sHeight))
+		log.log(5,"debug",_("Offset Dimensions:") + " " + str(self.offsetX) + "x" + str(self.offsetY))
+		log.log(5,"debug",_("Scale Ratio:") + " " + str(self.scaleFactor))
 
 		# Present the children of the layout node for further parsing
 		self.iter = self.layoutNode.childNodes
