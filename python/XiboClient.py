@@ -105,6 +105,19 @@ class XiboLayoutManager(Thread):
 #	self.p.enqueue("del","region")	
 #	self.p.enqueue("reset","")
 #       self.parent.nextLayout()
+
+	# Add a DIV to contain the whole layout (for transitioning whole layouts in to one another)
+	tmpXML = '<div id="layout' + str(self.l.layoutID) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" />'
+	self.p.enqueue('add',(tmpXML,'screen'))
+
+	# Add a ColorNode or ImageNode to the layout div to draw the background
+	if self.l.backgroundImage != None:
+		#TODO
+		pass
+	else:
+		#TODO
+		pass
+
 	# Break layout in to regions
 	# Spawn a region manager for each region and then start them all running
 	# Log each region in an array for checking later.
@@ -154,6 +167,9 @@ class XiboLayout:
 	self.schedule = ""
 	self.layoutNode = None
 	self.iter = None
+	# TODO: Read this from XiboPlayer somehow!
+	self.playerWidth = 800
+	self.playerHeight = 600
 	
 	# Attributes
 	self.width = None
@@ -214,13 +230,13 @@ class XiboLayout:
 			pass
 
 		# Work out layout scaling and offset and set appropriate variables
-		self.scaleFactor = min((800 / float(self.width)),(600 / float(self.height)))
+		self.scaleFactor = min((self.playerWidth / float(self.width)),(self.playerHeight / float(self.height)))
 		self.sWidth = int(self.width * self.scaleFactor)
 		self.sHeight = int(self.height * self.scaleFactor)
-		self.offsetX = abs(800 - self.sWidth) / 2
-		self.offsetY = abs(600 - self.sHeight) / 2
+		self.offsetX = abs(self.playerWidth - self.sWidth) / 2
+		self.offsetY = abs(self.playerHeight - self.sHeight) / 2
 
-		log.log(5,"debug","Screen Dimensions: 800x600")
+		log.log(5,"debug",_("Screen Dimensions:") + " " + str(self.playerWidth) + "x" + str(self.playerHeight))
 		log.log(5,"debug",_("Layout Dimensions:") + " " + str(self.width) + "x" + str(self.height))
 		log.log(5,"debug",_("Scaled Dimensions:") + " " + str(self.sWidth) + "x" + str(self.sHeight))
 		log.log(5,"debug",_("Offset Dimensions:") + " " + str(self.offsetX) + "x" + str(self.offsetY))
@@ -340,6 +356,9 @@ class XiboPlayer(Thread):
 	def __init__(self):
 		Thread.__init__(self)
 		self.q = Queue.Queue(0)
+
+	def getDimensions(self):
+		return (self.player.width, self.player.height)
 
 	def run(self):
 		log.log(1,"info",_("New XiboPlayer running"))
