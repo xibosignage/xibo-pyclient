@@ -122,7 +122,10 @@ class XiboLayoutManager(Thread):
 		self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
 	# TODO: Remove ME
-	time.sleep(5)
+	tmpXML = '<video href="data/129.avi" width="200" height="150" x="20" y="20" id="video" />'
+	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+	self.p.enqueue('play','video')
+	time.sleep(20)
 	self.p.enqueue('anim',('fadeOut',self.layoutNodeName,2000))
 	time.sleep(2)
 	self.parent.nextLayout()
@@ -425,6 +428,15 @@ class XiboPlayer(Thread):
 					animation = anim.fadeIn(currentNode,data[2])
 				if data[0] == "fadeOut":
 					animation = anim.fadeOut(currentNode,data[2])
+			elif cmd == "play":
+				currentNode = self.player.getElementByID(data)
+				currentNode.play()
+			elif cmd == "pause":
+				currentNode = self.player.getElementByID(data)
+				currentNode.pause()
+			elif cmd == "stop":
+				currentNode = self.player.getElementByID(data)
+				currentNode.stop()				
 			self.q.task_done()
 			# Call ourselves again to action any remaining queued items
 			# This does not make an infinite loop since when all queued items are processed
