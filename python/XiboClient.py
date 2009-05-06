@@ -121,6 +121,13 @@ class XiboLayoutManager(Thread):
 		tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + str(self.l.backgroundImage) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" />'
 		self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
+	# TODO: Remove ME
+	time.sleep(5)
+	self.p.enqueue('anim',('fadeOut',self.layoutNodeName,2000))
+	time.sleep(2)
+	self.parent.nextLayout()
+	# TODO: End Remove ME
+
 	# Break layout in to regions
 	# Spawn a region manager for each region and then start them all running
 	# Log each region in an array for checking later.
@@ -342,13 +349,17 @@ class XiboDisplayManager:
         self.nextLayout()
             
     def nextLayout(self):
+	# TODO: Whole function is wrong. This is where layout transitions should be supported.
+	# Needs careful consideration.
+
         # Deal with any existing LayoutManagers that might still be running
 	try:        
 		if self.currentLM.isRunning == True:
         	    self.currentLM.dispose()
 	except:
 		pass
-        
+	self.Player.enqueue("reset","")        
+
         # New LayoutManager
         self.currentLM = XiboLayoutManager(self, self.Player, self.scheduler.nextLayout())
         log.log(2,"info",_("XiboLayoutManager: nextLayout() -> Starting new XiboLayoutManager with layout ") + str(self.currentLM.l.layoutID))
@@ -398,7 +409,7 @@ class XiboPlayer(Thread):
 				parentNode.removeChild(currentNode)
 				log.log(5,"debug","Removed node " + str(data))
 			elif cmd == "reset":
-				parentNode = self.player.getElementByID("bg")
+				parentNode = self.player.getElementByID("screen")
 				numChildren = parentNode.getNumChildren()
 				log.log(5,"debug","Reset. Node has " + str(numChildren) + " nodes")
 				for i in range(0,numChildren):
