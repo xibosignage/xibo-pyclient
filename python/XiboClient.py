@@ -90,6 +90,7 @@ class XiboLayoutManager(Thread):
         self.l = layout
         self.parent = parent
 	self.regions = []
+	self.layoutNodeName = None
 	self.layoutExpired = False
 	self.isPlaying = False
         Thread.__init__(self)
@@ -107,16 +108,18 @@ class XiboLayoutManager(Thread):
 #       self.parent.nextLayout()
 
 	# Add a DIV to contain the whole layout (for transitioning whole layouts in to one another)
-	tmpXML = '<div id="layout' + str(self.l.layoutID) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" />'
+	self.layoutNodeName = 'layout' + str(self.l.layoutID)
+	tmpXML = '<div id="' + self.layoutNodeName + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" />'
 	self.p.enqueue('add',(tmpXML,'screen'))
 
-	# Add a ColorNode or ImageNode to the layout div to draw the background
+	# Add a ColorNode and maybe ImageNode to the layout div to draw the background
+	tmpXML = '<colornode fillcolor="' + self.l.backgroundColour + '" id="' + self.layoutNodeName + '-bgColor" />'
+	# TODO: Fix background colour
+	#self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+
 	if self.l.backgroundImage != None:
-		#TODO
-		pass
-	else:
-		#TODO
-		pass
+		tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + str(self.l.backgroundImage) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" />'
+		self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
 	# Break layout in to regions
 	# Spawn a region manager for each region and then start them all running
@@ -218,7 +221,7 @@ class XiboLayout:
 		try:
 			self.width = int(self.layoutNode.attributes['width'].value)
 			self.height = int(self.layoutNode.attributes['height'].value)
-			self.backgroundColour = self.layoutNode.attributes['bgcolor'].value
+			self.backgroundColour = str(self.layoutNode.attributes['bgcolor'].value)[1:]
 		except KeyError:
 			# Layout invalid as a required key was not present
 			log.log(1,"error",_("Layout XLF is invalid. Missing required attributes"))
@@ -363,6 +366,7 @@ class XiboPlayer(Thread):
 	def run(self):
 		log.log(1,"info",_("New XiboPlayer running"))
 		self.player = avg.Player()
+		#self.player.loadPlugin("ColorNode")
 		self.player.showCursor(0)
 		self.player.loadFile("player.avg")
 		self.player.setOnFrameHandler(self.frameHandle)
