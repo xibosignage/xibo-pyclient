@@ -170,9 +170,9 @@ class XiboLayout:
 	self.schedule = ""
 	self.layoutNode = None
 	self.iter = None
-	# TODO: Read this from XiboPlayer somehow!
-	self.playerWidth = 800
-	self.playerHeight = 600
+
+	self.playerWidth = int(config.get('Main','width'))
+	self.playerHeight = int(config.get('Main','height'))
 	
 	# Attributes
 	self.width = None
@@ -366,9 +366,13 @@ class XiboPlayer(Thread):
 	def run(self):
 		log.log(1,"info",_("New XiboPlayer running"))
 		self.player = avg.Player()
+		if config.get('Main','fullscreen') == "true":
+			self.player.setResolution(True,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
+		else:
+			self.player.setResolution(False,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
 		#self.player.loadPlugin("ColorNode")
 		self.player.showCursor(0)
-		self.player.loadFile("player.avg")
+		self.player.loadString('<avg id="main" width="' + config.get('Main','width') + '" height="' + config.get('Main','height') + '"><div id="screen"></div></avg>')
 		self.player.setOnFrameHandler(self.frameHandle)
 		self.player.play()
 
