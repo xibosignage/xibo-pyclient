@@ -123,7 +123,7 @@ class XiboLayoutManager(Thread):
 
 	# TODO: Fix background colour
 	# Add a ColorNode and maybe ImageNode to the layout div to draw the background
-	# tmpXML = '<colornode fillcolor="' + self.l.backgroundColour + '" id="' + self.layoutNodeName + '-bgColor" />'
+	# tmpXML = '<colornode fillcolor="' + self.l.backgroundColour + '" id="bgColor' + self.layoutNodeNameExt + '" />'
 	# self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
 	if self.l.backgroundImage != None:
@@ -147,6 +147,14 @@ class XiboLayoutManager(Thread):
 		log.log(1,"info","node")
 		if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "region":
 			log.log(1,"info","Encountered region")
+			# Create a new Region Manager Thread and kick it running.
+			# Pass in cn since it contains the XML for the whole region
+		        tmpRegion = XiboRegionManager(self, self.p, self.layoutNodeName, self.layoutNodeNameExt, cn)
+		        log.log(2,"info",_("XiboLayoutManager: run() -> Starting new XiboRegionManager."))
+		        tmpRegion.start()
+			# Store a reference to the region so we can talk to it later
+			self.regions.append(tmpRegion)
+			
     
     def regionElapsed(self):
 	log.log(2,"info",_("Region elapsed. Checking if layout has elapsed"))
@@ -166,10 +174,22 @@ class XiboLayoutManager(Thread):
         self.p.enqueue("reset","")
 
 class XiboRegionManager(Thread):
-    def __init__(self):
+    def __init__(self,parent,player,layoutNodeName,layoutNodeNameExt,cn):
+        log.log(3,"info",_("New XiboRegionManager instance created."))
         Thread.__init__(self)
-	self.regionName = ""
+	self.p = player
+	self.parent = parent
+	self.regionNode = cn
+	self.layoutNodeName = layoutNodeName
+	self.layoutNodeNameExt = layoutNodeNameExt
 	self.regionExpired = False
+	self.regionNodeNameExt = "-" + str(self.p.nextUniqueId())
+	self.regionNodeName = self.regionNode.attributes['id'].value + self.regionNodeNameExt
+
+    def run(self):
+        log.log(3,"info",_("New XiboRegionManager instance running for region:") + self.regionNodeName)
+	
+
 #### Finish Layout/Region Managment
 
 #### Media
