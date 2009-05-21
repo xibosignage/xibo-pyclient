@@ -93,6 +93,7 @@ class XiboLayoutManager(Thread):
 	self.opacity = opacity
 	self.regions = []
 	self.layoutNodeName = None
+	self.layoutNodeNameExt = "-" + str(self.p.nextUniqueId())
 	self.layoutExpired = False
 	self.isPlaying = False
         Thread.__init__(self)
@@ -100,6 +101,8 @@ class XiboLayoutManager(Thread):
     def run(self):
 	self.isPlaying = True
         log.log(2,"info",_("XiboLayoutManager instance running."))
+	
+	# TODO: Remove this whole block of code when appropriate.
 #       self.p.enqueue('add',('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" opacity="0" font="arial" text="Layout ID' + self.l.layoutID + '" /></div>','bg'))
 #	self.p.enqueue('anim',('fadeIn','text1',3000))
 #       time.sleep(7)
@@ -111,7 +114,10 @@ class XiboLayoutManager(Thread):
 
 	# Add a DIV to contain the whole layout (for transitioning whole layouts in to one another)
 	# TODO: Take account of the zindex parameter for transitions. Should this layout sit on top or underneath?
-	self.layoutNodeName = 'layout' + str(self.l.layoutID)
+	# Ensure that the layoutNodeName is unique on the player (incase we have to transition to ourself)
+	self.layoutNodeName = 'layout' + str(self.l.layoutID) + self.layoutNodeNameExt
+
+	# Create the XML that will render the layoutNode.
 	tmpXML = '<div id="' + self.layoutNodeName + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" opacity="' + str(self.opacity) + '" />'
 	self.p.enqueue('add',(tmpXML,'screen'))
 
@@ -121,13 +127,13 @@ class XiboLayoutManager(Thread):
 	# self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
 	if self.l.backgroundImage != None:
-		tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + str(self.l.backgroundImage) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" />'
+		tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + str(self.l.backgroundImage) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" id="bg' + self.layoutNodeNameExt + '" />'
 		self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
 	# TODO: Remove ME
-	tmpXML = '<video href="data/129.mpg" width="200" height="150" x="20" y="20" id="video" />'
+	tmpXML = '<video href="data/129.avi" width="200" height="150" x="20" y="20" id="video' + self.layoutNodeNameExt + '" />'
 	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
-	self.p.enqueue('play','video')
+	self.p.enqueue('play','video' + self.layoutNodeNameExt)
 	time.sleep(20)
 	self.p.enqueue('anim',('fadeOut',self.layoutNodeName,2000))
 	time.sleep(2)
@@ -376,9 +382,23 @@ class XiboPlayer(Thread):
 	def __init__(self):
 		Thread.__init__(self)
 		self.q = Queue.Queue(0)
+		self.uniqueId = 0
 
 	def getDimensions(self):
 		return (self.player.width, self.player.height)
+
+	def getElementByID(self,id):
+		return self.player.getElementByID(id)
+
+	def nextUniqueId(self):
+		# This is just to ensure there are never two identically named nodes on the
+		# player at once.
+		# When we hit 100 times, reset to 0 as those nodes should be long gone.
+		if self.uniqueId > 100:
+			self.uniqueId = 0
+
+		self.uniqueId += 1
+		return self.uniqueId
 
 	def run(self):
 		log.log(1,"info",_("New XiboPlayer running"))
