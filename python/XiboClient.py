@@ -84,11 +84,13 @@ class Xmds:
 
 #### Layout/Region Management
 class XiboLayoutManager(Thread):
-    def __init__(self,parent,player,layout):
+    def __init__(self,parent,player,layout,zindex=0,opacity=1.0):
         log.log(3,"info",_("New XiboLayoutManager instance created."))
         self.p = player
         self.l = layout
+	self.zindex = zindex
         self.parent = parent
+	self.opacity = opacity
 	self.regions = []
 	self.layoutNodeName = None
 	self.layoutExpired = False
@@ -108,21 +110,22 @@ class XiboLayoutManager(Thread):
 #       self.parent.nextLayout()
 
 	# Add a DIV to contain the whole layout (for transitioning whole layouts in to one another)
+	# TODO: Take account of the zindex parameter for transitions. Should this layout sit on top or underneath?
 	self.layoutNodeName = 'layout' + str(self.l.layoutID)
-	tmpXML = '<div id="' + self.layoutNodeName + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" />'
+	tmpXML = '<div id="' + self.layoutNodeName + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" opacity="' + str(self.opacity) + '" />'
 	self.p.enqueue('add',(tmpXML,'screen'))
 
-	# Add a ColorNode and maybe ImageNode to the layout div to draw the background
-	tmpXML = '<colornode fillcolor="' + self.l.backgroundColour + '" id="' + self.layoutNodeName + '-bgColor" />'
 	# TODO: Fix background colour
-	#self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+	# Add a ColorNode and maybe ImageNode to the layout div to draw the background
+	# tmpXML = '<colornode fillcolor="' + self.l.backgroundColour + '" id="' + self.layoutNodeName + '-bgColor" />'
+	# self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
 	if self.l.backgroundImage != None:
 		tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + str(self.l.backgroundImage) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" />'
 		self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
 	# TODO: Remove ME
-	tmpXML = '<video href="data/129.avi" width="200" height="150" x="20" y="20" id="video" />'
+	tmpXML = '<video href="data/129.mpg" width="200" height="150" x="20" y="20" id="video" />'
 	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 	self.p.enqueue('play','video')
 	time.sleep(20)
