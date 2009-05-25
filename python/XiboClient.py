@@ -131,13 +131,13 @@ class XiboLayoutManager(Thread):
 		self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
 	# TODO: Remove ME
-	tmpXML = '<video href="data/129.avi" width="200" height="150" x="20" y="20" id="video' + self.layoutNodeNameExt + '" />'
-	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
-	self.p.enqueue('play','video' + self.layoutNodeNameExt)
-	time.sleep(20)
-	self.p.enqueue('anim',('fadeOut',self.layoutNodeName,2000))
-	time.sleep(2)
-	self.parent.nextLayout()
+	#tmpXML = '<video href="data/129.avi" width="200" height="150" x="20" y="20" id="video' + self.layoutNodeNameExt + '" />'
+	#self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+	#self.p.enqueue('play','video' + self.layoutNodeNameExt)
+	#time.sleep(20)
+	#self.p.enqueue('anim',('fadeOut',self.layoutNodeName,2000))
+	#time.sleep(2)
+	#self.parent.nextLayout()
 	# TODO: End Remove ME
 
 	# Break layout in to regions
@@ -168,6 +168,10 @@ class XiboLayoutManager(Thread):
 	if allExpired:
 		log.log(2,"info",_("All regions have expired. Marking layout as expired"))
 		self.layoutExpired = True
+		# TODO: Testing only - remove
+		self.p.enqueue('anim',('fadeOut',self.layoutNodeName,2000))
+		time.sleep(2)
+		# END
 		self.parent.nextLayout()
 
     def dispose(self):
@@ -185,11 +189,20 @@ class XiboRegionManager(Thread):
 	self.regionExpired = False
 	self.regionNodeNameExt = "-" + str(self.p.nextUniqueId())
 	self.regionNodeName = self.regionNode.attributes['id'].value + self.regionNodeNameExt
+	self.width = int(self.regionNode.attributes['width'].value) * parent.l.scaleFactor
+	self.height =  int(self.regionNode.attributes['height'].value) * parent.l.scaleFactor
+	self.top = int(self.regionNode.attributes['top'].value) * parent.l.scaleFactor
+	self.left = int(self.regionNode.attributes['left'].value) * parent.l.scaleFactor
 
     def run(self):
         log.log(3,"info",_("New XiboRegionManager instance running for region:") + self.regionNodeName)
+	tmpXML = '<video href="data/129.avi" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="video' + self.regionNodeNameExt + '" />'
+	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+	self.p.enqueue('play','video' + self.regionNodeNameExt)
+	time.sleep(20)
+	self.regionExpired = True
+	self.parent.regionElapsed()
 	
-
 #### Finish Layout/Region Managment
 
 #### Media
