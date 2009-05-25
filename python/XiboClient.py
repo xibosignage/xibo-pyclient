@@ -188,13 +188,43 @@ class XiboRegionManager(Thread):
 	self.layoutNodeNameExt = layoutNodeNameExt
 	self.regionExpired = False
 	self.regionNodeNameExt = "-" + str(self.p.nextUniqueId())
-	self.regionNodeName = self.regionNode.attributes['id'].value + self.regionNodeNameExt
-	self.width = int(self.regionNode.attributes['width'].value) * parent.l.scaleFactor
-	self.height =  int(self.regionNode.attributes['height'].value) * parent.l.scaleFactor
-	self.top = int(self.regionNode.attributes['top'].value) * parent.l.scaleFactor
-	self.left = int(self.regionNode.attributes['left'].value) * parent.l.scaleFactor
+
+	# Calculate the region ID name
+	try:
+		self.regionNodeName = self.regionNode.attributes['id'].value + self.regionNodeNameExt
+	except KeyError:
+		log.log(1,"error",_("Region XLF is invalid. Missing required id attribute"))
+
+	# Calculate the region width
+	try:
+		self.width = int(self.regionNode.attributes['width'].value) * parent.l.scaleFactor
+	except KeyError:
+		log.log(1,"error",_("Region XLF is invalid. Missing required width attribute"))
+
+	# Calculate the region height
+	try:
+		self.height =  int(self.regionNode.attributes['height'].value) * parent.l.scaleFactor
+	except KeyError:
+		log.log(1,"error",_("Region XLF is invalid. Missing required height attribute"))
+
+	# Calculate the region top
+	try:
+		self.top = int(self.regionNode.attributes['top'].value) * parent.l.scaleFactor
+	except KeyError:
+		log.log(1,"error",_("Region XLF is invalid. Missing required top attribute"))
+
+	# Calculate the region left
+	try:
+		self.left = int(self.regionNode.attributes['left'].value) * parent.l.scaleFactor
+	except KeyError:
+		log.log(1,"error",_("Region XLF is invalid. Missing required left attribute"))
 
     def run(self):
+	# TODO: Remove this
+	# Correct logic should be:
+	#  * Iterate through the media items
+	#  -> For each media, display on screen and set a timer to cause the next item to be shown
+	#  * When all items complete, mark region complete by setting regionExpired = True and calling parent.regionElapsed()
         log.log(3,"info",_("New XiboRegionManager instance running for region:") + self.regionNodeName)
 	tmpXML = '<video href="data/129.avi" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="video' + self.regionNodeNameExt + '" />'
 	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
