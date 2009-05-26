@@ -264,7 +264,8 @@ class XiboRegionManager(Thread):
 		# time.sleep(20)
 	elif self.count == 2:
 		self.p.enqueue('del','M' + self.regionNodeNameExt)
-		tmpXML = '<image href="data/130.jpg" id="M' + self.regionNodeNameExt + '" width="100" height="20" opacity="1.0" />'
+		# TODO: This adds fine but can't be seen... Hmm.
+		tmpXML = '<image href="data/130.png" id="M' + self.regionNodeNameExt + '" width="100" height="20" opacity="1.0" />'
 		self.p.enqueue('add',(tmpXML,self.regionNodeName))
 		self.p.enqueue('timer',(20000,self.next))
 	else:	
