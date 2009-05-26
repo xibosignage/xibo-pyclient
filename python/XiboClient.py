@@ -152,10 +152,12 @@ class XiboLayoutManager(Thread):
 	if allExpired:
 		log.log(2,"info",_("All regions have expired. Marking layout as expired"))
 		self.layoutExpired = True
-		# TODO: Testing only - remove
-		self.p.enqueue('anim',('fadeOut',self.layoutNodeName,2000))
-		time.sleep(2)
-		# END
+
+		# Mark all the regions as disposed
+		# TODO: This may need to move depending on how layout transitions are handled?
+		for i in self.regions:
+			i.disposed = True
+
 		self.parent.nextLayout()
 
     def dispose(self):
@@ -178,6 +180,7 @@ class XiboRegionManager(Thread):
 	self.top = None
 	self.left = None
 	self.zindex = None
+	self.disposed = False
 
 	# Calculate the region ID name
 	try:
@@ -232,24 +235,46 @@ class XiboRegionManager(Thread):
 		self.zindex = 1
 
     def run(self):
+        log.log(3,"info",_("New XiboRegionManager instance running for region:") + self.regionNodeName)
 	# Create a div for the region and add it
 	tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
 	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+	self.count = 0
+	self.next()
+
+    def next(self):
+	# Load the next media item in to the region
+	# Called by run() initially and then as a callback from libavg
+        log.log(3,"info",_("XiboRegionManager") + " " + self.regionNodeName + ": " + _("Next Media Item"))
+
+	# Do nothing if the layout has already been removed from the screen
+	if self.disposed == True:
+		return
 
 	# TODO: Remove this
+	self.count += 1
+
+	if self.count == 1:
+		tmpXML = '<video href="data/129.avi" id="M' + self.regionNodeNameExt + '" />'
+#	tmpXML = '<video href="data/129.mpg" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="M' + self.regionNodeNameExt + '" />'
+		self.p.enqueue('add',(tmpXML,self.regionNodeName))
+		self.p.enqueue('play','M' + self.regionNodeNameExt)
+		self.p.enqueue('resize',('M' + self.regionNodeNameExt, self.width, self.height))
+		self.p.enqueue('timer',(20000,self.next))
+		# time.sleep(20)
+	elif self.count == 2:
+		self.p.enqueue('del','M' + self.regionNodeNameExt)
+		tmpXML = '<image href="data/130.jpg" id="M' + self.regionNodeNameExt + '" width="100" height="20" opacity="1.0" />'
+		self.p.enqueue('add',(tmpXML,self.regionNodeName))
+		self.p.enqueue('timer',(20000,self.next))
+	else:	
+		self.regionExpired = True
+		self.parent.regionElapsed()
+
 	# Correct logic should be:
 	#  * Iterate through the media items
 	#  -> For each media, display on screen and set a timer to cause the next item to be shown
 	#  * When all items complete, mark region complete by setting regionExpired = True and calling parent.regionElapsed()
-        log.log(3,"info",_("New XiboRegionManager instance running for region:") + self.regionNodeName)
-	tmpXML = '<video href="data/129.mpg" id="M' + self.regionNodeNameExt + '" />'
-#	tmpXML = '<video href="data/129.mpg" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="M' + self.regionNodeNameExt + '" />'
-	self.p.enqueue('add',(tmpXML,self.regionNodeName))
-	self.p.enqueue('play','M' + self.regionNodeNameExt)
-	self.p.enqueue('resize',('M' + self.regionNodeNameExt, self.width, self.height))
-	time.sleep(20)
-	self.regionExpired = True
-	self.parent.regionElapsed()
 	
 #### Finish Layout/Region Managment
 
@@ -549,6 +574,8 @@ class XiboPlayer(Thread):
 				# log.log(1,'info',"Scale Factor: " + str(scaleFactor))
 				currentNode.width = dimension[0] * scaleFactor
 				currentNode.height = dimension[1] * scaleFactor
+			elif cmd == "timer":
+				self.player.setTimeout(data[0],data[1])
 			self.q.task_done()
 			# Call ourselves again to action any remaining queued items
 			# This does not make an infinite loop since when all queued items are processed
