@@ -102,20 +102,10 @@ class XiboLayoutManager(Thread):
 	self.isPlaying = True
         log.log(2,"info",_("XiboLayoutManager instance running."))
 	
-	# TODO: Remove this whole block of code when appropriate.
-#       self.p.enqueue('add',('<div id="region" x="30" y="30" width="300" height="30"><words id="text1" opacity="0" font="arial" text="Layout ID' + self.l.layoutID + '" /></div>','bg'))
-#	self.p.enqueue('anim',('fadeIn','text1',3000))
-#       time.sleep(7)
-#	self.p.enqueue('anim',('fadeOut','text1',3000))
-#	time.sleep(3)
-#	self.p.enqueue("del","region")	
-#	self.p.enqueue("reset","")
-#       self.parent.nextLayout()
-
 	# Add a DIV to contain the whole layout (for transitioning whole layouts in to one another)
 	# TODO: Take account of the zindex parameter for transitions. Should this layout sit on top or underneath?
 	# Ensure that the layoutNodeName is unique on the player (incase we have to transition to ourself)
-	self.layoutNodeName = 'layout' + str(self.l.layoutID) + self.layoutNodeNameExt
+	self.layoutNodeName = 'L' + str(self.l.layoutID) + self.layoutNodeNameExt
 
 	# Create the XML that will render the layoutNode.
 	tmpXML = '<div id="' + self.layoutNodeName + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" opacity="' + str(self.opacity) + '" />'
@@ -123,22 +113,14 @@ class XiboLayoutManager(Thread):
 
 	# TODO: Fix background colour
 	# Add a ColorNode and maybe ImageNode to the layout div to draw the background
+
+	# This code will work with libavg > 0.8.x
 	# tmpXML = '<colornode fillcolor="' + self.l.backgroundColour + '" id="bgColor' + self.layoutNodeNameExt + '" />'
 	# self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
 	if self.l.backgroundImage != None:
 		tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + str(self.l.backgroundImage) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" id="bg' + self.layoutNodeNameExt + '" />'
 		self.p.enqueue('add',(tmpXML,self.layoutNodeName))
-
-	# TODO: Remove ME
-	#tmpXML = '<video href="data/129.avi" width="200" height="150" x="20" y="20" id="video' + self.layoutNodeNameExt + '" />'
-	#self.p.enqueue('add',(tmpXML,self.layoutNodeName))
-	#self.p.enqueue('play','video' + self.layoutNodeNameExt)
-	#time.sleep(20)
-	#self.p.enqueue('anim',('fadeOut',self.layoutNodeName,2000))
-	#time.sleep(2)
-	#self.parent.nextLayout()
-	# TODO: End Remove ME
 
 	# Break layout in to regions
 	# Spawn a region manager for each region and then start them all running
@@ -151,6 +133,8 @@ class XiboLayoutManager(Thread):
 			# Pass in cn since it contains the XML for the whole region
 		        tmpRegion = XiboRegionManager(self, self.p, self.layoutNodeName, self.layoutNodeNameExt, cn)
 		        log.log(2,"info",_("XiboLayoutManager: run() -> Starting new XiboRegionManager."))
+			# TODO: Instead of starting here, we need to sort the regions array by zindex attribute
+			# then start in ascending order to ensure rendering happens in layers correctly.
 		        tmpRegion.start()
 			# Store a reference to the region so we can talk to it later
 			self.regions.append(tmpRegion)
@@ -162,7 +146,7 @@ class XiboLayoutManager(Thread):
 	allExpired = True
 	for i in self.regions:
 		if i.regionExpired == False:
-			log.log(3,"info",_("Region " + i.regionName + " has not expired. Waiting"))
+			log.log(3,"info",_("Region " + i.regionNodeName + " has not expired. Waiting"))
 			allExpired = False
 
 	if allExpired:
@@ -188,47 +172,81 @@ class XiboRegionManager(Thread):
 	self.layoutNodeNameExt = layoutNodeNameExt
 	self.regionExpired = False
 	self.regionNodeNameExt = "-" + str(self.p.nextUniqueId())
+	self.regionNodeName = None
+	self.width = None
+	self.height = None
+	self.top = None
+	self.left = None
+	self.zindex = None
 
 	# Calculate the region ID name
 	try:
-		self.regionNodeName = self.regionNode.attributes['id'].value + self.regionNodeNameExt
+		self.regionNodeName = "R" + str(self.regionNode.attributes['id'].value) + self.regionNodeNameExt
 	except KeyError:
 		log.log(1,"error",_("Region XLF is invalid. Missing required id attribute"))
+		self.regionExpired = True
+		self.parent.regionElapsed()
+		return
+
 
 	# Calculate the region width
 	try:
 		self.width = int(self.regionNode.attributes['width'].value) * parent.l.scaleFactor
 	except KeyError:
 		log.log(1,"error",_("Region XLF is invalid. Missing required width attribute"))
+		self.regionExpired = True
+		self.parent.regionElapsed()
+		return
 
 	# Calculate the region height
 	try:
 		self.height =  int(self.regionNode.attributes['height'].value) * parent.l.scaleFactor
 	except KeyError:
 		log.log(1,"error",_("Region XLF is invalid. Missing required height attribute"))
+		self.regionExpired = True
+		self.parent.regionElapsed()
+		return
 
 	# Calculate the region top
 	try:
 		self.top = int(self.regionNode.attributes['top'].value) * parent.l.scaleFactor
 	except KeyError:
 		log.log(1,"error",_("Region XLF is invalid. Missing required top attribute"))
+		self.regionExpired = True
+		self.parent.regionElapsed()
+		return
 
 	# Calculate the region left
 	try:
 		self.left = int(self.regionNode.attributes['left'].value) * parent.l.scaleFactor
 	except KeyError:
 		log.log(1,"error",_("Region XLF is invalid. Missing required left attribute"))
+		self.regionExpired = True
+		self.parent.regionElapsed()
+		return
+
+	# Get region zindex
+	try:
+		self.zindex = int(self.regionNode.attributes['zindex'].value)
+	except KeyError:
+		self.zindex = 1
 
     def run(self):
+	# Create a div for the region and add it
+	tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
+	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+
 	# TODO: Remove this
 	# Correct logic should be:
 	#  * Iterate through the media items
 	#  -> For each media, display on screen and set a timer to cause the next item to be shown
 	#  * When all items complete, mark region complete by setting regionExpired = True and calling parent.regionElapsed()
         log.log(3,"info",_("New XiboRegionManager instance running for region:") + self.regionNodeName)
-	tmpXML = '<video href="data/129.avi" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="video' + self.regionNodeNameExt + '" />'
-	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
-	self.p.enqueue('play','video' + self.regionNodeNameExt)
+	tmpXML = '<video href="data/129.mpg" id="M' + self.regionNodeNameExt + '" />'
+#	tmpXML = '<video href="data/129.mpg" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="M' + self.regionNodeNameExt + '" />'
+	self.p.enqueue('add',(tmpXML,self.regionNodeName))
+	self.p.enqueue('play','M' + self.regionNodeNameExt)
+	self.p.enqueue('resize',('M' + self.regionNodeNameExt, self.width, self.height))
 	time.sleep(20)
 	self.regionExpired = True
 	self.parent.regionElapsed()
@@ -522,12 +540,22 @@ class XiboPlayer(Thread):
 				currentNode.pause()
 			elif cmd == "stop":
 				currentNode = self.player.getElementByID(data)
-				currentNode.stop()				
+				currentNode.stop()
+			elif cmd == "resize":
+				currentNode = self.player.getElementByID(data[0])
+				dimension = currentNode.getMediaSize()
+				# log.log(1,'info',"Media dimensions: " + str(dimension))
+				scaleFactor = min((float(data[1]) / dimension[0]),(float(data[2]) / dimension[1]))
+				# log.log(1,'info',"Scale Factor: " + str(scaleFactor))
+				currentNode.width = dimension[0] * scaleFactor
+				currentNode.height = dimension[1] * scaleFactor
 			self.q.task_done()
 			# Call ourselves again to action any remaining queued items
 			# This does not make an infinite loop since when all queued items are processed
 			# A Queue.Empty exception is thrown and this whole block is skipped.
 			self.frameHandle()
+		#except RuntimeError:
+		#	log.log(1,"error",_("A runtime error occured. Probably a media file was missing."))
 		except Queue.Empty:
 			pass
 
