@@ -255,7 +255,7 @@ class XiboRegionManager(Thread):
 	self.count += 1
 
 	if self.count == 1:
-		tmpXML = '<video href="data/129.avi" id="M' + self.regionNodeNameExt + '" />'
+		tmpXML = '<video href="data/129.mpg" id="M' + self.regionNodeNameExt + '" />'
 #	tmpXML = '<video href="data/129.mpg" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="M' + self.regionNodeNameExt + '" />'
 		self.p.enqueue('add',(tmpXML,self.regionNodeName))
 		self.p.enqueue('play','M' + self.regionNodeNameExt)
@@ -263,11 +263,17 @@ class XiboRegionManager(Thread):
 		self.p.enqueue('timer',(20000,self.next))
 		# time.sleep(20)
 	elif self.count == 2:
-		self.p.enqueue('del','M' + self.regionNodeNameExt)
-		# TODO: This adds fine but can't be seen... Hmm.
-		tmpXML = '<image href="data/130.png" id="M' + self.regionNodeNameExt + '" width="100" height="20" opacity="1.0" />'
+		# self.p.enqueue('del','M' + self.regionNodeNameExt)
+		tmpXML = '<image href="data/130.png" id="M' + self.regionNodeNameExt + '2" opacity="0.0" />'
 		self.p.enqueue('add',(tmpXML,self.regionNodeName))
+		self.p.enqueue('resize',('M' + self.regionNodeNameExt + '2', self.width, self.height))
+		self.p.enqueue('anim',('fadeOut','M' + self.regionNodeNameExt,2000))
+		self.p.enqueue('anim',('fadeIn','M' + self.regionNodeNameExt + '2',1500))
 		self.p.enqueue('timer',(20000,self.next))
+	elif self.count == 3:
+		self.p.enqueue('del','M' + self.regionNodeNameExt)
+		self.p.enqueue('anim',('fadeOut',self.regionNodeName,2000))
+		self.p.enqueue('timer',(2000,self.next))
 	else:	
 		self.regionExpired = True
 		self.parent.regionElapsed()
