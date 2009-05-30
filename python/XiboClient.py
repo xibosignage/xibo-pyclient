@@ -15,6 +15,7 @@ schemaVersion = 2
 
 #### Abstract Classes
 class XiboLog:
+    "Abstract Class - Interface for Loggers"
     level=0
     def __init__(self,level): abstract
     def log(self,level,category,message): abstract
@@ -29,6 +30,7 @@ class XiboScheduler(Thread):
 
 #### Log Classes
 class XiboLogFile(XiboLog):
+    "Xibo Logger - to file"
     def __init__(self,level):
         pass
         
@@ -39,6 +41,7 @@ class XiboLogFile(XiboLog):
         pass
 
 class XiboLogScreen(XiboLog):
+    "Xibo Logger - to screen"
     def __init__(self,level):
         # Make sure level is sane
         if level == "" or int(level) < 0:
@@ -247,6 +250,10 @@ class XiboRegionManager(Thread):
 	tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
 	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
+	import plugins.media.VideoMedia
+	tmpMedia = eval("plugins.media.VideoMedia.VideoMedia")(log)
+	tmpMedia.start()
+
 	# TODO: Remove me
 	tmpXML = '<video href="data/129.avi" id="M' + self.regionNodeNameExt + '" />'
 	self.p.enqueue('add',(tmpXML,self.regionNodeName))
@@ -292,15 +299,6 @@ class XiboRegionManager(Thread):
 	self.lock.release()
 	
 #### Finish Layout/Region Managment
-
-#### Media
-class XiboMediaInterface:
-    pass
-
-class XiboMedia(Thread):
-    def __init__(self):
-        Thread.__init__(self)
-#### Finish Media
 
 #### Scheduler Classes
 class XiboLayout:
