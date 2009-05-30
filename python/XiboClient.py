@@ -247,16 +247,14 @@ class XiboRegionManager(Thread):
 	tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
 	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
+	# TODO: Remove me
 	tmpXML = '<video href="data/129.avi" id="M' + self.regionNodeNameExt + '" />'
-#	tmpXML = '<video href="data/129.mpg" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="M' + self.regionNodeNameExt + '" />'
 	self.p.enqueue('add',(tmpXML,self.regionNodeName))
 	self.p.enqueue('play','M' + self.regionNodeNameExt)
 	self.p.enqueue('resize',('M' + self.regionNodeNameExt, self.width, self.height))
 	self.p.enqueue('timer',(20000,self.next))
 
 	self.lock.acquire()
-	
-	# TODO: Remove me
 	tmpXML = '<image href="data/130.png" id="M' + self.regionNodeNameExt + '2" opacity="0.0" />'
 	self.p.enqueue('add',(tmpXML,self.regionNodeName))
 	self.p.enqueue('resize',('M' + self.regionNodeNameExt + '2', self.width, self.height))
@@ -283,9 +281,9 @@ class XiboRegionManager(Thread):
 	self.parent.regionElapsed()
 
     def next(self):
-	# Load the next media item in to the region
-	# Called by run() initially and then as a callback from libavg
-        log.log(3,"info",_("XiboRegionManager") + " " + self.regionNodeName + ": " + _("Next Media Item"))
+	# Release the lock semaphore so that the run() method of the thread can continue.
+	# Called by a callback from libavg
+        # log.log(3,"info",_("XiboRegionManager") + " " + self.regionNodeName + ": " + _("Next Media Item"))
 
 	# Do nothing if the layout has already been removed from the screen
 	if self.disposed == True:
@@ -328,8 +326,10 @@ class XiboLayout:
 	self.backgroundColour = None
 
 	# Checks
-	self.schemaCheck = False
-	self.mediaCheck = False
+	# TODO: Check these are appropriate defaults.
+	self.schemaCheck = True
+	self.mediaCheck = True
+	self.scheduleCheck = True
 
 	# Read XLF from file (if it exists)
 	# Set builtWithNoXLF = True if it doesn't
@@ -395,15 +395,15 @@ class XiboLayout:
 		# schedule information it may contain later.
 		log.log(3,"info",_("File does not exist. Marking layout built without XLF file"))
 		self.builtWithNoXLF = True
+	
+    def canRun(self):
+		return self.schemaCheck and self.mediaCheck and self.scheduleCheck
 
     def resetSchedule(self):
 	pass
 
     def addSchedule(self,fromDt,toDt):
 	pass
-
-    def canRun(self):
-	return True
 
     def children(self):
 	return self.iter
@@ -428,8 +428,12 @@ class DummyScheduler(XiboScheduler):
         if self.layoutIndex == len(self.layoutList):
             self.layoutIndex = 0
         
-        log.log(3,"info",_("DummyScheduler: nextLayout() -> ") + str(layout.layoutID))
-        return layout
+	if layout.canRun() == False:
+	        log.log(3,"info",_("DummyScheduler: nextLayout() -> ") + str(layout.layoutID) + _(" is not ready to run."))
+		return self.nextLayout()
+	else:
+	        log.log(3,"info",_("DummyScheduler: nextLayout() -> ") + str(layout.layoutID))
+	        return layout
     
     def hasNext(self):
         "Return true if there are more layouts, otherwise false"
