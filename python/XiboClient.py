@@ -8,10 +8,10 @@ import os
 import re
 import time
 import sys
-from threading import Thread
+from threading import Thread, Semaphore
 
 version = "1.1.0"
-schemaVersion = 1
+schemaVersion = 2
 
 #### Abstract Classes
 class XiboLog:
@@ -167,6 +167,7 @@ class XiboRegionManager(Thread):
     def __init__(self,parent,player,layoutNodeName,layoutNodeNameExt,cn):
         log.log(3,"info",_("New XiboRegionManager instance created."))
         Thread.__init__(self)
+	self.lock = Semaphore()
 	self.p = player
 	self.parent = parent
 	self.regionNode = cn
@@ -235,12 +236,37 @@ class XiboRegionManager(Thread):
 		self.zindex = 1
 
     def run(self):
+	self.lock.acquire()
         log.log(3,"info",_("New XiboRegionManager instance running for region:") + self.regionNodeName)
 	# Create a div for the region and add it
 	tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
 	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
-	self.count = 0
-	self.next()
+
+	tmpXML = '<video href="data/129.avi" id="M' + self.regionNodeNameExt + '" />'
+#	tmpXML = '<video href="data/129.mpg" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="M' + self.regionNodeNameExt + '" />'
+	self.p.enqueue('add',(tmpXML,self.regionNodeName))
+	self.p.enqueue('play','M' + self.regionNodeNameExt)
+	self.p.enqueue('resize',('M' + self.regionNodeNameExt, self.width, self.height))
+	self.p.enqueue('timer',(20000,self.next))
+
+	self.lock.acquire()
+	# self.p.enqueue('del','M' + self.regionNodeNameExt)
+	tmpXML = '<image href="data/130.png" id="M' + self.regionNodeNameExt + '2" opacity="0.0" />'
+	self.p.enqueue('add',(tmpXML,self.regionNodeName))
+	self.p.enqueue('resize',('M' + self.regionNodeNameExt + '2', self.width, self.height))
+	self.p.enqueue('anim',('fadeOut','M' + self.regionNodeNameExt,2000))
+	self.p.enqueue('anim',('fadeIn','M' + self.regionNodeNameExt + '2',1500))
+	self.p.enqueue('timer',(20000,self.next))
+
+	self.lock.acquire()
+	self.p.enqueue('del','M' + self.regionNodeNameExt)
+	self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'y',0,-768,None))
+	self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'x',0,-1366,None))
+	self.p.enqueue('timer',(2000,self.next))
+
+	self.lock.acquire()
+	self.regionExpired = True
+	self.parent.regionElapsed()
 
     def next(self):
 	# Load the next media item in to the region
@@ -251,38 +277,42 @@ class XiboRegionManager(Thread):
 	if self.disposed == True:
 		return
 
-	# TODO: Remove this
-	self.count += 1
+	self.lock.release()
 
-	if self.count == 1:
-		tmpXML = '<video href="data/129.avi" id="M' + self.regionNodeNameExt + '" />'
+	# TODO: Remove this
+#	self.count += 1
+
+#	if self.count == 1:
+#		tmpXML = '<video href="data/129.avi" id="M' + self.regionNodeNameExt + '" />'
 #	tmpXML = '<video href="data/129.mpg" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="M' + self.regionNodeNameExt + '" />'
-		self.p.enqueue('add',(tmpXML,self.regionNodeName))
-		self.p.enqueue('play','M' + self.regionNodeNameExt)
-		self.p.enqueue('resize',('M' + self.regionNodeNameExt, self.width, self.height))
-		self.p.enqueue('timer',(20000,self.next))
-		# time.sleep(20)
-	elif self.count == 2:
-		# self.p.enqueue('del','M' + self.regionNodeNameExt)
-		tmpXML = '<image href="data/130.png" id="M' + self.regionNodeNameExt + '2" opacity="0.0" />'
-		self.p.enqueue('add',(tmpXML,self.regionNodeName))
-		self.p.enqueue('resize',('M' + self.regionNodeNameExt + '2', self.width, self.height))
-		self.p.enqueue('anim',('fadeOut','M' + self.regionNodeNameExt,2000))
-		self.p.enqueue('anim',('fadeIn','M' + self.regionNodeNameExt + '2',1500))
-		self.p.enqueue('timer',(20000,self.next))
-	elif self.count == 3:
-		self.p.enqueue('del','M' + self.regionNodeNameExt)
-		self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'y',0,-768,None))
-		self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'x',0,-1366,None))
-		self.p.enqueue('timer',(2000,self.next))
-	else:	
-		self.regionExpired = True
-		self.parent.regionElapsed()
+#		self.p.enqueue('add',(tmpXML,self.regionNodeName))
+#		self.p.enqueue('play','M' + self.regionNodeNameExt)
+#		self.p.enqueue('resize',('M' + self.regionNodeNameExt, self.width, self.height))
+#		self.p.enqueue('timer',(20000,self.next))
+#		# time.sleep(20)
+#	elif self.count == 2:
+#		# self.p.enqueue('del','M' + self.regionNodeNameExt)
+#		tmpXML = '<image href="data/130.png" id="M' + self.regionNodeNameExt + '2" opacity="0.0" />'
+#		self.p.enqueue('add',(tmpXML,self.regionNodeName))
+#		self.p.enqueue('resize',('M' + self.regionNodeNameExt + '2', self.width, self.height))
+#		self.p.enqueue('anim',('fadeOut','M' + self.regionNodeNameExt,2000))
+#		self.p.enqueue('anim',('fadeIn','M' + self.regionNodeNameExt + '2',1500))
+#		self.p.enqueue('timer',(20000,self.next))
+#	elif self.count == 3:
+#		self.p.enqueue('del','M' + self.regionNodeNameExt)
+#		self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'y',0,-768,None))
+#		self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'x',0,-1366,None))
+#		self.p.enqueue('timer',(2000,self.next))
+#	else:	
+#		self.regionExpired = True
+#		self.parent.regionElapsed()
 
 	# Correct logic should be:
 	#  * Iterate through the media items
 	#  -> For each media, display on screen and set a timer to cause the next item to be shown
 	#  * When all items complete, mark region complete by setting regionExpired = True and calling parent.regionElapsed()
+
+
 	
 #### Finish Layout/Region Managment
 
