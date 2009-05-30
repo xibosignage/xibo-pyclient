@@ -255,7 +255,7 @@ class XiboRegionManager(Thread):
 	self.count += 1
 
 	if self.count == 1:
-		tmpXML = '<video href="data/129.mpg" id="M' + self.regionNodeNameExt + '" />'
+		tmpXML = '<video href="data/129.avi" id="M' + self.regionNodeNameExt + '" />'
 #	tmpXML = '<video href="data/129.mpg" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" id="M' + self.regionNodeNameExt + '" />'
 		self.p.enqueue('add',(tmpXML,self.regionNodeName))
 		self.p.enqueue('play','M' + self.regionNodeNameExt)
@@ -272,7 +272,8 @@ class XiboRegionManager(Thread):
 		self.p.enqueue('timer',(20000,self.next))
 	elif self.count == 3:
 		self.p.enqueue('del','M' + self.regionNodeNameExt)
-		self.p.enqueue('anim',('fadeOut',self.regionNodeName,2000))
+		self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'y',0,-768,None))
+		self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'x',0,-1366,None))
 		self.p.enqueue('timer',(2000,self.next))
 	else:	
 		self.regionExpired = True
@@ -564,6 +565,8 @@ class XiboPlayer(Thread):
 					animation = anim.fadeIn(currentNode,data[2])
 				if data[0] == "fadeOut":
 					animation = anim.fadeOut(currentNode,data[2])
+				if data[0] == "linear":
+					animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
 			elif cmd == "play":
 				currentNode = self.player.getElementByID(data)
 				currentNode.play()
