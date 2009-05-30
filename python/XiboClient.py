@@ -250,32 +250,28 @@ class XiboRegionManager(Thread):
 	tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
 	self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
-	import plugins.media.VideoMedia
-	tmpMedia = eval("plugins.media.VideoMedia.VideoMedia")(log)
-	tmpMedia.start()
-
 	# TODO: Remove me
-	tmpXML = '<video href="data/129.avi" id="M' + self.regionNodeNameExt + '" />'
-	self.p.enqueue('add',(tmpXML,self.regionNodeName))
-	self.p.enqueue('play','M' + self.regionNodeNameExt)
-	self.p.enqueue('resize',('M' + self.regionNodeNameExt, self.width, self.height))
-	self.p.enqueue('timer',(20000,self.next))
+	#tmpXML = '<video href="data/129.avi" id="M' + self.regionNodeNameExt + '" />'
+	#self.p.enqueue('add',(tmpXML,self.regionNodeName))
+	#self.p.enqueue('play','M' + self.regionNodeNameExt)
+	#self.p.enqueue('resize',('M' + self.regionNodeNameExt, self.width, self.height))
+	#self.p.enqueue('timer',(20000,self.next))
 
-	self.lock.acquire()
-	tmpXML = '<image href="data/130.png" id="M' + self.regionNodeNameExt + '2" opacity="0.0" />'
-	self.p.enqueue('add',(tmpXML,self.regionNodeName))
-	self.p.enqueue('resize',('M' + self.regionNodeNameExt + '2', self.width, self.height))
-	self.p.enqueue('anim',('fadeOut','M' + self.regionNodeNameExt,2000))
-	self.p.enqueue('anim',('fadeIn','M' + self.regionNodeNameExt + '2',1500))
-	self.p.enqueue('timer',(20000,self.next))
+	#self.lock.acquire()
+	#tmpXML = '<image href="data/130.png" id="M' + self.regionNodeNameExt + '2" opacity="0.0" />'
+	#self.p.enqueue('add',(tmpXML,self.regionNodeName))
+	#self.p.enqueue('resize',('M' + self.regionNodeNameExt + '2', self.width, self.height))
+	#self.p.enqueue('anim',('fadeOut','M' + self.regionNodeNameExt,2000))
+	#self.p.enqueue('anim',('fadeIn','M' + self.regionNodeNameExt + '2',1500))
+	#self.p.enqueue('timer',(20000,self.next))
 
-	self.lock.acquire()
-	self.p.enqueue('del','M' + self.regionNodeNameExt)
-	self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'y',0,-768,None))
-	self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'x',0,-1366,None))
-	self.p.enqueue('timer',(2000,self.next))
+	#self.lock.acquire()
+	#self.p.enqueue('del','M' + self.regionNodeNameExt)
+	#self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'y',0,-768,None))
+	#self.p.enqueue('anim',('linear',self.layoutNodeName,2000,'x',0,-1366,None))
+	#self.p.enqueue('timer',(2000,self.next))
 
-	self.lock.acquire()
+	#self.lock.acquire()
 	# END TODO
 
 	# Correct logic should be:
@@ -284,6 +280,28 @@ class XiboRegionManager(Thread):
 	#  -> attempt to acquire self.lock - which will block this thread. We will be woken by the callback
 	#     to next() by the libavg player.
 	#  * When all items complete, mark region complete by setting regionExpired = True and calling parent.regionElapsed()
+	for cn in self.regionNode.childNodes:
+		log.log(1,"info","node")
+		if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "media":
+			log.log(3,"info","Encountered media")
+			if self.disposed == False:
+				type = str(cn.attributes['type'].value)
+				type = type[0:1].upper() + type[1:]
+				log.log(4,"info","Media is of type: " + type)
+				try:
+					import plugins.media
+					__import__("plugins.media." + type + "Media",None,None,[''])
+					tmpMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,self,self.p,cn)
+					tmpMedia.start()
+					self.lock.acquire()
+				except ImportError:
+					log.log(0,"error","Missing media plugin for media type " + type)
+					# TODO: Do something with this layout? Blacklist?
+					self.lock.release()
+				# TODO: Transition media here...
+				self.p.enqueue('del','M' + self.regionNodeNameExt)
+				
+
 	self.regionExpired = True
 	self.parent.regionElapsed()
 
