@@ -190,6 +190,8 @@ class XiboRegionManager(Thread):
 	self.left = None
 	self.zindex = None
 	self.disposed = False
+	self.previousMedia = None
+	self.currentMedia = None
 
 	# Calculate the region ID name
 	try:
@@ -291,16 +293,21 @@ class XiboRegionManager(Thread):
 				try:
 					import plugins.media
 					__import__("plugins.media." + type + "Media",None,None,[''])
-					tmpMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,self,self.p,cn)
-					tmpMedia.start()
+					self.currentMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,self,self.p,cn)
+					self.currentMedia.start()
+
+					if self.previousMedia != None:
+						# TODO: Transition media here...
+						self.p.enqueue('del',self.previousMedia.mediaNodeName)
+
+					# Wait for the new media to finish
 					self.lock.acquire()
+					self.previousMedia = self.currentMedia
+					self.currentMedia = None
 				except ImportError:
 					log.log(0,"error","Missing media plugin for media type " + type)
 					# TODO: Do something with this layout? Blacklist?
-					self.lock.release()
-				# TODO: Transition media here...
-				self.p.enqueue('del','M' + self.regionNodeNameExt)
-				
+					self.lock.release()				
 
 	self.regionExpired = True
 	self.parent.regionElapsed()

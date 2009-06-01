@@ -16,5 +16,8 @@ class XiboMedia(Thread):
 	self.regionNodeNameExt = self.parent.regionNodeNameExt
 	self.width = self.parent.width
 	self.height = self.parent.height
+	self.mediaNodeNameExt = "-" + str(self.p.nextUniqueId())
+	# TODO: Extract media id and insert
+	self.mediaNodeName = 'M' + '12' + self.regionNodeNameExt + self.mediaNodeNameExt
 
     def run(self): abstract
