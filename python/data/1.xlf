@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <layout schemaVersion="2" width="1366" height="768" bgcolor="#000000" background="126.jpg">
 	<region id="47ff29524ce1b" width="650" height="475" top="95" left="65">
-		<media id="1" type="video" duration="60" lkid="1" schemaVersion="1">
+		<media id="1" type="video" duration="20" lkid="1" schemaVersion="1">
 			<options>
 				<uri>129.avi</uri>
 				<transIn>fadeIn</transIn>
@@ -11,7 +11,7 @@
 			</options>
 			<raw/>
 		</media>
-		<media id="1" type="video" duration="60" lkid="1" schemaVersion="1">
+		<media id="1" type="video" duration="0" lkid="1" schemaVersion="1">
 			<options>
 				<uri>129.avi</uri>
 				<transIn>fadeIn</transIn>
@@ -28,7 +28,7 @@
 		</options>
 	</region>
 	<region id="47ff29524ce1f" width="1800" height="255" top="0" left="0">
-		<media id="130" type="image" duration="60" lkid="1" schemaVersion="1">
+		<media id="130" type="image" duration="10" lkid="1" schemaVersion="1">
 			<options>
 				<uri>130.png</uri>
 				<transIn>None</transIn>

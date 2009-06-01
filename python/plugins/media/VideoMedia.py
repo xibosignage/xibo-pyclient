@@ -6,8 +6,11 @@ from threading import Thread
 
 class VideoMedia(XiboMedia):
     def run(self):
-	tmpXML = '<video href="data/129.avi" id="' + self.mediaNodeName + '" />'
+	tmpXML = '<video href="data/' + str(self.options['uri']) + '" id="' + self.mediaNodeName + '" />'
 	self.p.enqueue('add',(tmpXML,self.regionNodeName))
 	self.p.enqueue('play', self.mediaNodeName)
 	self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height))
-	self.p.enqueue('timer',(20000,self.parent.next))
+	if int(self.duration) > 0:
+		self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
+	else:
+		self.p.enqueue('eofCallback',(self.mediaNodeName,self.parent.next))

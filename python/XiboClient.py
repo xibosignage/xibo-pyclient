@@ -608,6 +608,9 @@ class XiboPlayer(Thread):
 				currentNode.height = dimension[1] * scaleFactor
 			elif cmd == "timer":
 				self.player.setTimeout(data[0],data[1])
+			elif cmd == "eofCallback":
+				currentNode = self.player.getElementByID(data[0])
+				currentNode.setEOFCallback(data[1])
 			self.q.task_done()
 			# Call ourselves again to action any remaining queued items
 			# This does not make an infinite loop since when all queued items are processed
