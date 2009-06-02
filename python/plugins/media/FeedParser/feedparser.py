@@ -2485,6 +2485,10 @@ def parse(url_file_stream_or_string, etag=None, modified=None, agent=None, refer
                 result['bozo_exception'] = e
                 data = ''
 
+    # Modified for Xibo
+    # save the whole unammended feed
+    result['originalFeed'] = data
+
     # save HTTP headers
     if hasattr(f, 'info'):
         info = f.info()
