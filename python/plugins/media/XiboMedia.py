@@ -28,7 +28,8 @@ class XiboMedia(Thread):
 
 	# Calculate the media ID name
 	try:
-		self.mediaNodeName = "M" + str(self.mediaNode.attributes['id'].value) + self.regionNodeNameExt + self.mediaNodeNameExt
+		self.mediaId = str(self.mediaNode.attributes['id'].value) 
+		self.mediaNodeName = "M" + self.mediaId + self.regionNodeNameExt + self.mediaNodeNameExt
 	except KeyError:
 		log.log(1,"error",_("Media XLF is invalid. Missing required id attribute"))
 		self.mediaNodeName = "M-invalid-" + self.regionNodeNameExt + self.mediaNodeNameExt

@@ -36,6 +36,13 @@
 			</options>
 			<raw/>
 		</media>
+		<media id="5ndmsommd" type="ticker" duration="10" lkid="1" schemaVersion="1">
+			<options>
+				<uri>http://newsrss.bbc.co.uk/rss/newsonline_uk_edition/front_page/rss.xml</uri>
+				<direction>left</direction>
+			</options>
+			<raw />
+		</media>
 		<options>
 			<transOut>fadeOut</transOut>
 			<transOutDuration>500</transOutDuration>
