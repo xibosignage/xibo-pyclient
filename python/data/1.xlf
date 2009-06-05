@@ -3,7 +3,7 @@
 	<region id="47ff29524ce1b" width="650" height="475" top="95" left="65">
 		<media id="1" type="video" duration="20" lkid="1" schemaVersion="1">
 			<options>
-				<uri>129.avi</uri>
+				<uri>132.flv</uri>
 				<transIn>fadeIn</transIn>
 				<transOut>fadeOut</transOut>
 				<transInDuration>2000</transInDuration>
@@ -11,9 +11,10 @@
 			</options>
 			<raw/>
 		</media>
-		<media id="1" type="video" duration="0" lkid="1" schemaVersion="1">
+		<media id="1" type="tv" duration="30" lkid="1" schemaVersion="1">
 			<options>
-				<uri>129.avi</uri>
+				<device>/dev/video0</device>
+				<driver>v4l</driver>
 				<transIn>fadeIn</transIn>
 				<transOut>fadeOut</transOut>
 				<transInDuration>2000</transInDuration>
@@ -35,13 +36,6 @@
 				<transOut>None</transOut>
 			</options>
 			<raw/>
-		</media>
-		<media id="5ndmsommd" type="ticker" duration="10" lkid="1" schemaVersion="1">
-			<options>
-				<uri>http://newsrss.bbc.co.uk/rss/newsonline_uk_edition/front_page/rss.xml</uri>
-				<direction>left</direction>
-			</options>
-			<raw />
 		</media>
 		<options>
 			<transOut>fadeOut</transOut>
