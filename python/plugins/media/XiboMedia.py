@@ -70,3 +70,18 @@ class XiboMedia(Thread):
 	if self.invalid == True:
 		self.parent.next()
 		return
+
+    def getWidth(self):
+	return self.width
+
+    def getHeight(self):
+	return self.height
+
+    def getX(self):
+	return 0
+
+    def getY(self):
+	return 0
+
+    def getName(self):
+	return self.mediaNodeName

@@ -11,7 +11,7 @@
 			</options>
 			<raw/>
 		</media>
-		<media id="1" type="video" duration="60" lkid="1" schemaVersion="1">
+		<media id="1" type="video" duration="20" lkid="1" schemaVersion="1">
 			<options>
 				<uri>129.avi</uri>
 				<transIn>fadeIn</transIn>
@@ -22,7 +22,7 @@
 			<raw/>
 		</media>
 		<options>
-			<transOut>fly</transOut>
+			<transOut>fadeOut</transOut>
 			<transOutDuration>2500</transOutDuration>
 			<transOutDirection>NW</transOutDirection>
 		</options>

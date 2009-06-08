@@ -12,26 +12,26 @@ class FadeOutTransition(XiboTransition):
 	self.lock.acquire()
 
 	if self.media1 != None:
-		if self.media1.options['transOutDuration'] > 0:
-			self.outDuration = int(self.media1.options['transOutDuration'])
+		if self.options1['transOutDuration'] > 0:
+			self.outDuration = int(self.options1['transOutDuration'])
 		else:
 			self.outDuration = 1000
 
-		self.p.enqueue('anim',('fadeOut',self.media1.mediaNodeName,self.outDuration))
+		self.p.enqueue('anim',('fadeOut',self.media1.getName(),self.outDuration))
 		self.p.enqueue('timer',(self.outDuration,self.next))
 		self.lock.acquire()
 
 	if self.media2 != None:
-		if self.media2.options['transInDuration'] > 0:
-			self.inDuration = int(self.media2.options['transInDuration'])
+		if self.options2['transInDuration'] > 0:
+			self.inDuration = int(self.options2['transInDuration'])
 		else:
 			self.inDuration = 1000
 
-		self.p.enqueue('anim',('fadeOut',self.media2.mediaNodeName,self.inDuration))
+		self.p.enqueue('anim',('fadeOut',self.media2.getName(),self.inDuration))
 		self.p.enqueue('timer',(self.inDuration,self.next))
 		self.lock.acquire()
 
-	self.regionMgr.next()		
+	self.callback()		
 
     def next(self):
 	self.lock.release()

@@ -8,4 +8,4 @@ class DefaultTransition(XiboTransition):
     "Abstract Class - Interface for Transitions"
 
     def run(self):
-	self.regionMgr.next()
+	self.callback()
