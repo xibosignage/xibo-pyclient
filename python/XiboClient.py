@@ -129,7 +129,6 @@ class XiboLayoutManager(Thread):
 	# Spawn a region manager for each region and then start them all running
 	# Log each region in an array for checking later.
 	for cn in self.l.children():
-		log.log(1,"info","node")
 		if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "region":
 			log.log(1,"info","Encountered region")
 			# Create a new Region Manager Thread and kick it running.
@@ -156,14 +155,32 @@ class XiboLayoutManager(Thread):
 		log.log(2,"info",_("All regions have expired. Marking layout as expired"))
 		self.layoutExpired = True
 
-		# Mark all the regions as disposed
-		# TODO: This may need to move depending on how layout transitions are handled?
+		# TODO: Check that there is something else to show before killing
+		#       the layout off completely.
+		# Enqueue region exit transitions by calling the dispose method on each regionManager
 		for i in self.regions:
-			i.disposed = True
+			i.dispose()
 
-		self.parent.nextLayout()
+    def regionDisposed(self):
+	log.log(2,"info",_("Region disposed. Checking if all regions have disposed"))
 
+	allExpired = True
+	for i in self.regions:
+		if i.disposed == False:
+			log.log(3,"info",_("Region " + i.regionNodeName + " has not disposed. Waiting"))
+			allExpired = False
+
+	if allExpired:
+		log.log(2,"info",_("All regions have disposed. Marking layout as disposed"))
+		self.layoutDisposed = True
+
+	self.parent.nextLayout()
+	
     def dispose(self):
+	# TODO: Enqueue region exit transitions by calling the dispose method on each regionManager
+	for i in self.regions:
+		i.dispose()
+
         self.p.enqueue("reset","")
 
 class XiboRegionManager(Thread):
@@ -262,7 +279,6 @@ class XiboRegionManager(Thread):
 
 	while self.disposed == False and self.oneItemOnly == False:
 		for cn in self.regionNode.childNodes:
-			log.log(1,"info","node")
 			if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "media":
 				log.log(3,"info","Encountered media")
 				mediaCount = mediaCount + 1
@@ -365,6 +381,13 @@ class XiboRegionManager(Thread):
 		return
 
 	self.lock.release()
+
+    def dispose(self):
+	# TODO: Perform any region exit transitions
+
+	# Notify the LayoutManager when these are complete.
+	self.disposed = True
+	self.parent.regionDisposed()
 	
 #### Finish Layout/Region Managment
 

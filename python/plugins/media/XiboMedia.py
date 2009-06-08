@@ -7,7 +7,7 @@ class XiboMedia(Thread):
     "Abstract Class - Interface for Media"
     def __init__(self,log,parent,player,mediaNode):
 	Thread.__init__(self)
-	log.log(2,"info","ImageMedia loaded!")
+	log.log(2,"info",self.__class__.__name__ + " plugin loaded!")
 	self.log = log
 	self.parent = parent
 	self.p = player

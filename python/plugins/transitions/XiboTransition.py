@@ -7,7 +7,7 @@ class XiboTransition(Thread):
     "Abstract Class - Interface for Transitions"
     def __init__(self,log,player,regionMgr,media1,media2):
 	Thread.__init__(self)
-	log.log(2,"info","Transition plugin loaded!")
+	log.log(2,"info",self.__class__.__name__ + " plugin loaded!")
 	self.log = log
 	self.regionMgr = regionMgr
 	self.p = player
