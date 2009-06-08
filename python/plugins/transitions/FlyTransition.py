@@ -7,6 +7,8 @@ from threading import Thread, Semaphore
 class FlyTransition(XiboTransition):
 
     def run(self):
+	self.lock = Semaphore()
+	self.lock.acquire()
 
 	if self.media1 != None:
 		if self.options1['transOutDuration'] > 0:
@@ -14,7 +16,9 @@ class FlyTransition(XiboTransition):
 		else:
 			self.outDuration = 1000
 
-		self.__animate__(self.media1.getName(),self.media1.getX(),self.media1.getY(),self.media1.getWidth(),self.media1.getHeight(),self.options1["transDirection"],self.outDuration,self.callback)
+		self.log.log(5,"info","Running FlyOut transition")
+		self.__animate__(self.media1.getName(),self.media1.getX(),self.media1.getY(),self.media1.getWidth(),self.media1.getHeight(),self.options1["transDirection"],self.outDuration,self.next)
+		self.lock.acquire()
 
 	if self.media2 != None:
 		if self.options2['transInDuration'] > 0:
@@ -22,7 +26,13 @@ class FlyTransition(XiboTransition):
 		else:
 			self.inDuration = 1000
 
-		self.__animate__(self.media2.getName(),self.media2.getX(),self.media2.getY(),self.media2.getWidth(),self.media2.getHeight(),self.options2["transDirection"],self.inDuration,self.callback)
+		self.__animate__(self.media2.getName(),self.media2.getX(),self.media2.getY(),self.media2.getWidth(),self.media2.getHeight(),self.options2["transDirection"],self.inDuration,self.next)
+		self.lock.acquire()
+
+	self.callback()
+
+    def next(self):
+	self.lock.release()
 
     def __animate__(self,name,currentX,currentY,w,h,direction,duration,callback):
 	if direction == "N":

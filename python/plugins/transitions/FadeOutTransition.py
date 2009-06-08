@@ -5,7 +5,6 @@ from XiboTransition import XiboTransition
 from threading import Thread, Semaphore
 
 class FadeOutTransition(XiboTransition):
-    "Abstract Class - Interface for Transitions"
 
     def run(self):
 	self.lock = Semaphore()

@@ -195,6 +195,7 @@ class XiboRegionManager(Thread):
 	# Lock is released by a callback from the libavg player (which returns control to this thread such that the
 	# player thread never blocks.
 	self.lock = Semaphore()
+	self.tLock = Semaphore()
 
 	# Variables
 	self.p = player
@@ -269,6 +270,7 @@ class XiboRegionManager(Thread):
 
     def run(self):
 	self.lock.acquire()
+	self.tLock.acquire()
         log.log(3,"info",_("New XiboRegionManager instance running for region:") + self.regionNodeName)
 	# Create a div for the region and add it
 	tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
@@ -317,38 +319,39 @@ class XiboRegionManager(Thread):
 							self.currentMedia.start()
 							try:
 								__import__("plugins.transitions." + trans[0] + "Transition",None,None,[''])
-								tmpTransition = eval("plugins.transitions." + trans[0] + "Transition." + trans[0] + "Transition")(log,self.p,self.previousMedia,self.currentMedia,self.next)
+								tmpTransition = eval("plugins.transitions." + trans[0] + "Transition." + trans[0] + "Transition")(log,self.p,self.previousMedia,self.currentMedia,self.tNext)
 								tmpTransition.start()
 							except ImportError:
 								__import__("plugins.transitions.DefaultTransition",None,None,[''])
-								tmpTransition = plugins.transition.DefaultTransition.DefaultTransition(log,self.p,self.previousMedia,self.currentMedia,self.next)
+								tmpTransition = plugins.transitions.DefaultTransition.DefaultTransition(log,self.p,self.previousMedia,self.currentMedia,self.tNext)
 								tmpTransition.start()
-							self.lock.acquire()
+							self.tLock.acquire()
 						else:							
+					
 						# The two transitions don't match.
 						# Create two transition plugins and run them sequentially.
 							if (trans[0] != ""):
 								try:
 									__import__("plugins.transitions." + trans[0] + "Transition",None,None,[''])
-									tmpTransition = eval("plugins.transitions." + trans[0] + "Transition." + trans[0] + "Transition")(log,self.p,self.previousMedia,None,self.next)
+									tmpTransition = eval("plugins.transitions." + trans[0] + "Transition." + trans[0] + "Transition")(log,self.p,self.previousMedia,None,self.tNext)
 									tmpTransition.start()
 								except ImportError:
 									__import__("plugins.transitions.DefaultTransition",None,None,[''])
-									tmpTransition = plugins.transitions.DefaultTransition.DefaultTransition(log,self.p,self.previousMedia,None,self.next)
+									tmpTransition = plugins.transitions.DefaultTransition.DefaultTransition(log,self.p,self.previousMedia,None,self.tNext)
 									tmpTransition.start()
-								self.lock.acquire()
+								self.tLock.acquire()
 
 							if (trans[1] != ""):
 								self.currentMedia.start()
 								try:
 									__import__("plugins.transitions." + trans[1] + "Transition",None,None,[''])
-									tmpTransition = eval("plugins.transitions." + trans[1] + "Transition." + trans[1] + "Transition")(log,self.p,None,self.currentMedia,self.next)
+									tmpTransition = eval("plugins.transitions." + trans[1] + "Transition." + trans[1] + "Transition")(log,self.p,None,self.currentMedia,self.tNext)
 									tmpTransition.start()
 								except ImportError:
 									__import__("plugins.transitions.DefaultTransition",None,None,[''])
-									tmpTransition = plugins.transitions.DefaultTransition.DefaultTransition(log,self.p,None,self.currentMedia,self.next)
+									tmpTransition = plugins.transitions.DefaultTransition.DefaultTransition(log,self.p,None,self.currentMedia,self.tNext)
 									tmpTransition.start()
-								self.lock.acquire()
+								self.tLock.acquire()
 							else:
 								self.currentMedia.start()
 						# Cleanup
@@ -386,7 +389,14 @@ class XiboRegionManager(Thread):
 
 	self.lock.release()
 
+    def tNext(self):
+	if self.disposed == True:
+		return
+
+	self.tLock.release()
+
     def dispose(self):
+	log.log(5,"info",self.regionNodeName + " is disposing.")
 	rOptions = {}
 	oNode = None
 
@@ -395,26 +405,35 @@ class XiboRegionManager(Thread):
 		if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "options":
 			oNode = cn
 
-	for cn in oNode.childNodes:
-		if cn.localName != None:
-			rOptions[str(cn.localName)] = cn.childNodes[0].nodeValue
-			log.log(5,"info","Region Options: " + str(cn.localName) + " -> " + str(cn.childNodes[0].nodeValue))
+	try:	
+		for cn in oNode.childNodes:
+			if cn.localName != None:
+				rOptions[str(cn.localName)] = cn.childNodes[0].nodeValue
+				log.log(5,"info","Region Options: " + str(cn.localName) + " -> " + str(cn.childNodes[0].nodeValue))
+	except AttributeError:
+		rOptions["transOut"] = ""
 
 	# TODO: Make the transition objects and pass in options
 	#       Once animation complete, they should call back to self.disposeTransitionComplete()
 	transOut = str(rOptions["transOut"])
 	if (transOut != ""):
+		import plugins.transitions
+		transOut = transOut[0:1].upper() + transOut[1:]
+		log.log(5,"info",self.regionNodeName + " starting exit transition")
 		try:
 			__import__("plugins.transitions." + transOut + "Transition",None,None,[''])
 			tmpTransition = eval("plugins.transitions." + transOut + "Transition." + transOut + "Transition")(log,self.p,self.currentMedia,None,self.disposeTransitionComplete,rOptions,None)
 			tmpTransition.start()
-		except ImportError:
+			log.log(5,"info",self.regionNodeName + " control passed to Transition object.")
+		except ImportError as detail:
+			log.log(3,"error",self.regionNodeName + ": Unable to import requested Transition plugin. " + str(detail))
 			self.disposeTransitionComplete()
 	else:
 		self.disposeTransitionComplete()
 
     def disposeTransitionComplete(self):
 	# Notify the LayoutManager when these are complete.
+	log.log(5,"info",self.regionNodeName + " is disposed.")
 	self.disposed = True
 	self.parent.regionDisposed()
 	
