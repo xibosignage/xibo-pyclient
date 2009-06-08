@@ -11,9 +11,10 @@
 			</options>
 			<raw/>
 		</media>
-		<media id="1" type="video" duration="60" lkid="1" schemaVersion="1">
+		<media id="1" type="tv" duration="30" lkid="1" schemaVersion="1">
 			<options>
-				<uri>129.avi</uri>
+				<device>/dev/video0</device>
+				<driver>v4l</driver>
 				<transIn>fadeIn</transIn>
 				<transOut>fadeOut</transOut>
 				<transInDuration>2000</transInDuration>

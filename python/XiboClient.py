@@ -274,18 +274,75 @@ class XiboRegionManager(Thread):
 						import plugins.media
 						__import__("plugins.media." + type + "Media",None,None,[''])
 						self.currentMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,self,self.p,cn)
-						self.currentMedia.start()
 
-						if self.previousMedia != None:
-							# TODO: Transition media here...
-							self.p.enqueue('del',self.previousMedia.mediaNodeName)
+						# Transition between media here...
+						import plugins.transitions
+						try:
+							tmp1 = str(self.previousMedia.options['transOut'])
+							tmp1 = tmp1[0:1].upper() + tmp1[1:]
+						except:
+							tmp1 = ""
+						
+						try:
+							tmp2 = str(self.currentMedia.options['transIn'])
+							tmp2 = tmp2[0:1].upper() + tmp2[1:]
+						except:
+							tmp2 = ""
+
+						trans = (tmp1,tmp2)
+						
+						log.log(3,"info",_("Beginning transitions: " + str(trans)))
+						# The two transitions match. Let one plugin handle both.
+						if (trans[0] == trans[1]) and trans[0] != "":
+							self.currentMedia.start()
+							try:
+								__import__("plugins.transitions." + trans[0] + "Transition",None,None,[''])
+								tmpTransition = eval("plugins.transitions." + trans[0] + "Transition." + trans[0] + "Transition")(log,self.p,self,self.previousMedia,self.currentMedia)
+								tmpTransition.start()
+							except ImportError:
+								__import__("plugins.transitions.DefaultTransition",None,None,[''])
+								tmpTransition = plugins.transition.DefaultTransition.DefaultTransition(log,self.p,self,self.previousMedia,self.currentMedia)
+								tmpTransition.start()
+							self.lock.acquire()
+						else:							
+						# The two transitions don't match.
+						# Create two transition plugins and run them sequentially.
+							if (trans[0] != ""):
+								try:
+									__import__("plugins.transitions." + trans[0] + "Transition",None,None,[''])
+									tmpTransition = eval("plugins.transitions." + trans[0] + "Transition." + trans[0] + "Transition")(log,self.p,self,self.previousMedia,None)
+									tmpTransition.start()
+								except ImportError:
+									__import__("plugins.transitions.DefaultTransition",None,None,[''])
+									tmpTransition = plugins.transitions.DefaultTransition.DefaultTransition(log,self.p,self,self.previousMedia,None)
+									tmpTransition.start()
+								self.lock.acquire()
+
+							if (trans[1] != ""):
+								self.currentMedia.start()
+								try:
+									__import__("plugins.transitions." + trans[1] + "Transition",None,None,[''])
+									tmpTransition = eval("plugins.transitions." + trans[1] + "Transition." + trans[1] + "Transition")(log,self.p,self,None,self.currentMedia)
+									tmpTransition.start()
+								except ImportError:
+									__import__("plugins.transitions.DefaultTransition",None,None,[''])
+									tmpTransition = plugins.transitions.DefaultTransition.DefaultTransition(log,self.p,self,None,self.currentMedia)
+									tmpTransition.start()
+								self.lock.acquire()
+							else:
+								self.currentMedia.start()
+						# Cleanup
+						try:						
+							self.p.enqueue('del',self.previousMedia.mediaNodeName)								
+						except AttributeError:
+							pass
 
 						# Wait for the new media to finish
 						self.lock.acquire()
 						self.previousMedia = self.currentMedia
 						self.currentMedia = None
-					except ImportError:
-						log.log(0,"error","Missing media plugin for media type " + type)
+					except ImportError as detail:
+						log.log(0,"error","Missing media plugin for media type " + type + ": " + str(detail))
 						# TODO: Do something with this layout? Blacklist?
 						self.lock.release()				
 	
@@ -611,15 +668,20 @@ class XiboPlayer(Thread):
 			elif cmd == "eofCallback":
 				currentNode = self.player.getElementByID(data[0])
 				currentNode.setEOFCallback(data[1])
+			elif cmd == "setOpacity":
+				currentNode = self.player.getElementByID(data[0])
+				currentNode.opacity = data[1]
 			self.q.task_done()
 			# Call ourselves again to action any remaining queued items
 			# This does not make an infinite loop since when all queued items are processed
 			# A Queue.Empty exception is thrown and this whole block is skipped.
 			self.frameHandle()
-		#except RuntimeError:
-		#	log.log(1,"error",_("A runtime error occured. Probably a media file was missing."))
 		except Queue.Empty:
 			pass
+		except RuntimeError as detail:
+			log.log(1,"error",_("A runtime error occured: ") + detail)
+		except:
+			log.log(1,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
 
 class XiboClient:
     "Main Xibo DisplayClient Class. May (in time!) host many DisplayManager classes"
