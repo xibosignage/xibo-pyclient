@@ -163,6 +163,10 @@ class XiboLayoutManager(Thread):
 		for i in self.regions:
 			i.dispose()
 
+		return True
+	else:
+		return False
+
     def regionDisposed(self):
 	log.log(2,"info",_("Region disposed. Checking if all regions have disposed"))
 
@@ -172,7 +176,7 @@ class XiboLayoutManager(Thread):
 			log.log(3,"info",_("Region " + i.regionNodeName + " has not disposed. Waiting"))
 			allExpired = False
 
-	if allExpired:
+	if allExpired == True:
 		log.log(2,"info",_("All regions have disposed. Marking layout as disposed"))
 		self.layoutDisposed = True
 		self.parent.nextLayout()
@@ -369,7 +373,10 @@ class XiboRegionManager(Thread):
 						self.lock.release()				
 	
 		self.regionExpired = True
-		self.parent.regionElapsed()
+		if self.parent.regionElapsed():
+			# If regionElapsed returns True, then the layout is on its way out so stop looping
+			# Acheived by pretending to be a single item region
+			self.oneItemOnly = True
 
 		# If there's only one item, render it and leave it alone!
 		if mediaCount == 1:
@@ -421,7 +428,7 @@ class XiboRegionManager(Thread):
 		log.log(5,"info",self.regionNodeName + " starting exit transition")
 		try:
 			__import__("plugins.transitions." + transOut + "Transition",None,None,[''])
-			tmpTransition = eval("plugins.transitions." + transOut + "Transition." + transOut + "Transition")(log,self.p,self.currentMedia,None,self.disposeTransitionComplete,rOptions,None)
+			tmpTransition = eval("plugins.transitions." + transOut + "Transition." + transOut + "Transition")(log,self.p,self.previousMedia,None,self.disposeTransitionComplete,rOptions,None)
 			tmpTransition.start()
 			log.log(5,"info",self.regionNodeName + " control passed to Transition object.")
 		except ImportError as detail:

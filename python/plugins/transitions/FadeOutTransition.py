@@ -16,6 +16,7 @@ class FadeOutTransition(XiboTransition):
 		else:
 			self.outDuration = 1000
 
+		self.log.log(5,"info","FadeOutTransition: Fading " + self.media1.getName() + " over " + str(self.outDuration) + "ms")
 		self.p.enqueue('anim',('fadeOut',self.media1.getName(),self.outDuration))
 		self.p.enqueue('timer',(self.outDuration,self.next))
 		self.lock.acquire()
@@ -26,10 +27,12 @@ class FadeOutTransition(XiboTransition):
 		else:
 			self.inDuration = 1000
 
+		self.log.log(5,"info","FadeOutTransition: Fading " + self.media2.getName() + " over " + str(self.inDuration) + "ms")
 		self.p.enqueue('anim',('fadeOut',self.media2.getName(),self.inDuration))
 		self.p.enqueue('timer',(self.inDuration,self.next))
 		self.lock.acquire()
 
+	self.log.log(5,"info","FadeOutTransition: Complete. Callback to " + str(self.callback))
 	self.callback()		
 
     def next(self):

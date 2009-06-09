@@ -22,9 +22,8 @@
 			<raw/>
 		</media>
 		<options>
-			<transOut>fly</transOut>
-			<transOutDuration>2500</transOutDuration>
-			<transOutDirection>NW</transOutDirection>
+			<transOut>fadeOut</transOut>
+			<transOutDuration>1500</transOutDuration>
 		</options>
 	</region>
 	<region id="47ff29524ce1f" width="1800" height="255" top="0" left="0">
