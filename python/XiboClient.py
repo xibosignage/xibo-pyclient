@@ -175,8 +175,7 @@ class XiboLayoutManager(Thread):
 	if allExpired:
 		log.log(2,"info",_("All regions have disposed. Marking layout as disposed"))
 		self.layoutDisposed = True
-
-	self.parent.nextLayout()
+		self.parent.nextLayout()
 	
     def dispose(self):
 	# Enqueue region exit transitions by calling the dispose method on each regionManager
@@ -185,7 +184,7 @@ class XiboLayoutManager(Thread):
 
 	# TODO: Remove this? The exiting layout should be left for a transition object to transition with.
 	#       Leaving in place for testing though.
-        self.p.enqueue("reset","")
+        # self.p.enqueue("reset","")
 
 class XiboRegionManager(Thread):
     def __init__(self,parent,player,layoutNodeName,layoutNodeNameExt,cn):
