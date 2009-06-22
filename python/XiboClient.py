@@ -681,18 +681,35 @@ class XiboDisplayManager:
 	# TODO: Attempt to register with the webservice. Code should block here if
 	# we're configured not to play cached content on startup.
 	# TODO: Figure out what exceptions are raised here and handle them.
-	if self.xmds.check():
-		regReturn = self.xmds.server.RegisterDisplay("test","alex","New Client","1")
-		log.log(0,"info",regReturn)
-#	while regReturn != "The display is licensed and ready to start.":
+	requireXMDS = False
+	try:
+	    if config.get('Main','requireXMDS') == "true":
+		requireXMDS = True
+	except:
+	    pass
 
-
-	# TODO: Artificial pause while we talk to the webservice
-	# Remove Me!
-	time.sleep(5)
-        
+	if requireXMDS:
+	    regReturn = ""
+	    regOK = "Display is active and ready to start."
+	    regInterval = 20
+	    tries = 0
+	    while regReturn != regOK:
+		tries = tries + 1
+		if self.xmds.check():
+		    regReturn = self.xmds.server.RegisterDisplay("test","alex","New Client","1")
+		    log.log(0,"info",regReturn)
+		if regReturn != regOK:
+		    # We're not licensed. Sleep 20 * tries seconds and try again.
+		    log.log(0,"info",_("Waiting for license to be issued, or connection restored to the webservice. Set requireXMDS=false to skip this check"))
+		    time.sleep(regInterval * tries)
+	    # End While
+	else:
+	    if self.xmds.check():
+	        log.log(0,"info",self.xmds.server.RegisterDisplay("test","alex","New Client","1"))
+	# End requireXMDS
+	
         # Done with the splash screen. Let it advance...
-	self.currentLM.hold=False
+	self.currentLM.hold = False
 	self.currentLM.regionDisposed()
             
     def nextLayout(self):
