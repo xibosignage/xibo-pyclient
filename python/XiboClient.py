@@ -591,6 +591,44 @@ class DummyScheduler(XiboScheduler):
         return True
 #### Finish Scheduler Classes
 
+class XMDS:
+    def __init__(self):
+	self.hasInitialised = False
+
+	# Setup a Proxy for XMDS
+	self.xmdsUrl = None
+	try:
+	    self.xmdsUrl = config.get('Main','xmdsUrl')
+	    if self.xmdsUrl[-1] != "/":
+		self.xmdsUrl = self.xmdsUrl + "/"
+	    self.xmdsUrl = self.xmdsUrl + "xmds.php"
+	except ConfigParser.NoOptionError:
+	    log.log(0,"error",_("No XMDS URL specified in your configuration"))
+	    log.log(0,"error",_("Please check your xmdsUrl configuration option"))
+	    exit(1)
+
+	self.wsdlFile = self.xmdsUrl + '?wsdl'
+
+    def check(self):
+	if self.hasInitialised:
+	    return True
+	else:
+	    self.server = None
+	    tries = 0
+	    while self.server == None and tries < 3:
+		tries = tries + 1
+		log.log(2,"info",_("Connecting to XMDS at ") + self.xmdsUrl + " " + _("Attempt") + " " + str(tries))
+	        try:
+		    self.server = WSDL.Proxy(self.wsdlFile)
+		    self.hasInitialised = True
+	        except xml.parsers.expat.ExpatError:
+		    log.log(0,"error",_("Could not connect to XMDS."))
+	    # End While
+	    if self.server == None:
+		return False
+	
+	return True
+
 class XiboDisplayManager:
     def __init__(self):
         pass
@@ -605,31 +643,8 @@ class XiboDisplayManager:
 	# TODO: Display the splash screen
 	self.currentLM = XiboLayoutManager(self, self.Player, XiboLayout('0'), 0, 1.0, True)
         self.currentLM.start()
-
-	# Setup a Proxy for XMDS
-	xmdsUrl = None
-	try:
-	    xmdsUrl = config.get('Main','xmdsUrl')
-	    if xmdsUrl[-1] != "/":
-		xmdsUrl = xmdsUrl + "/"
-	    xmdsUrl = xmdsUrl + "xmds.php"
-	except ConfigParser.NoOptionError:
-	    log.log(0,"error",_("No XMDS URL specified in your configuration"))
-	    log.log(0,"error",_("Please check your xmdsUrl configuration option"))
-	    exit(1)
-
-	log.log(2,"info",_("Connecting to XMDS at " + xmdsUrl))
-	wsdlFile = xmdsUrl + '?wsdl'
-	
-	self.xmds = None
-	while self.xmds == None:
-	    try:
-		self.xmds = WSDL.Proxy(wsdlFile)
-	    except xml.parsers.expat.ExpatError:
-		log.log(0,"error",_("Could not connect to XMDS."))
-	# End While
 		
-	# Finish setting up XMDS
+	self.xmds = XMDS()
         
         # Load a DownloadManager and start it running in its own thread
         try:
@@ -666,8 +681,9 @@ class XiboDisplayManager:
 	# TODO: Attempt to register with the webservice. Code should block here if
 	# we're configured not to play cached content on startup.
 	# TODO: Figure out what exceptions are raised here and handle them.
-	regReturn = self.xmds.RegisterDisplay("test","alex","New Client","1")
-	log.log(0,"info",regReturn)
+	if self.xmds.check():
+		regReturn = self.xmds.server.RegisterDisplay("test","alex","New Client","1")
+		log.log(0,"info",regReturn)
 #	while regReturn != "The display is licensed and ready to start.":
 
 
