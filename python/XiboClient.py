@@ -165,6 +165,10 @@ class XiboLayoutManager(Thread):
 		for i in self.regions:
 			i.dispose()
 
+		return True
+	else:
+		return False
+
     def regionDisposed(self):
 	log.log(2,"info",_("Region disposed. Checking if all regions have disposed"))
 
@@ -174,15 +178,15 @@ class XiboLayoutManager(Thread):
 			log.log(3,"info",_("Region " + i.regionNodeName + " has not disposed. Waiting"))
 			allExpired = False
 
-	if allExpired:
+	if allExpired == True:
 		log.log(2,"info",_("All regions have disposed. Marking layout as disposed"))
 		self.layoutDisposed = True
 
-	if self.hold:
-		log.log(2,"info",_("Holding the splash screen until we're told otherwise"))
-	else:
-		log.log(2,"info",_("LayoutManager->parent->nextLayout()"))
-		self.parent.nextLayout()
+		if self.hold:
+		    log.log(2,"info",_("Holding the splash screen until we're told otherwise"))
+		else:
+		    log.log(2,"info",_("LayoutManager->parent->nextLayout()"))
+		    self.parent.nextLayout()
 	
     def dispose(self):
 	# Enqueue region exit transitions by calling the dispose method on each regionManager
@@ -191,7 +195,7 @@ class XiboLayoutManager(Thread):
 
 	# TODO: Remove this? The exiting layout should be left for a transition object to transition with.
 	#       Leaving in place for testing though.
-        self.p.enqueue("reset","")
+        # self.p.enqueue("reset","")
 
 class XiboRegionManager(Thread):
     def __init__(self,parent,player,layoutNodeName,layoutNodeNameExt,cn):
@@ -376,7 +380,10 @@ class XiboRegionManager(Thread):
 						self.lock.release()				
 	
 		self.regionExpired = True
-		self.parent.regionElapsed()
+		if self.parent.regionElapsed():
+			# If regionElapsed returns True, then the layout is on its way out so stop looping
+			# Acheived by pretending to be a single item region
+			self.oneItemOnly = True
 
 		# If there's only one item, render it and leave it alone!
 		if mediaCount == 1:
@@ -428,7 +435,7 @@ class XiboRegionManager(Thread):
 		log.log(5,"info",self.regionNodeName + " starting exit transition")
 		try:
 			__import__("plugins.transitions." + transOut + "Transition",None,None,[''])
-			tmpTransition = eval("plugins.transitions." + transOut + "Transition." + transOut + "Transition")(log,self.p,self.currentMedia,None,self.disposeTransitionComplete,rOptions,None)
+			tmpTransition = eval("plugins.transitions." + transOut + "Transition." + transOut + "Transition")(log,self.p,self.previousMedia,None,self.disposeTransitionComplete,rOptions,None)
 			tmpTransition.start()
 			log.log(5,"info",self.regionNodeName + " control passed to Transition object.")
 		except ImportError as detail:
