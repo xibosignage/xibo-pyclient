@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from libavg import avg, anim
+from SOAPpy import WSDL
 from xml.dom import minidom
 import time, Queue, ConfigParser, gettext
 import os
@@ -67,7 +68,7 @@ class XiboLogXmds(XiboLog):
 
 #### Download Manager        
 class XiboDownloadManager(Thread):
-    def __init__(self):
+    def __init__(self,xmds):
         log.log(3,"info",_("New XiboDownloadManager instance created."))
         Thread.__init__(self)
     
@@ -87,7 +88,7 @@ class Xmds:
 
 #### Layout/Region Management
 class XiboLayoutManager(Thread):
-    def __init__(self,parent,player,layout,zindex=0,opacity=1.0):
+    def __init__(self,parent,player,layout,zindex=0,opacity=1.0,hold=False):
         log.log(3,"info",_("New XiboLayoutManager instance created."))
         self.p = player
         self.l = layout
@@ -99,6 +100,7 @@ class XiboLayoutManager(Thread):
 	self.layoutNodeNameExt = "-" + str(self.p.nextUniqueId())
 	self.layoutExpired = False
 	self.isPlaying = False
+	self.hold = hold
         Thread.__init__(self)
     
     def run(self):
@@ -176,7 +178,11 @@ class XiboLayoutManager(Thread):
 		log.log(2,"info",_("All regions have disposed. Marking layout as disposed"))
 		self.layoutDisposed = True
 
-	self.parent.nextLayout()
+	if self.hold:
+		log.log(2,"info",_("Holding the splash screen until we're told otherwise"))
+	else:
+		log.log(2,"info",_("LayoutManager->parent->nextLayout()"))
+		self.parent.nextLayout()
 	
     def dispose(self):
 	# Enqueue region exit transitions by calling the dispose method on each regionManager
@@ -550,7 +556,7 @@ class DummyScheduler(XiboScheduler):
     layoutList = ['1', '2', '3']
     layoutIndex = 0
     
-    def __init__(self):
+    def __init__(self,xmds):
         Thread.__init__(self)
     
     def run(self):
@@ -584,11 +590,44 @@ class XiboDisplayManager:
     
     def run(self):
         log.log(2,"info",_("New DisplayManager started"))
+
+        # Create a XiboPlayer and start it running.
+        self.Player = XiboPlayer()
+	self.Player.start()
+
+	# TODO: Display the splash screen
+	self.currentLM = XiboLayoutManager(self, self.Player, XiboLayout('0'), 0, 1.0, True)
+        self.currentLM.start()
+
+	# Setup a Proxy for XMDS
+	xmdsUrl = None
+	try:
+	    xmdsUrl = config.get('Main','xmdsUrl')
+	    if xmdsUrl[-1] != "/":
+		xmdsUrl = xmdsUrl + "/"
+	    xmdsUrl = xmdsUrl + "xmds.php"
+	except ConfigParser.NoOptionError:
+	    log.log(0,"error",_("No XMDS URL specified in your configuration"))
+	    log.log(0,"error",_("Please check your xmdsUrl configuration option"))
+	    exit(1)
+
+	log.log(2,"info",_("Connecting to XMDS at " + xmdsUrl))
+	wsdlFile = xmdsUrl + '?wsdl'
+	
+	self.xmds = None
+	while self.xmds == None:
+	    try:
+		self.xmds = WSDL.Proxy(wsdlFile)
+	    except xml.parsers.expat.ExpatError:
+		log.log(0,"error",_("Could not connect to XMDS."))
+	# End While
+		
+	# Finish setting up XMDS
         
         # Load a DownloadManager and start it running in its own thread
         try:
             downloaderName = config.get('Main','downloader')
-            self.downloader = eval(downloaderName)()
+            self.downloader = eval(downloaderName)(self.xmds)
             self.downloader.start()
             log.log(2,"info",_("Loaded Download Manager ") + downloaderName)
         except ConfigParser.NoOptionError:
@@ -604,7 +643,7 @@ class XiboDisplayManager:
         # Load a scheduler and start it running in its own thread
         try:
             schedulerName = config.get('Main','scheduler')
-            self.scheduler = eval(schedulerName)()
+            self.scheduler = eval(schedulerName)(self.xmds)
             self.scheduler.start()
             log.log(2,"info",_("Loaded Scheduler ") + schedulerName)
         except ConfigParser.NoOptionError:
@@ -616,13 +655,22 @@ class XiboDisplayManager:
             log.log(0,"error",_("Please check your scheduler configuration."))
             exit(1)
         # End of scheduler init
+
+	# TODO: Attempt to register with the webservice. Code should block here if
+	# we're configured not to play cached content on startup.
+	# TODO: Figure out what exceptions are raised here and handle them.
+	regReturn = self.xmds.RegisterDisplay("test","alex","New Client","1")
+	log.log(0,"info",regReturn)
+#	while regReturn != "The display is licensed and ready to start.":
+
+
+	# TODO: Artificial pause while we talk to the webservice
+	# Remove Me!
+	time.sleep(5)
         
-        # Final job. Create a XiboPlayer and start it running.
-        self.Player = XiboPlayer()
-	self.Player.start()
-        
-        # Call a next Layout event now...
-        self.nextLayout()
+        # Done with the splash screen. Let it advance...
+	self.currentLM.hold=False
+	self.currentLM.regionDisposed()
             
     def nextLayout(self):
 	# TODO: Whole function is wrong. This is where layout transitions should be supported.
