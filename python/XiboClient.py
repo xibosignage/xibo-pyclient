@@ -3,8 +3,12 @@
 
 from libavg import avg, anim
 from SOAPpy import WSDL
+import xml.parsers.expat
 from xml.dom import minidom
-import time, Queue, ConfigParser, gettext
+import time
+import Queue
+import ConfigParser
+import gettext
 import os
 import re
 import time
@@ -79,12 +83,6 @@ class XiboDownloadThread(Thread):
     def __init__(self):
         Thread.__init__(self)
 #### Finish Download Manager
-        
-#### Webservice
-class Xmds:
-    def __init__(self):
-        pass
-#### Finish Webservice
 
 #### Layout/Region Management
 class XiboLayoutManager(Thread):
