@@ -3,9 +3,12 @@
 
 from libavg import avg, anim
 from SOAPpy import WSDL
+import SOAPpy.Types
+import SOAPpy.Errors
 import xml.parsers.expat
 from xml.dom import minidom
 import time
+import uuid
 import Queue
 import ConfigParser
 import gettext
@@ -13,6 +16,7 @@ import os
 import re
 import time
 import sys
+import socket
 from threading import Thread, Semaphore
 
 version = "1.1.0"
@@ -589,9 +593,44 @@ class DummyScheduler(XiboScheduler):
         return True
 #### Finish Scheduler Classes
 
+#### Webservice
+class XMDSException(Exception):
+    def __init__(self, value):
+	self.value = value
+    def __str__(self):
+	return repr(self.value)
+
 class XMDS:
     def __init__(self):
 	self.hasInitialised = False
+	
+	salt = None
+	try:
+	    salt = config.get('Main','xmdsClientID')
+	except:
+ 	    log.log(0,"error",_("No XMDS Client ID specified in your configuration"))
+	    log.log(0,"error",_("Please check your xmdsClientID configuration option"))
+	    exit(1)
+
+	self.uuid = uuid.uuid5(uuid.NAMESPACE_DNS, salt)
+
+	self.name = None
+	try:
+	    self.name = config.get('Main','xmdsClientName')
+	except:
+	    pass
+
+	if self.name == None or self.name == "":
+	    import platform
+	    self.name = platform.node()
+	    
+	self.key = None
+	try:
+	    self.key = config.get('Main','xmdsKey')
+	except:
+	    log.log(0,"error",_("No XMDS server key specified in your configuration"))
+	    log.log(0,"error",_("Please check your xmdsKey configuration option"))
+	    exit(1)
 
 	# Setup a Proxy for XMDS
 	self.xmdsUrl = None
@@ -606,6 +645,15 @@ class XMDS:
 	    exit(1)
 
 	self.wsdlFile = self.xmdsUrl + '?wsdl'
+
+    def getUUID(self):
+	return str(self.uuid)
+
+    def getName(self):
+	return str(self.name)
+
+    def getKey(self):
+	return str(self.key)
 
     def check(self):
 	if self.hasInitialised:
@@ -626,6 +674,55 @@ class XMDS:
 		return False
 	
 	return True
+
+    def RegisterDisplay(self):
+	"""Connect to XMDS and attempt to register the client"""
+	requireXMDS = False
+	try:
+	    if config.get('Main','requireXMDS') == "true":
+		requireXMDS = True
+	except:
+	    pass
+
+	if requireXMDS:
+	    regReturn = ""
+	    regOK = "Display is active and ready to start."
+	    regInterval = 20
+	    tries = 0
+	    while regReturn != regOK:
+		tries = tries + 1
+		if self.check():
+		    #TODO: Change the final arguement to use the globally defined schema version once
+		    # there is a server that supports the schema to test against.
+		    try:
+		        regReturn = self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),"1")
+		        log.log(0,"info",regReturn)
+		    except SOAPpy.Types.faultType, err:
+			log.log(0,"error",str(err))
+		    except SOAPpy.Errors.HTTPError, err:
+			log.log(0,"error",str(err))
+		    except socket.error, err:
+			log.log(0,"error",str(err))
+
+		if regReturn != regOK:
+		    # We're not licensed. Sleep 20 * tries seconds and try again.
+		    log.log(0,"info",_("Waiting for license to be issued, or connection restored to the webservice. Set requireXMDS=false to skip this check"))
+		    time.sleep(regInterval * tries)
+	    # End While
+	else:
+	    if self.check():
+		#TODO: Change the final arguement to use the globally defined schema version once
+		# there  is a server that supports the schema to test against.
+		try:
+	            log.log(0,"info",self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),"1"))
+		except SOAPpy.Types.faultType, err:
+		    log.log(0,"error",str(err))
+		except SOAPpy.Errors.HTTPError, err:
+		    log.log(0,"error",str(err))
+		except socket.error, err:
+		    log.log(0,"error",str(err))
+	    
+#### Finish Webservice	
 
 class XiboDisplayManager:
     def __init__(self):
@@ -676,35 +773,10 @@ class XiboDisplayManager:
             exit(1)
         # End of scheduler init
 
-	# TODO: Attempt to register with the webservice. Code should block here if
+	# Attempt to register with the webservice.
+	# The RegisterDisplay code will block here if
 	# we're configured not to play cached content on startup.
-	# TODO: Figure out what exceptions are raised here and handle them.
-	requireXMDS = False
-	try:
-	    if config.get('Main','requireXMDS') == "true":
-		requireXMDS = True
-	except:
-	    pass
-
-	if requireXMDS:
-	    regReturn = ""
-	    regOK = "Display is active and ready to start."
-	    regInterval = 20
-	    tries = 0
-	    while regReturn != regOK:
-		tries = tries + 1
-		if self.xmds.check():
-		    regReturn = self.xmds.server.RegisterDisplay("test","alex","New Client","1")
-		    log.log(0,"info",regReturn)
-		if regReturn != regOK:
-		    # We're not licensed. Sleep 20 * tries seconds and try again.
-		    log.log(0,"info",_("Waiting for license to be issued, or connection restored to the webservice. Set requireXMDS=false to skip this check"))
-		    time.sleep(regInterval * tries)
-	    # End While
-	else:
-	    if self.xmds.check():
-	        log.log(0,"info",self.xmds.server.RegisterDisplay("test","alex","New Client","1"))
-	# End requireXMDS
+	self.xmds.RegisterDisplay()
 	
         # Done with the splash screen. Let it advance...
 	self.currentLM.hold = False
