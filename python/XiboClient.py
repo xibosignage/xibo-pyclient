@@ -79,9 +79,30 @@ class XiboDownloadManager(Thread):
     def __init__(self,xmds):
         log.log(3,"info",_("New XiboDownloadManager instance created."))
         Thread.__init__(self)
+	self.xmds = xmds
+	self.running = True
     
     def run(self):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
+	while (self.running):
+	    self.interval = 300
+
+	    # Find out how long we should wait between updates.
+	    try:
+	         self.interval = int(config.get('Main','xmdsUpdateInterval'))
+	    except:
+		# self.interval has been set to a sensible default in this case.
+ 	        log.log(0,"warning",_("No XMDS Update Interval specified in your configuration"))
+	        log.log(0,"warning",_("Please check your xmdsUpdateInterval configuration option"))
+		log.log(0,"warning",_("A default value has been used:") + " " + str(self.interval) + " " + _("seconds"))
+
+	    # TODO: Connect to the webservice. Get a list of required files.
+	    #       Go through the list comparing required files to files we already have.
+	    #	    If a file differs, queue it for download
+
+	    log.log(3,"info",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
+	    time.sleep(self.interval)
+	# End While
 
 class XiboDownloadThread(Thread):
     def __init__(self):
