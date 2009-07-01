@@ -103,8 +103,8 @@ class XiboDownloadManager(Thread):
 	    try:
 		reqFiles = self.xmds.RequiredFiles()
 		log.log(5,"info",_("XiboDownloadManager: XMDS RequiredFiles() returned ") + str(reqFiles))
-	    except:
-		log.log(0,"warning",_("XMDS RequiredFiles threw and exception"))
+	    except XMDSException:
+		log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
 
 	    log.log(3,"info",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
 	    time.sleep(self.interval)
@@ -710,7 +710,6 @@ class XMDS:
 		# TODO: Change the final arguement to use the globally defined schema version once
 		# there is a server that supports the schema to test against.
 		# TODO: This is failing with an error that the client isn't licensed.
-		# Not sure why. Need to debug the UUID I suspect.
 		req = self.server.RequiredFiles(self.getKey(),self.getUUID(),"1")
 	    except SOAPpy.Types.faultType, err:
 		log.log(0,"error",str(err))
@@ -722,6 +721,7 @@ class XMDS:
 		log.log(0,"error",str(err))
 		raise XMDSException("RequiredFiles: socket error connecting to XMDS.")
 	else:
+	    log.log(0,"error","XMDS could not be initialised")
 	    raise XMDSException("XMDS could not be initialised")
 
 	return req
