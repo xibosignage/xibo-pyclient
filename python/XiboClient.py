@@ -100,12 +100,27 @@ class XiboDownloadManager(Thread):
 	    # TODO: Connect to the webservice. Get a list of required files.
 	    #       Go through the list comparing required files to files we already have.
 	    #	    If a file differs, queue it for download
-	    reqFiles = None
+	    reqFiles = '<files></files>'
 	    try:
 		reqFiles = self.xmds.RequiredFiles()
 		log.log(5,"info",_("XiboDownloadManager: XMDS RequiredFiles() returned ") + str(reqFiles))
 	    except XMDSException:
 		log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
+
+	    self.doc = None
+	    # Pull apart the retuned XML
+	    try:
+		self.doc = minidom.parseString(reqFiles)
+	    except:
+		log.log(0,"warning",_("XMDS RequiredFiles returned invalid XML"))
+
+	    # Find the layout node and store it
+	    if self.doc != None:
+		for e in self.doc.childNodes:
+		    if e.nodeType == e.ELEMENT_NODE and e.localName == "files":
+			# e is a file node. Check if we have it already?
+
+	    # End If self.doc != None
 
 	    log.log(3,"info",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
 	    time.sleep(self.interval)
