@@ -9,6 +9,7 @@ import xml.parsers.expat
 from xml.dom import minidom
 import time
 import uuid
+import hashlib
 import Queue
 import ConfigParser
 import gettext
@@ -640,6 +641,8 @@ class XMDS:
 	    exit(1)
 
 	self.uuid = uuid.uuid5(uuid.NAMESPACE_DNS, salt)
+	# Convert the UUID in to a SHA1 hash
+	self.uuid = hashlib.sha1(str(self.uuid)).hexdigest()
 
 	self.name = None
 	try:
