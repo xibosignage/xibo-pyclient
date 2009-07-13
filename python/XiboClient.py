@@ -82,6 +82,9 @@ class XiboDownloadManager(Thread):
         Thread.__init__(self)
 	self.xmds = xmds
 	self.running = True
+	self.dlQueue = Queue.Queue(0)
+	# TODO: Figure out the best way to store the dictionary of hashes/times/paths
+	# self.md5Cache = 
     
     def run(self):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
@@ -118,10 +121,39 @@ class XiboDownloadManager(Thread):
 	    if self.doc != None:
 		for e in self.doc.childNodes:
 		    if e.nodeType == e.ELEMENT_NODE and e.localName == "files":
-			# e is a file node. Check if we have it already?
-
+			# e is a files node.
+			#log.log(5,"info","Files Node found!")
+			for f in e.childNodes:
+			    if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "media":
+				#log.log(5,"info","Media File Node found!")
+				# Does the file exist? Is it the right size?
+				try:
+				    tmpPath = config.get('Main','libraryDir') + os.sep + str(f.attributes['path'].value)
+				    tmpSize = int(f.attributes['size'].value)
+				    tmpHash = str(f.attributes['md5'].value)
+				    if os.path.isfile(tmpPath) and os.path.getsize(tmpPath) == tmpSize:
+					# File exists and is the right size
+					# See if we checksummed it recently
+					# TODO: Implement a caching dictionary of file-vs-MD5
+					# Also store a timestamp so we can re-md5 the files every hour or so
+					pass
+				    else:
+					# Queue the file for download later.
+					self.dlQueue.put((tmpPath,tmpSize,tmpHash),False)
+				except:
+				    # TODO: Blacklist the media item.
+				    log.log(0,"error",_("RequiredFiles XML error: File type=media has no path attribute or no size attribute. Blacklisting."))
+			    if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "layout":
+				#log.log(5,"info","Layout File Node found!")
+				pass
+			    if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "blacklist":
+				#log.log(5,"info","Blacklist File Node found!")
+				pass
 	    # End If self.doc != None
 
+	    # TODO: Loop over the queue and download as required
+
+	    # TODO: Loop over the MD5 hash cache and remove any entries older than ?
 	    log.log(3,"info",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
 	    time.sleep(self.interval)
 	# End While
