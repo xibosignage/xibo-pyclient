@@ -18,6 +18,7 @@ import re
 import time
 import sys
 import socket
+from collections import defaultdict
 from threading import Thread, Semaphore
 
 version = "1.1.0"
@@ -75,7 +76,30 @@ class XiboLogXmds(XiboLog):
         pass
 #### Finish Log Classes
 
-#### Download Manager        
+#### Download Manager
+class XiboFile(object):
+    def __init__(self,path):
+	self.__path = path
+	self.md5 = ""
+	self.checkTime = 1
+	self.update()
+
+    def update(self):
+	# Generate MD5
+	m = hashlib.md5()
+    	try:
+            fd = open(self.__path,"rb")
+    	except IOError:
+            return False
+        content = fd.readlines()
+        fd.close()
+	for eachLine in content:
+            m.update(eachLine)
+    	self.md5 = m.hexdigest()
+
+	self.checkTime = time.time()
+	return True
+        
 class XiboDownloadManager(Thread):
     def __init__(self,xmds):
         log.log(3,"info",_("New XiboDownloadManager instance created."))
@@ -83,8 +107,9 @@ class XiboDownloadManager(Thread):
 	self.xmds = xmds
 	self.running = True
 	self.dlQueue = Queue.Queue(0)
-	# TODO: Figure out the best way to store the dictionary of hashes/times/paths
-	# self.md5Cache = 
+	# Store a dictionary of XiboFile objects so we know how recently
+	# we last checked a file was present and correct.
+	self.md5Cache = defaultdict(XiboFile)
     
     def run(self):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
@@ -134,11 +159,23 @@ class XiboDownloadManager(Thread):
 				    if os.path.isfile(tmpPath) and os.path.getsize(tmpPath) == tmpSize:
 					# File exists and is the right size
 					# See if we checksummed it recently
-					# TODO: Implement a caching dictionary of file-vs-MD5
-					# Also store a timestamp so we can re-md5 the files every hour or so
-					pass
+					if tmpPath in self.md5Cache:
+					    if self.md5Cache[tmpPath].md5 != tmpHash:
+						# The hashes don't match.
+						# Queue for download.
+						log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
+						self.dlQueue.put((tmpPath,tmpSize,tmpHash),False)						
+					else:
+					    tmpFile = XiboFile(tmpPath)
+					    self.md5Cache[tmpPath] = tmpFile
+					    if tmpFile.md5 != tmpHash:
+						# The hashes don't match.
+						# Queue for download.
+						log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
+						self.dlQueue.put((tmpPath,tmpSize,tmpHash),False)
 				    else:
 					# Queue the file for download later.
+					log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpPath)
 					self.dlQueue.put((tmpPath,tmpSize,tmpHash),False)
 				except:
 				    # TODO: Blacklist the media item.
@@ -152,8 +189,20 @@ class XiboDownloadManager(Thread):
 	    # End If self.doc != None
 
 	    # TODO: Loop over the queue and download as required
+	    try:
+		# TODO: Throttle this to a maximum number of dl threads.
+		while True:
+		    tmpPath, tmpSize, tmpHash = self.dlQueue.get(False)
+		    # TODO: Make a download thread and actually download the file.
 
-	    # TODO: Loop over the MD5 hash cache and remove any entries older than ?
+	    except Queue.Empty:
+		# Used to exit the above while once all items are downloaded.
+		# TODO: Wait here until all download threads are completed?
+		#       Or figure out how to prevent the next iteration of the loop
+		#       enqueuing a file that is still being downloaded again.
+		pass
+
+	    # TODO: Loop over the MD5 hash cache and remove any entries older than 1 hour?
 	    log.log(3,"info",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
 	    time.sleep(self.interval)
 	# End While
@@ -854,7 +903,7 @@ class XiboDisplayManager:
             exit(1)
         except:
             log.log(0,"error",downloaderName + _(" does not implement the methods required to be a Xibo DownloadManager or does not exist."))
-            log.log(0,"error",_("Please check your Download Manager configuration."))
+            log.log(0,"error",_("Please check your Download Manager configuration.") + str(e))
             exit(1)
         # End of DownloadManager init
         
