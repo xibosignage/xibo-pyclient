@@ -107,9 +107,18 @@ class XiboDownloadManager(Thread):
 	self.xmds = xmds
 	self.running = True
 	self.dlQueue = Queue.Queue(0)
+
 	# Store a dictionary of XiboFile objects so we know how recently
 	# we last checked a file was present and correct.
 	self.md5Cache = defaultdict(XiboFile)
+	
+	# Store a dictionary of XiboDownloadThread objects so we know
+	# which files are downloading and how many download slots
+	# there are free
+	self.runningDownloads = defaultdict(XiboDownloadThread)
+
+	# How many XiboDownloadThreads should run at once
+	self.maxDownloads = 5
     
     def run(self):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
@@ -125,9 +134,8 @@ class XiboDownloadManager(Thread):
 	        log.log(0,"warning",_("Please check your xmdsUpdateInterval configuration option"))
 		log.log(0,"warning",_("A default value has been used:") + " " + str(self.interval) + " " + _("seconds"))
 
-	    # TODO: Connect to the webservice. Get a list of required files.
-	    #       Go through the list comparing required files to files we already have.
-	    #	    If a file differs, queue it for download
+	    # Go through the list comparing required files to files we already have.
+	    # If a file differs, queue it for download
 	    reqFiles = '<files></files>'
 	    try:
 		reqFiles = self.xmds.RequiredFiles()
@@ -193,13 +201,22 @@ class XiboDownloadManager(Thread):
 		# TODO: Throttle this to a maximum number of dl threads.
 		while True:
 		    tmpPath, tmpSize, tmpHash = self.dlQueue.get(False)
-		    # TODO: Make a download thread and actually download the file.
+		
+		    # Check if the file is downloading already
+		    if not tmpPath in self.runningDownloads:
+		    	# Make a download thread and actually download the file.
+			# Add the running thread to the self.runningDownloads dictionary
+			self.runningDownloads[tmpPath] = XiboDownloadThread(tmpPath,tmpSize,tmpHash)
+			self.runningDownloads[tmpPath].start()
+
+		    while len(self.runningDownloads) >= (self.maxDownloads - 1):
+			# There are no download thread slots free
+			# Sleep for 5 seconds and try again.
+			sleep(5000)
+		    # End While
 
 	    except Queue.Empty:
 		# Used to exit the above while once all items are downloaded.
-		# TODO: Wait here until all download threads are completed?
-		#       Or figure out how to prevent the next iteration of the loop
-		#       enqueuing a file that is still being downloaded again.
 		pass
 
 	    # TODO: Loop over the MD5 hash cache and remove any entries older than 1 hour?
@@ -207,9 +224,26 @@ class XiboDownloadManager(Thread):
 	    time.sleep(self.interval)
 	# End While
 
+    def dlThreadCompleteNotify(self,tmpPath):
+	# Download thread completed. Log and remove from
+	# self.runningDownloads
+	log.log(3,"info",_("Download thread completed for ") + tmpPath)
+	del self.runningDownloads[tmpPath]
+
 class XiboDownloadThread(Thread):
-    def __init__(self):
+    def __init__(self,parent,tmpPath,tmpSize,tmpHash):
         Thread.__init__(self)
+	self.tmpPath = tmpPath
+	self.tmpSize = tmpSize
+	self.tmpHash = tmpHash
+	self.parent = parent
+
+    def run(self):
+	# TODO: Actually download the file
+
+	# Let the DownloadManager know we're complete
+	parent.dlThreadCompleteNotify(tmpPath)
+
 #### Finish Download Manager
 
 #### Layout/Region Management
