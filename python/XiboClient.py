@@ -99,6 +99,11 @@ class XiboFile(object):
 
 	self.checkTime = time.time()
 	return True
+
+    def isExpired(self):
+	if self.checkTime < time.time() + 3600:
+	    return False
+	return True
         
 class XiboDownloadManager(Thread):
     def __init__(self,xmds):
@@ -169,6 +174,11 @@ class XiboDownloadManager(Thread):
 					# File exists and is the right size
 					# See if we checksummed it recently
 					if tmpPath in self.md5Cache:
+					    # Check if the md5 cache is old for this file
+					    if self.md5Cache[tmpPath].isExpired():
+						# Update the cache if it is
+						self.md5Cache[tmpPath].update()
+						
 					    if self.md5Cache[tmpPath].md5 != tmpHash:
 						# The hashes don't match.
 						# Queue for download.
@@ -197,9 +207,9 @@ class XiboDownloadManager(Thread):
 				pass
 	    # End If self.doc != None
 
-	    # TODO: Loop over the queue and download as required
+	    # Loop over the queue and download as required
 	    try:
-		# TODO: Throttle this to a maximum number of dl threads.
+		# Throttle this to a maximum number of dl threads.
 		while True:
 		    tmpType, tmpPath, tmpSize, tmpHash = self.dlQueue.get(False)
 		
@@ -220,7 +230,12 @@ class XiboDownloadManager(Thread):
 		# Used to exit the above while once all items are downloaded.
 		pass
 
-	    # TODO: Loop over the MD5 hash cache and remove any entries older than 1 hour?
+	    # Loop over the MD5 hash cache and remove any entries older than 1 hour
+	    for tmpPath, tmpFile in self.md5Cache:
+		if tmpFile.isExpired():
+		    del self.md5Cache[tmpPath]
+	    # End Loop
+		
 	    log.log(3,"info",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
 	    time.sleep(self.interval)
 	# End While
