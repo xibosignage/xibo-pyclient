@@ -164,6 +164,7 @@ class XiboDownloadManager(Thread):
 				    tmpPath = config.get('Main','libraryDir') + os.sep + str(f.attributes['path'].value)
 				    tmpSize = int(f.attributes['size'].value)
 				    tmpHash = str(f.attributes['md5'].value)
+				    tmpType = str(f.attributes['type'].value)
 				    if os.path.isfile(tmpPath) and os.path.getsize(tmpPath) == tmpSize:
 					# File exists and is the right size
 					# See if we checksummed it recently
@@ -184,7 +185,7 @@ class XiboDownloadManager(Thread):
 				    else:
 					# Queue the file for download later.
 					log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpPath)
-					self.dlQueue.put((tmpPath,tmpSize,tmpHash),False)
+					self.dlQueue.put((tmpType,tmpPath,tmpSize,tmpHash),False)
 				except:
 				    # TODO: Blacklist the media item.
 				    log.log(0,"error",_("RequiredFiles XML error: File type=media has no path attribute or no size attribute. Blacklisting."))
@@ -200,13 +201,13 @@ class XiboDownloadManager(Thread):
 	    try:
 		# TODO: Throttle this to a maximum number of dl threads.
 		while True:
-		    tmpPath, tmpSize, tmpHash = self.dlQueue.get(False)
+		    tmpType, tmpPath, tmpSize, tmpHash = self.dlQueue.get(False)
 		
 		    # Check if the file is downloading already
 		    if not tmpPath in self.runningDownloads:
 		    	# Make a download thread and actually download the file.
 			# Add the running thread to the self.runningDownloads dictionary
-			self.runningDownloads[tmpPath] = XiboDownloadThread(tmpPath,tmpSize,tmpHash)
+			self.runningDownloads[tmpPath] = XiboDownloadThread(self,tmpType,tmpPath,tmpSize,tmpHash)
 			self.runningDownloads[tmpPath].start()
 
 		    while len(self.runningDownloads) >= (self.maxDownloads - 1):
@@ -231,8 +232,9 @@ class XiboDownloadManager(Thread):
 	del self.runningDownloads[tmpPath]
 
 class XiboDownloadThread(Thread):
-    def __init__(self,parent,tmpPath,tmpSize,tmpHash):
+    def __init__(self,parent,tmpType,tmpPath,tmpSize,tmpHash):
         Thread.__init__(self)
+	self.tmpType = tmpType
 	self.tmpPath = tmpPath
 	self.tmpSize = tmpSize
 	self.tmpHash = tmpHash
@@ -242,7 +244,7 @@ class XiboDownloadThread(Thread):
 	# TODO: Actually download the file
 
 	# Let the DownloadManager know we're complete
-	parent.dlThreadCompleteNotify(tmpPath)
+	self.parent.dlThreadCompleteNotify(self.tmpPath)
 
 #### Finish Download Manager
 
