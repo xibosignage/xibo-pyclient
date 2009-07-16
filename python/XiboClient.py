@@ -162,6 +162,7 @@ class XiboDownloadManager(Thread):
 			# e is a files node.
 			#log.log(5,"info","Files Node found!")
 			for f in e.childNodes:
+			    # It's a Media node
 			    if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "media":
 				#log.log(5,"info","Media File Node found!")
 				# Does the file exist? Is it the right size?
@@ -183,7 +184,7 @@ class XiboDownloadManager(Thread):
 						# The hashes don't match.
 						# Queue for download.
 						log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
-						self.dlQueue.put((tmpPath,tmpSize,tmpHash),False)						
+						self.dlQueue.put((tmpType,tmpPath,tmpSize,tmpHash),False)						
 					else:
 					    tmpFile = XiboFile(tmpPath)
 					    self.md5Cache[tmpPath] = tmpFile
@@ -191,7 +192,7 @@ class XiboDownloadManager(Thread):
 						# The hashes don't match.
 						# Queue for download.
 						log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
-						self.dlQueue.put((tmpPath,tmpSize,tmpHash),False)
+						self.dlQueue.put((tmpType,tmpPath,tmpSize,tmpHash),False)
 				    else:
 					# Queue the file for download later.
 					log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpPath)
@@ -199,11 +200,47 @@ class XiboDownloadManager(Thread):
 				except:
 				    # TODO: Blacklist the media item.
 				    log.log(0,"error",_("RequiredFiles XML error: File type=media has no path attribute or no size attribute. Blacklisting."))
+
+			    # It's a Layout node.
 			    if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "layout":
-				#log.log(5,"info","Layout File Node found!")
-				pass
+				try:
+				    tmpPath = config.get('Main','libraryDir') + os.sep + str(f.attributes['path'].value) + '.xlf'
+				    tmpHash = str(f.attributes['md5'].value)
+				    tmpType = str(f.attributes['type'].value)
+				    if os.path.isfile(tmpPath):
+					# File exists
+					# See if we checksummed it recently
+					if tmpPath in self.md5Cache:
+					    # Check if the md5 cache is old for this file
+					    if self.md5Cache[tmpPath].isExpired():
+						# Update the cache if it is
+						self.md5Cache[tmpPath].update()
+						
+					    if self.md5Cache[tmpPath].md5 != tmpHash:
+						# The hashes don't match.
+						# Queue for download.
+						log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
+						self.dlQueue.put((tmpType,tmpPath,0,tmpHash),False)						
+					else:
+					    tmpFile = XiboFile(tmpPath)
+					    self.md5Cache[tmpPath] = tmpFile
+					    if tmpFile.md5 != tmpHash:
+						# The hashes don't match.
+						# Queue for download.
+						log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
+						self.dlQueue.put((tmpType,tmpPath,0,tmpHash),False)
+				    else:
+					# Queue the file for download later.
+					log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpPath)
+					self.dlQueue.put((tmpType,tmpPath,0,tmpHash),False)
+				except:
+				    # TODO: Blacklist the media item.
+				    log.log(0,"error",_("RequiredFiles XML error: File type=layout has no path attribute or no hash attribute. Blacklisting."))
+
+			    # It's a Blacklist node
 			    if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "blacklist":
 				#log.log(5,"info","Blacklist File Node found!")
+				# TODO: Do something with the blacklist
 				pass
 	    # End If self.doc != None
 
@@ -223,7 +260,8 @@ class XiboDownloadManager(Thread):
 		    while len(self.runningDownloads) >= (self.maxDownloads - 1):
 			# There are no download thread slots free
 			# Sleep for 5 seconds and try again.
-			sleep(5000)
+			log.log(3,"info",_("All download slots filled. Waiting for a download slot to become free"))
+			time.sleep(5)
 		    # End While
 
 	    except Queue.Empty:
@@ -231,6 +269,7 @@ class XiboDownloadManager(Thread):
 		pass
 
 	    # Loop over the MD5 hash cache and remove any entries older than 1 hour
+	    # TODO: Throws an exception "ValueError: too many values to unpack"
 	    for tmpPath, tmpFile in self.md5Cache:
 		if tmpFile.isExpired():
 		    del self.md5Cache[tmpPath]
@@ -254,12 +293,72 @@ class XiboDownloadThread(Thread):
 	self.tmpSize = tmpSize
 	self.tmpHash = tmpHash
 	self.parent = parent
+	self.offset = 0
+	self.chunk = 512000
 
     def run(self):
-	# TODO: Actually download the file
+	# Manage downloading the appropriate type of file:
+	if self.tmpType == "media":
+	    self.downloadMedia()
+	elif self.tmpType == "layout":
+	    self.downloadLayout()
 
 	# Let the DownloadManager know we're complete
 	self.parent.dlThreadCompleteNotify(self.tmpPath)
+
+    def downloadMedia(self):
+	# TODO: Actually download the Media file
+	finished = False
+	tries = 0
+
+	if os.path.isfile(self.tmpPath):
+	    try:
+	        os.remove(self.tmpPath)
+	    except:
+		log.log(0,"error",_("Unable to delete file: ") + self.tmpPath)
+		return
+
+	append = True
+
+	fh = None
+	try:
+	    fh = open(self.tmpPath, 'wb')
+	except:
+	    log.log(0,"error",_("Unable to write file: ") + self.tmpPath)
+	    return
+
+        while tries < 5 and not finished:
+	    tries = tries + 1
+	    while self.offset < self.tmpSize:
+		# If downloading this chunk will complete the file
+		# work out exactly how much to download this time
+		if self.offset + self.chunk > self.tmpSize:
+		    self.chunk = self.tmpSize - self.offset
+
+		try:
+		     # TODO: Fix path attribute so it's just the filename (minus the client path)
+		     shortPath = self.tmpPath.replace(config.get('Main','libraryDir') + os.sep,'',1)
+		     response = self.parent.xmds.GetFile(shortPath,self.tmpType,self.offset,self.chunk)
+		     fh.write(response)
+		     fh.flush()
+		     self.offset = self.offset + self.chunk
+		except RuntimeError:
+		     # TODO: Do something sensible
+		     pass
+
+	    # End while offset<tmpSize
+	    try:
+	        fh.close()
+	    except:
+	        # TODO: Do something sensible
+	        pass
+
+	    finished = True
+	# End while
+
+    def downloadLayout(self):
+	# TODO: Actually download the Layout file
+	pass
 
 #### Finish Download Manager
 
@@ -859,7 +958,6 @@ class XMDS:
 	    try:
 		# TODO: Change the final arguement to use the globally defined schema version once
 		# there is a server that supports the schema to test against.
-		# TODO: This is failing with an error that the client isn't licensed.
 		req = self.server.RequiredFiles(self.getKey(),self.getUUID(),"1")
 	    except SOAPpy.Types.faultType, err:
 		log.log(0,"error",str(err))
@@ -875,6 +973,29 @@ class XMDS:
 	    raise XMDSException("XMDS could not be initialised")
 
 	return req
+
+    def GetFile(self,tmpPath,tmpType,tmpOffset,tmpChunk):
+	"""Connect to XMDS and download a file"""
+	response = None
+	if self.check():
+	    try:
+		# TODO: Change the final arguement to use the globally defined schema version once
+		# there is a server that supports the schema to test against.
+		response = self.server.GetFile(self.getKey(),self.getUUID(),tmpPath,tmpType,tmpOffset,tmpChunk,"1")
+	    except SOAPpy.Types.faultType, err:
+		log.log(0,"error",str(err))
+		raise XMDSException("GetFile: Incorrect arguments passed to XMDS.")
+	    except SOAPpy.Errors.HTTPError, err:
+		log.log(0,"error",str(err))
+		raise XMDSException("GetFile: HTTP error connecting to XMDS.")
+	    except socket.error, err:
+		log.log(0,"error",str(err))
+		raise XMDSException("GetFile: socket error connecting to XMDS.")
+	else:
+	    log.log(0,"error","XMDS could not be initialised")
+	    raise XMDSException("XMDS could not be initialised")
+
+	return response
 
     def RegisterDisplay(self):
 	"""Connect to XMDS and attempt to register the client"""
