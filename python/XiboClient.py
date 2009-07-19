@@ -307,7 +307,7 @@ class XiboDownloadThread(Thread):
 	self.parent.dlThreadCompleteNotify(self.tmpPath)
 
     def downloadMedia(self):
-	# TODO: Actually download the Media file
+	# Actually download the Media file
 	finished = False
 	tries = 0
 
@@ -336,7 +336,7 @@ class XiboDownloadThread(Thread):
 		    self.chunk = self.tmpSize - self.offset
 
 		try:
-		     # TODO: Fix path attribute so it's just the filename (minus the client path)
+		     # Fix path attribute so it's just the filename (minus the client path)
 		     shortPath = self.tmpPath.replace(config.get('Main','libraryDir') + os.sep,'',1)
 		     response = self.parent.xmds.GetFile(shortPath,self.tmpType,self.offset,self.chunk)
 		     fh.write(response)

@@ -11,10 +11,9 @@
 			</options>
 			<raw/>
 		</media>
-		<media id="1" type="tv" duration="30" lkid="1" schemaVersion="1">
+		<media id="5" type="video" duration="20" lkid="1" schemaVersion="1">
 			<options>
-				<device>/dev/video0</device>
-				<driver>v4l</driver>
+				<uri>129.avi</uri>
 				<transIn>fadeIn</transIn>
 				<transOut>fadeOut</transOut>
 				<transInDuration>2000</transInDuration>
@@ -23,9 +22,8 @@
 			<raw/>
 		</media>
 		<options>
-			<transOut>fly</transOut>
-			<transOutDuration>2500</transOutDuration>
-			<transOutDirection>NW</transOutDirection>
+			<transOut>fadeOut</transOut>
+			<transOutDuration>1500</transOutDuration>
 		</options>
 	</region>
 	<region id="47ff29524ce1f" width="1800" height="255" top="0" left="0">
