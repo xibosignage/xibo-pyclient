@@ -271,7 +271,7 @@ class XiboDownloadManager(Thread):
 
 	    # Loop over the MD5 hash cache and remove any entries older than 1 hour
 	    # TODO: Throws an exception "ValueError: too many values to unpack"
-	    for tmpPath, tmpFile in self.md5Cache:
+	    for tmpPath, tmpFile in self.md5Cache.iteritems():
 		if tmpFile.isExpired():
 		    del self.md5Cache[tmpPath]
 	    # End Loop
