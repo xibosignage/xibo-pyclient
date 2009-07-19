@@ -8,7 +8,6 @@ class XiboMedia(Thread):
     def __init__(self,log,parent,player,mediaNode):
 	Thread.__init__(self)
 	self.__setupMedia__(log,parent,player,mediaNode)
-	self.add()
 
     def add(self):
 	pass

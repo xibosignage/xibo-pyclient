@@ -644,6 +644,7 @@ class XiboRegionManager(Thread):
 						log.log(3,"info",_("Beginning transitions: " + str(trans)))
 						# The two transitions match. Let one plugin handle both.
 						if (trans[0] == trans[1]) and trans[0] != "":
+							self.currentMedia.add()
 							self.currentMedia.start()
 							try:
 								__import__("plugins.transitions." + trans[0] + "Transition",None,None,[''])
@@ -670,6 +671,7 @@ class XiboRegionManager(Thread):
 								self.tLock.acquire()
 
 							if (trans[1] != ""):
+								self.currentMedia.add()
 								self.currentMedia.start()
 								try:
 									__import__("plugins.transitions." + trans[1] + "Transition",None,None,[''])
@@ -681,6 +683,7 @@ class XiboRegionManager(Thread):
 									tmpTransition.start()
 								self.tLock.acquire()
 							else:
+								self.currentMedia.add()
 								self.currentMedia.start()
 						# Cleanup
 						try:						
@@ -1277,8 +1280,8 @@ class XiboPlayer(Thread):
 			pass
 		except RuntimeError as detail:
 			log.log(1,"error",_("A runtime error occured: ") + detail)
-		except:
-			log.log(1,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
+		#except:
+		#	log.log(1,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
 
 class XiboClient:
     "Main Xibo DisplayClient Class. May (in time!) host many DisplayManager classes"
