@@ -879,7 +879,7 @@ class XiboLayout:
 class DummyScheduler(XiboScheduler):
     "Dummy scheduler - returns a list of layouts in rotation forever"
 #    layoutList = ['1', '2', '3']
-    layoutList = ['5']
+    layoutList = ['5','6']
     layoutIndex = 0
     
     def __init__(self,xmds):
@@ -1156,13 +1156,16 @@ class XiboDisplayManager:
 		if self.currentLM.isRunning == True:
         	    self.currentLM.dispose()
 	except:
-		pass
-	self.Player.enqueue("reset","")        
+		pass       
+
+	# Store a reference to the current layout div so we can remove it
+	tmpLayout = self.currentLM.layoutNodeName
 
         # New LayoutManager
         self.currentLM = XiboLayoutManager(self, self.Player, self.scheduler.nextLayout())
         log.log(2,"info",_("XiboLayoutManager: nextLayout() -> Starting new XiboLayoutManager with layout ") + str(self.currentLM.l.layoutID))
         self.currentLM.start()
+	self.Player.enqueue('del',tmpLayout)
 
 class XiboPlayer(Thread):
 	"Class to handle libavg interactions"

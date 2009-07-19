@@ -5,9 +5,11 @@ from XiboMedia import XiboMedia
 from threading import Thread
 
 class VideoMedia(XiboMedia):
-    def run(self):
+    def add(self):
 	tmpXML = '<video href="data/' + str(self.options['uri']) + '" id="' + self.mediaNodeName + '" />'
 	self.p.enqueue('add',(tmpXML,self.regionNodeName))
+
+    def run(self):
 	self.p.enqueue('play', self.mediaNodeName)
 	self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height))
 	if int(self.duration) > 0:

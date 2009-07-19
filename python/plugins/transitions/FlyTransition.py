@@ -26,7 +26,7 @@ class FlyTransition(XiboTransition):
 		else:
 			self.inDuration = 1000
 
-		self.__animate__(self.media2.getName(),self.media2.getX(),self.media2.getY(),self.media2.getWidth(),self.media2.getHeight(),self.options2["transInDirection"],self.inDuration,self.next)
+		self.__animate__(self.media2.getName(),0 - self.media2.getWidth(), 0 - self.media2.getHeight(),self.media2.getX(),self.media2.getY(),self.options2["transInDirection"],self.inDuration,self.next)
 		self.lock.acquire()
 
 	self.callback()
