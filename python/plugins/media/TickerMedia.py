@@ -9,6 +9,9 @@ import FeedParser.feedparser
 
 class TickerMedia(XiboMedia):
     def run(self):
+	# TODO: Remove this return
+	self.parent.next()
+	return
 	# Insert a cacheTimeout field to options.
 	# This should become part of the XLF in the future.
 	self.options['cacheTimeout'] = 20

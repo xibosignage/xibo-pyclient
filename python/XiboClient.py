@@ -22,7 +22,8 @@ from collections import defaultdict
 from threading import Thread, Semaphore
 
 version = "1.1.0"
-schemaVersion = 2
+#TODO: Change to 2!
+schemaVersion = 1
 
 #### Abstract Classes
 class XiboLog:
@@ -353,12 +354,53 @@ class XiboDownloadThread(Thread):
 	        # TODO: Do something sensible
 	        pass
 
+	    # TODO: Should we check size/md5 here?
 	    finished = True
 	# End while
 
     def downloadLayout(self):
-	# TODO: Actually download the Layout file
-	pass
+	# Actually download the Layout file
+	finished = False
+	tries = 0
+
+	if os.path.isfile(self.tmpPath):
+	    try:
+	        os.remove(self.tmpPath)
+	    except:
+		log.log(0,"error",_("Unable to delete file: ") + self.tmpPath)
+		return
+
+	fh = None
+	try:
+	    fh = open(self.tmpPath, 'wb')
+	except:
+	    log.log(0,"error",_("Unable to write file: ") + self.tmpPath)
+	    return
+
+        while tries < 5 and not finished:
+	    tries = tries + 1
+
+	    try:
+	        # Fix path attribute so it's just the filename (minus the client path) and trailing .xlf
+	        shortPath = self.tmpPath.replace(config.get('Main','libraryDir') + os.sep,'',1)
+	        shortPath = self.tmpPath.replace('.xlf','',1)
+
+	        response = self.parent.xmds.GetFile(shortPath,self.tmpType,0,0)
+	        fh.write(response + '\n')
+	        fh.flush()
+	    except RuntimeError:
+	        # TODO: Do something sensible
+	        pass
+
+	    try:
+	        fh.close()
+	    except:
+	        # TODO: Do something sensible
+	        pass
+
+	    # TODO: Should we check size/md5 here?
+	    finished = True
+	# End while
 
 #### Finish Download Manager
 
@@ -689,7 +731,7 @@ class XiboRegionManager(Thread):
 	rOptions = {}
 	oNode = None
 
-	# TODO: Perform any region exit transitions
+	# Perform any region exit transitions
 	for cn in self.regionNode.childNodes:
 		if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "options":
 			oNode = cn
@@ -702,8 +744,8 @@ class XiboRegionManager(Thread):
 	except AttributeError:
 		rOptions["transOut"] = ""
 
-	# TODO: Make the transition objects and pass in options
-	#       Once animation complete, they should call back to self.disposeTransitionComplete()
+	# Make the transition objects and pass in options
+	# Once animation complete, they should call back to self.disposeTransitionComplete()
 	transOut = str(rOptions["transOut"])
 	if (transOut != ""):
 		import plugins.transitions
@@ -836,7 +878,8 @@ class XiboLayout:
         
 class DummyScheduler(XiboScheduler):
     "Dummy scheduler - returns a list of layouts in rotation forever"
-    layoutList = ['1', '2', '3']
+#    layoutList = ['1', '2', '3']
+    layoutList = ['5']
     layoutIndex = 0
     
     def __init__(self,xmds):
