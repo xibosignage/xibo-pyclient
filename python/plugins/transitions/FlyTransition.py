@@ -10,6 +10,7 @@ class FlyTransition(XiboTransition):
 	self.lock = Semaphore()
 	self.lock.acquire()
 
+	# TODO: Broken if exit and entrance transitions are both "fly".
 	if self.media1 != None:
 		if self.options1['transOutDuration'] > 0:
 			self.outDuration = int(self.options1['transOutDuration'])

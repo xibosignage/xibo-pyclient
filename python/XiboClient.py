@@ -882,7 +882,7 @@ class XiboLayout:
 class DummyScheduler(XiboScheduler):
     "Dummy scheduler - returns a list of layouts in rotation forever"
 #    layoutList = ['1', '2', '3']
-    layoutList = ['5','6']
+    layoutList = ['6']
     layoutIndex = 0
     
     def __init__(self,xmds):
@@ -1280,6 +1280,7 @@ class XiboPlayer(Thread):
 			pass
 		except RuntimeError as detail:
 			log.log(1,"error",_("A runtime error occured: ") + detail)
+		# TODO: Put this catchall back when finished debugging.
 		#except:
 		#	log.log(1,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
 
