@@ -146,8 +146,19 @@ class XiboDownloadManager(Thread):
 	    try:
 		reqFiles = self.xmds.RequiredFiles()
 		log.log(5,"info",_("XiboDownloadManager: XMDS RequiredFiles() returned ") + str(reqFiles))
+		f = open(config.get('Main','libraryDir') + os.sep + 'rf.xml','w')
+		f.write(reqFiles)
+		f.close()
+	    except IOError:
+		log.log(0,"error",_("Error trying to cache RequiredFiles to disk"))
 	    except XMDSException:
 		log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
+		try:
+		    f = open(config.get('Main','libraryDir') + os.sep + 'rf.xml')
+		    reqFiles = f.read()
+		    f.close()
+		except:
+		    pass
 
 	    self.doc = None
 	    # Pull apart the retuned XML
@@ -933,7 +944,7 @@ class XiboLayout:
 class DummyScheduler(XiboScheduler):
     "Dummy scheduler - returns a list of layouts in rotation forever"
 #    layoutList = ['1', '2', '3']
-    layoutList = ['6']
+    layoutList = ['5','6']
     layoutIndex = 0
     
     def __init__(self,xmds):
@@ -995,6 +1006,9 @@ class XMDSException(Exception):
 
 class XMDS:
     def __init__(self):
+	# Semaphore to allow only one XMDS call to run check simultaneously
+	self.checkLock = Semaphore()
+
 	self.hasInitialised = False
 	
 	salt = None
@@ -1054,6 +1068,7 @@ class XMDS:
 	if self.hasInitialised:
 	    return True
 	else:
+	    self.checkLock.acquire()
 	    self.server = None
 	    tries = 0
 	    while self.server == None and tries < 3:
@@ -1066,8 +1081,10 @@ class XMDS:
 		    log.log(0,"error",_("Could not connect to XMDS."))
 	    # End While
 	    if self.server == None:
+		self.checkLock.release()
 		return False
 	
+	self.checkLock.release()
 	return True
 
     def RequiredFiles(self):
