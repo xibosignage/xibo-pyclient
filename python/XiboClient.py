@@ -951,6 +951,25 @@ class DummyScheduler(XiboScheduler):
         "Return true if there are more layouts, otherwise false"
         log.log(3,"info",_("DummyScheduler: hasNext() -> true"))
         return True
+
+class XmdsScheduler(XiboScheduler):
+    "XMDS Scheduler. Retrieves the current schedule from XMDS."
+    
+    def __init__(self,xmds):
+        Thread.__init__(self)
+	self.xmds = xmds
+    
+    def run(self):
+        pass
+    
+    def nextLayout(self):
+        "Return the next valid layout"
+        pass
+    
+    def hasNext(self):
+        "Return true if there are more layouts, otherwise false"
+        log.log(3,"info",_("XmdsScheduler: hasNext() -> true"))
+        return True
 #### Finish Scheduler Classes
 
 #### Webservice
@@ -1054,6 +1073,29 @@ class XMDS:
 	    except socket.error, err:
 		log.log(0,"error",str(err))
 		raise XMDSException("RequiredFiles: socket error connecting to XMDS.")
+	else:
+	    log.log(0,"error","XMDS could not be initialised")
+	    raise XMDSException("XMDS could not be initialised")
+
+	return req
+
+    def Schedule(self):
+	"""Connect to XMDS and get the current schedule"""
+	req = None
+	if self.check():
+	    try:
+		# TODO: Change the final arguement to use the globally defined schema version once
+		# there is a server that supports the schema to test against.
+		req = self.server.Schedule(self.getKey(),self.getUUID(),"1")
+	    except SOAPpy.Types.faultType, err:
+		log.log(0,"error",str(err))
+		raise XMDSException("Schedule: Incorrect arguments passed to XMDS.")
+	    except SOAPpy.Errors.HTTPError, err:
+		log.log(0,"error",str(err))
+		raise XMDSException("Schedule: HTTP error connecting to XMDS.")
+	    except socket.error, err:
+		log.log(0,"error",str(err))
+		raise XMDSException("Schedule: socket error connecting to XMDS.")
 	else:
 	    log.log(0,"error","XMDS could not be initialised")
 	    raise XMDSException("XMDS could not be initialised")
