@@ -16,4 +16,5 @@ class ImageMedia(XiboMedia):
 	self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
 
     def requiredFiles(self):
-	return [str(self.options['uri'])]
+	# TODO: Fix the hardcoded path data/
+	return ['data/' + str(self.options['uri'])]

@@ -890,6 +890,7 @@ class XiboLayout:
 			tmpMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,None,None,mn)
 		except:
 			self.pluginCheck = False
+			log.log(0,"error",_("Plugin missing for media in layout ") + self.layoutID)
 		self.media = self.media + tmpMedia.requiredFiles()
 
     def canRun(self):
@@ -897,17 +898,27 @@ class XiboLayout:
 
 	# Loop through all the media items in the layout
 	# Check them against md5Cache
-	for f in self.media:
-		if f in md5Cache:
+	for tmpPath in self.media:
+		if tmpPath in md5Cache:
 			# Check if the md5 cache is old for this file
 			try:
 				if not md5Cache[tmpPath].isValid():
 					self.mediaCheck = False
+					log.log(3,"warn",_("Layout ") + self.layoutID + _(" cannot run because MD5 is incorrect on ") + tmpPath)
+
+				if not os.path.isfile(tmpPath):
+					self.mediaCheck = False
+					log.log(0,"error",_("Layout ") + self.layoutID + _(" cannot run because file is missing: ") + tmpPath)
 			except:
 				self.mediaCheck = False
+				log.log(0,"error",_("Layout ") + self.layoutID + _(" cannot run because an exception was thrown.") + tmpPath)
+		else:
+			self.mediaCheck = False
+			log.log(3,"info",_("Layout ") + self.layoutID + _(" cannot run because file is missing from the md5Cache: ") + tmpPath)
 				
 	# See if the item is in a scheduled window to run
 	
+	log.log(3,"info",_("Layout ") + self.layoutID + " canRun(): schema-" + str(self.schemaCheck) + " media-" + str(self.mediaCheck) + " schedule-" + str(self.scheduleCheck) + " plugin-" + str(self.pluginCheck))
 	return self.schemaCheck and self.mediaCheck and self.scheduleCheck and self.pluginCheck
 
     def resetSchedule(self):
@@ -942,7 +953,10 @@ class DummyScheduler(XiboScheduler):
         
 	if layout.canRun() == False:
 	        log.log(3,"info",_("DummyScheduler: nextLayout() -> ") + str(layout.layoutID) + _(" is not ready to run."))
-		return self.nextLayout()
+		if len(self.layoutList) > 1:
+			return self.nextLayout()
+		else:
+			return XiboLayout("0")
 	else:
 	        log.log(3,"info",_("DummyScheduler: nextLayout() -> ") + str(layout.layoutID))
 	        return layout

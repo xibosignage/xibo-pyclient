@@ -20,4 +20,5 @@ class VideoMedia(XiboMedia):
 		self.p.enqueue('eofCallback',(self.mediaNodeName,self.parent.next))
 
     def requiredFiles(self):
-	return [str(self.options['uri'])]
+	# TODO: Fix the hardcoded path data/
+	return ['data/' + str(self.options['uri'])]
