@@ -5,9 +5,17 @@ from threading import Thread
 
 class XiboMedia(Thread):
     "Abstract Class - Interface for Media"
+
     def __init__(self,log,parent,player,mediaNode):
+	"""
+	Represents a media item. Can be constructed with valid parent (RegionManager) and Player objects - by a real running layout
+	or with None types when the Layout object is interegated to find out if all the media nodes are in a state ready to run.
+	"""
 	Thread.__init__(self)
 	self.__setupMedia__(log,parent,player,mediaNode)
+
+    def requiredFiles(self):
+	return []
 
     def add(self):
 	pass
@@ -18,11 +26,6 @@ class XiboMedia(Thread):
 	self.parent = parent
 	self.p = player
 	self.mediaNode = mediaNode
-	self.regionNodeName = self.parent.regionNodeName
-	self.regionNodeNameExt = self.parent.regionNodeNameExt
-	self.width = self.parent.width
-	self.height = self.parent.height
-	self.mediaNodeNameExt = "-" + str(self.p.nextUniqueId())
 	self.mediaNodeName = None
 	self.mediaType = None
 	self.duration = None
@@ -31,6 +34,19 @@ class XiboMedia(Thread):
 	self.options = {}
 	self.rawNode = None
 	self.optionsNode = None
+
+	if self.p == None:
+		self.regionNodeName = 'null'
+		self.regionNodeNameExt = 'null'
+		self.width = '10'
+		self.height = '10'
+		self.mediaNodeNameExt = '-null'
+	else:
+		self.regionNodeName = self.parent.regionNodeName
+		self.regionNodeNameExt = self.parent.regionNodeNameExt
+		self.width = self.parent.width
+		self.height = self.parent.height
+		self.mediaNodeNameExt = "-" + str(self.p.nextUniqueId())
 
 	# Calculate the media ID name
 	try:

@@ -6,9 +6,9 @@ from threading import Thread
 
 class VideoMedia(XiboMedia):
     def add(self):
-	tmpXML = '<video href="data/' + str(self.options['uri']) + '" id="' + self.mediaNodeName + '" />'
+	# TODO: Fix the hardcoded path data/
+	tmpXML = '<video href="data/' + str(self.options['uri']) + '" id="' + self.mediaNodeName + '" opacity="0" />'
 	self.p.enqueue('add',(tmpXML,self.regionNodeName))
-	self.p.enqueue('setOpacity',(self.mediaNodeName,0))
 
     def run(self):
 	self.p.enqueue('play', self.mediaNodeName)
@@ -18,3 +18,6 @@ class VideoMedia(XiboMedia):
 		self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
 	else:
 		self.p.enqueue('eofCallback',(self.mediaNodeName,self.parent.next))
+
+    def requiredFiles(self):
+	return [str(self.options['uri'])]

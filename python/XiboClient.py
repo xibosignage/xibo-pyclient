@@ -79,11 +79,12 @@ class XiboLogXmds(XiboLog):
 
 #### Download Manager
 class XiboFile(object):
-    def __init__(self,path):
+    def __init__(self,path,targetHash):
 	self.__path = path
 	self.md5 = ""
 	self.checkTime = 1
 	self.update()
+	self.targetHash = targetHash
 
     def update(self):
 	# Generate MD5
@@ -105,6 +106,9 @@ class XiboFile(object):
 	if self.checkTime < time.time() + 3600:
 	    return False
 	return True
+
+    def isValid(self):
+	return self.md5 == self.targetHash
         
 class XiboDownloadManager(Thread):
     def __init__(self,xmds):
@@ -113,10 +117,6 @@ class XiboDownloadManager(Thread):
 	self.xmds = xmds
 	self.running = True
 	self.dlQueue = Queue.Queue(0)
-
-	# Store a dictionary of XiboFile objects so we know how recently
-	# we last checked a file was present and correct.
-	self.md5Cache = defaultdict(XiboFile)
 	
 	# Store a dictionary of XiboDownloadThread objects so we know
 	# which files are downloading and how many download slots
@@ -175,21 +175,21 @@ class XiboDownloadManager(Thread):
 				    if os.path.isfile(tmpPath) and os.path.getsize(tmpPath) == tmpSize:
 					# File exists and is the right size
 					# See if we checksummed it recently
-					if tmpPath in self.md5Cache:
+					if tmpPath in md5Cache:
 					    # Check if the md5 cache is old for this file
-					    if self.md5Cache[tmpPath].isExpired():
+					    if md5Cache[tmpPath].isExpired():
 						# Update the cache if it is
-						self.md5Cache[tmpPath].update()
+						md5Cache[tmpPath].update()
 						
-					    if self.md5Cache[tmpPath].md5 != tmpHash:
+					    if not md5Cache[tmpPath].isValid():
 						# The hashes don't match.
 						# Queue for download.
 						log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
 						self.dlQueue.put((tmpType,tmpPath,tmpSize,tmpHash),False)						
 					else:
-					    tmpFile = XiboFile(tmpPath)
-					    self.md5Cache[tmpPath] = tmpFile
-					    if tmpFile.md5 != tmpHash:
+					    tmpFile = XiboFile(tmpPath,tmpHash)
+					    md5Cache[tmpPath] = tmpFile
+					    if not tmpFile.isValid():
 						# The hashes don't match.
 						# Queue for download.
 						log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
@@ -211,21 +211,21 @@ class XiboDownloadManager(Thread):
 				    if os.path.isfile(tmpPath):
 					# File exists
 					# See if we checksummed it recently
-					if tmpPath in self.md5Cache:
+					if tmpPath in md5Cache:
 					    # Check if the md5 cache is old for this file
-					    if self.md5Cache[tmpPath].isExpired():
+					    if md5Cache[tmpPath].isExpired():
 						# Update the cache if it is
-						self.md5Cache[tmpPath].update()
+						md5Cache[tmpPath].update()
 						
-					    if self.md5Cache[tmpPath].md5 != tmpHash:
+					    if md5Cache[tmpPath].md5 != tmpHash:
 						# The hashes don't match.
 						# Queue for download.
 						log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
 						self.dlQueue.put((tmpType,tmpPath,0,tmpHash),False)						
 					else:
-					    tmpFile = XiboFile(tmpPath)
-					    self.md5Cache[tmpPath] = tmpFile
-					    if tmpFile.md5 != tmpHash:
+					    tmpFile = XiboFile(tmpPath,tmpHash)
+					    md5Cache[tmpPath] = tmpFile
+					    if not tmpFile.isValid():
 						# The hashes don't match.
 						# Queue for download.
 						log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
@@ -271,9 +271,9 @@ class XiboDownloadManager(Thread):
 
 	    # Loop over the MD5 hash cache and remove any entries older than 1 hour
 	    # TODO: Throws an exception "ValueError: too many values to unpack"
-	    for tmpPath, tmpFile in self.md5Cache.iteritems():
+	    for tmpPath, tmpFile in md5Cache.iteritems():
 		if tmpFile.isExpired():
-		    del self.md5Cache[tmpPath]
+		    del md5Cache[tmpPath]
 	    # End Loop
 		
 	    log.log(3,"info",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
@@ -796,11 +796,17 @@ class XiboLayout:
 	self.backgroundImage = None
 	self.backgroundColour = None
 
+	# Tags assinged to this layout
+	self.tags = []
+
+	# Array of media names (to check against md5Cache later!)
+	self.media = []
+
 	# Checks
-	# TODO: Check these are appropriate defaults.
-	self.schemaCheck = True
-	self.mediaCheck = True
+	self.schemaCheck = False
+	self.mediaCheck = False
 	self.scheduleCheck = True
+	self.pluginCheck = True
 
 	# Read XLF from file (if it exists)
 	# Set builtWithNoXLF = True if it doesn't
@@ -841,6 +847,8 @@ class XiboLayout:
 
 		try:
 			self.backgroundImage = self.layoutNode.attributes['background'].value
+			if self.backgroundImage == "":
+				self.backgroundImage = None
 		except KeyError:
 			# Optional attributes, so pass on error.
 			pass
@@ -866,9 +874,41 @@ class XiboLayout:
 		# schedule information it may contain later.
 		log.log(3,"info",_("File does not exist. Marking layout built without XLF file"))
 		self.builtWithNoXLF = True
+
+	# Find all the media nodes
+	mediaNodes = self.doc.getElementsByTagName('media')
 	
+	# Iterate over the media nodes and extract path names
+	# Make a media object minus its Player (to prevent any accidents!) and ask it
+	# what media it needs to run. This allows us to be extensible.
+	for mn in mediaNodes:
+		type = str(mn.attributes['type'].value)
+		type = type[0:1].upper() + type[1:]
+		try:
+			import plugins.media
+			__import__("plugins.media." + type + "Media",None,None,[''])
+			tmpMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,None,None,mn)
+		except:
+			self.pluginCheck = False
+		self.media = self.media + tmpMedia.requiredFiles()
+
     def canRun(self):
-		return self.schemaCheck and self.mediaCheck and self.scheduleCheck
+	self.mediaCheck = True
+
+	# Loop through all the media items in the layout
+	# Check them against md5Cache
+	for f in self.media:
+		if f in md5Cache:
+			# Check if the md5 cache is old for this file
+			try:
+				if not md5Cache[tmpPath].isValid():
+					self.mediaCheck = False
+			except:
+				self.mediaCheck = False
+				
+	# See if the item is in a scheduled window to run
+	
+	return self.schemaCheck and self.mediaCheck and self.scheduleCheck and self.pluginCheck
 
     def resetSchedule(self):
 	pass
@@ -1320,6 +1360,11 @@ class XiboClient:
             print _("Please check your logWriter configuration.")
             exit(1)
         
+	# Store a dictionary of XiboFile objects so we know how recently
+	# we last checked a file was present and correct.
+	global md5Cache
+	md5Cache = defaultdict(XiboFile)
+
         self.dm = XiboDisplayManager()
         
         self.dm.run()
