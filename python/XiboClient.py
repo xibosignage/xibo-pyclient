@@ -558,6 +558,7 @@ class XiboRegionManager(Thread):
         self.left = None
         self.zindex = None
         self.disposed = False
+        self.disposing = False
         self.oneItemOnly = False
         self.previousMedia = None
         self.currentMedia = None
@@ -705,7 +706,8 @@ class XiboRegionManager(Thread):
                                     self.currentMedia.start()
                             # Cleanup
                             try:
-                                self.p.enqueue('del',self.previousMedia.mediaNodeName)
+                                if self.disposing == False:
+                                    self.p.enqueue('del',self.previousMedia.mediaNodeName)
                             except AttributeError:
                                 pass
 
@@ -736,7 +738,7 @@ class XiboRegionManager(Thread):
         # log.log(3,"info",_("XiboRegionManager") + " " + self.regionNodeName + ": " + _("Next Media Item"))
 
         # Do nothing if the layout has already been removed from the screen
-        if self.disposed == True:
+        if self.disposed == True or self.disposing == True:
             return
 
         self.lock.release()
@@ -748,6 +750,7 @@ class XiboRegionManager(Thread):
         self.tLock.release()
 
     def dispose(self):
+        self.disposing = True
         log.log(5,"info",self.regionNodeName + " is disposing.")
         rOptions = {}
         oNode = None
@@ -1533,7 +1536,7 @@ class XiboPlayer(Thread):
             self.currentFH = None
             self.__lock.release()
         except RuntimeError as detail:
-            log.log(1,"error",_("A runtime error occured: ") + detail)
+            log.log(1,"error",_("A runtime error occured: ") + str(detail))
         # TODO: Put this catchall back when finished debugging.
         except:
                log.log(1,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
