@@ -209,7 +209,7 @@ class XiboDownloadManager(Thread):
                                                 self.dlQueue.put((tmpType,tmpPath,tmpSize,tmpHash),False)
                                     else:
                                         # Queue the file for download later.
-                                        log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpPath)
+                                        log.log(3,"info",_("File does not exist or is not the correct size. Queueing for download. ") + tmpPath)
                                         self.dlQueue.put((tmpType,tmpPath,tmpSize,tmpHash),False)
                                 except:
                                     # TODO: Blacklist the media item.
@@ -228,6 +228,11 @@ class XiboDownloadManager(Thread):
                                             # Check if the md5 cache is old for this file
                                             if md5Cache[tmpPath].isExpired():
                                                 # Update the cache if it is
+                                                md5Cache[tmpPath].update()
+                                            
+                                            # The file is in cache, but has changed hash on the server
+                                            if md5Cache[tmpPath].targetHash != tmpHash:
+                                                md5Cache[tmpPath].targetHash = tmpHash
                                                 md5Cache[tmpPath].update()
 
                                             if md5Cache[tmpPath].md5 != tmpHash:
@@ -790,6 +795,9 @@ class XiboRegionManager(Thread):
 class XiboLayout:
     def __init__(self,layoutID):
         self.layoutID = layoutID
+        self.__setup()
+        
+    def __setup(self):
         self.builtWithNoXLF = False
         self.schedule = ""
         self.layoutNode = None
@@ -887,6 +895,14 @@ class XiboLayout:
             # schedule information it may contain later.
             log.log(3,"info",_("File does not exist. Marking layout built without XLF file"))
             self.builtWithNoXLF = True
+            return
+            
+        except xml.parsers.expat.ExpatError:
+            # File doesn't exist. Keep the layout object for the
+            # schedule information it may contain later.
+            log.log(3,"info",_("File does not exist. Marking layout built without XLF file"))
+            self.builtWithNoXLF = True
+            return
 
         # Find all the media nodes
         mediaNodes = self.doc.getElementsByTagName('media')
@@ -907,6 +923,14 @@ class XiboLayout:
             self.media = self.media + tmpMedia.requiredFiles()
 
     def canRun(self):
+        # See if we were built with no XLF
+        # If we were, attempt to set ourselves up
+        # Otherwise return False
+        if self.builtWithNoXLF:
+            self.__setup()
+            if self.builtWithNoXLF:
+                return False
+        
         self.mediaCheck = True
 
         # Loop through all the media items in the layout
@@ -989,6 +1013,7 @@ class XmdsScheduler(XiboScheduler):
         self.__pointer = -1
         self.__layouts = []
         self.__lock = Semaphore()
+        self.previousSchedule = "<schedule/>"
 
     def run(self):
         while self.running:
@@ -1025,6 +1050,36 @@ class XmdsScheduler(XiboScheduler):
                     f.close()
             
             # TODO: Process the received schedule
+            # If the schedule hasn't changed, do nothing.
+            if self.previousSchedule != schedule:
+                doc = minidom.parseString(schedule)
+                tmpLayouts = doc.getElementsByTagName('layout')
+            
+                newLayouts = []
+                for l in tmpLayouts:
+                    layoutID = str(l.attributes['file'].value)
+                    layoutFromDT = str(l.attributes['fromdt'].value)
+                    layoutToDT = str(l.attributes['todt'].value)
+                    flag = True
+                    
+                    # If the layout already exists, add this schedule to it
+                    for g in newLayouts:
+                        if g.layoutID == layoutID:
+                            # Append Schedule
+                            g.addSchedule(layoutFromDT,layoutToDT)
+                            flag = False
+                    
+                    # The layout doesn't exist, add it and add a schedule for it
+                    if flag:
+                        tmpLayout = XiboLayout(layoutID)
+                        tmpLayout.addSchedule(layoutFromDT,layoutToDT)
+                        newLayouts.append(tmpLayout)
+                        
+                    # Swap the newLayouts array in to the live scheduler
+                    self.__lock.acquire()
+                    self.__layouts = newLayouts
+                    self.__lock.release()
+            # End if previousSchedule != schedule
             
             log.log(3,"info",_("XmdsScheduler: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
             time.sleep(self.interval)
@@ -1045,7 +1100,7 @@ class XmdsScheduler(XiboScheduler):
         # maths doesn't go horribly wrong!
         self.__lock.acquire()
         count = 0
-        while count < len(self.__layouts):
+        while count < len(self):
             self.__pointer = (self.__pointer + 1) % len(self)
             tmpLayout = self.__layouts[self.__pointer]
             if tmpLayout.canRun():
