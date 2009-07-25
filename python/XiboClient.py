@@ -1416,6 +1416,7 @@ class XiboPlayer(Thread):
         Thread.__init__(self)
         self.q = Queue.Queue(0)
         self.uniqueId = 0
+        self.currentFH = None
 
     def getDimensions(self):
         return (self.player.width, self.player.height)
@@ -1443,12 +1444,14 @@ class XiboPlayer(Thread):
         #self.player.loadPlugin("ColorNode")
         self.player.showCursor(0)
         self.player.loadString('<avg id="main" width="' + config.get('Main','width') + '" height="' + config.get('Main','height') + '"><div id="screen"></div></avg>')
-        self.player.setOnFrameHandler(self.frameHandle)
+        self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
         self.player.play()
 
     def enqueue(self,command,data):
         log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
         self.q.put((command,data))
+        if self.currentFH == None:
+            self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
         log.log(3,"info",_("Queue length is now") + " " + str(self.q.qsize()))
 
     def frameHandle(self):
@@ -1517,7 +1520,8 @@ class XiboPlayer(Thread):
             # A Queue.Empty exception is thrown and this whole block is skipped.
             self.frameHandle()
         except Queue.Empty:
-            pass
+            self.player.clearInterval(self.currentFH)
+            self.currentFH = None
         except RuntimeError as detail:
             log.log(1,"error",_("A runtime error occured: ") + detail)
         # TODO: Put this catchall back when finished debugging.
