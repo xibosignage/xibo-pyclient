@@ -985,7 +985,10 @@ class XmdsScheduler(XiboScheduler):
     def __init__(self,xmds):
         Thread.__init__(self)
         self.xmds = xmds
-	self.running = True
+        self.running = True
+        self.__pointer = -1
+        self.__layouts = []
+        self.__lock = Semaphore()
 
     def run(self):
         while self.running:
@@ -1027,8 +1030,31 @@ class XmdsScheduler(XiboScheduler):
             time.sleep(self.interval)
         # End while self.running
 
+    def __len__(self):
+        return len(self.__layouts)
+
     def nextLayout(self):
         "Return the next valid layout"
+        
+        # If there are no possible layouts then return the splash screen straight away.
+        if len(self) == 0:
+            return XiboLayout('0')
+        
+        # Consider each possible layout and see if it can run
+        # Lock out the scheduler while we do this so that the
+        # maths doesn't go horribly wrong!
+        self.__lock.acquire()
+        count = 0
+        while count < len(self.__layouts):
+            self.__pointer = (self.__pointer + 1) % len(self)
+            tmpLayout = self.__layouts[self.__pointer]
+            if tmpLayout.canRun():
+                self.__lock.release()
+                return tmpLayout
+            else:
+                count = count + 1
+        
+        self.__lock.release()
         return XiboLayout('0')
 
     def hasNext(self):
