@@ -1417,6 +1417,7 @@ class XiboPlayer(Thread):
         self.q = Queue.Queue(0)
         self.uniqueId = 0
         self.currentFH = None
+        self.__lock = Semaphore()
 
     def getDimensions(self):
         return (self.player.width, self.player.height)
@@ -1450,8 +1451,10 @@ class XiboPlayer(Thread):
     def enqueue(self,command,data):
         log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
         self.q.put((command,data))
+        self.__lock.acquire()
         if self.currentFH == None:
             self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
+        self.__lock.release()
         log.log(3,"info",_("Queue length is now") + " " + str(self.q.qsize()))
 
     def frameHandle(self):
@@ -1520,8 +1523,10 @@ class XiboPlayer(Thread):
             # A Queue.Empty exception is thrown and this whole block is skipped.
             self.frameHandle()
         except Queue.Empty:
+            self.__lock.acquire()
             self.player.clearInterval(self.currentFH)
             self.currentFH = None
+            self.__lock.release()
         except RuntimeError as detail:
             log.log(1,"error",_("A runtime error occured: ") + detail)
         # TODO: Put this catchall back when finished debugging.
