@@ -1418,6 +1418,8 @@ class XiboPlayer(Thread):
         self.uniqueId = 0
         self.currentFH = None
         self.__lock = Semaphore()
+        # Acquire the lock so that nothing can enqueue stuff until this thread starts
+        self.__lock.acquire()
 
     def getDimensions(self):
         return (self.player.width, self.player.height)
@@ -1446,6 +1448,9 @@ class XiboPlayer(Thread):
         self.player.showCursor(0)
         self.player.loadString('<avg id="main" width="' + config.get('Main','width') + '" height="' + config.get('Main','height') + '"><div id="screen"></div></avg>')
         self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
+        
+        # Release the lock so other threads can add content
+        self.__lock.release()
         self.player.play()
 
     def enqueue(self,command,data):
@@ -1530,8 +1535,8 @@ class XiboPlayer(Thread):
         except RuntimeError as detail:
             log.log(1,"error",_("A runtime error occured: ") + detail)
         # TODO: Put this catchall back when finished debugging.
-        #except:
-        #       log.log(1,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
+        except:
+               log.log(1,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
 
 class XiboClient:
     "Main Xibo DisplayClient Class. May (in time!) host many DisplayManager classes"
