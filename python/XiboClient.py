@@ -156,9 +156,11 @@ class XiboDownloadManager(Thread):
                 try:
                     f = open(config.get('Main','libraryDir') + os.sep + 'rf.xml')
                     reqFiles = f.read()
-                    f.close()
                 except:
+                    # Couldn't read or file doesn't exist. Either way, return a blank list.
                     pass
+                finally:
+                    f.close()
 
             self.doc = None
             # Pull apart the retuned XML
@@ -983,13 +985,51 @@ class XmdsScheduler(XiboScheduler):
     def __init__(self,xmds):
         Thread.__init__(self)
         self.xmds = xmds
+	self.running = True
 
     def run(self):
-        pass
+        while self.running:
+            self.interval = 300
+            
+            # Find out how long we should wait between updates.
+            try:
+                self.interval = int(config.get('Main','xmdsUpdateInterval'))
+            except:
+                # self.interval has been set to a sensible default in this case.
+                log.log(0,"warning",_("No XMDS Update Interval specified in your configuration"))
+                log.log(0,"warning",_("Please check your xmdsUpdateInterval configuration option"))
+                log.log(0,"warning",_("A default value has been used:") + " " + str(self.interval) + " " + _("seconds"))
+            
+            # Call schedule on the webservice
+            schedule = '<schedule/>'
+            try:
+                schedule = self.xmds.Schedule()
+                log.log(5,"audit",_("XmdsScheduler: XMDS Schedule() returned ") + str(schedule))
+                f = open(config.get('Main','libraryDir') + os.sep + 'schedule.xml','w')
+                f.write(schedule)
+                f.close()
+            except IOError:
+                log.log(0,"error",_("Error trying to cache Schedule to disk"))
+            except XMDSException:
+                log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
+                try:
+                    f = open(config.get('Main','libraryDir') + os.sep + 'schedule.xml')
+                    schedule = f.read()
+                except:
+                    # Couldn't read or file doesn't exist. Either way, return the default blank schedule.
+                    pass
+                finally:
+                    f.close()
+            
+            # TODO: Process the received schedule
+            
+            log.log(3,"info",_("XmdsScheduler: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
+            time.sleep(self.interval)
+        # End while self.running
 
     def nextLayout(self):
         "Return the next valid layout"
-        pass
+        return XiboLayout('0')
 
     def hasNext(self):
         "Return true if there are more layouts, otherwise false"
@@ -1069,6 +1109,12 @@ class XMDS:
             return True
         else:
             self.checkLock.acquire()
+            # Check again as we may have been called and blocked by another thread
+            # doing this work for us.
+            if self.hasInitialised:
+                self.checkLock.release()
+                return True
+            
             self.server = None
             tries = 0
             while self.server == None and tries < 3:
