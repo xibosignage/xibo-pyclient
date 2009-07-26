@@ -20,6 +20,7 @@ import sys
 import socket
 from collections import defaultdict
 from threading import Thread, Semaphore
+import threading
 
 version = "1.1.0"
 #TODO: Change to 2!
@@ -294,6 +295,7 @@ class XiboDownloadManager(Thread):
                     del md5Cache[tmpPath]
             # End Loop
 
+            log.log(0,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
             log.log(3,"info",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
             time.sleep(self.interval)
         # End While
@@ -806,6 +808,10 @@ class XiboRegionManager(Thread):
         log.log(5,"info",self.regionNodeName + " is disposed.")
         self.disposed = True
         self.parent.regionDisposed()
+        
+        # Unlock the media loop and allow it to complete.
+        self.lock.release()
+        self.tLock.release()
 
 #### Finish Layout/Region Managment
 
