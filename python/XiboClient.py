@@ -437,6 +437,10 @@ class XiboLayoutManager(Thread):
         self.layoutExpired = False
         self.isPlaying = False
         self.hold = hold
+        self.__regionLock = Semaphore()
+        self.__regionDisposeLock = Semaphore()
+        self.expiring = False
+        self.nextLayoutTriggered = False
         Thread.__init__(self)
 
     def run(self):
@@ -489,9 +493,11 @@ class XiboLayoutManager(Thread):
                 log.log(3,"info",_("Region " + i.regionNodeName + " has not expired. Waiting"))
                 allExpired = False
 
-        if allExpired:
+        self.__regionLock.acquire()
+        if allExpired and not self.expiring:
             log.log(2,"info",_("All regions have expired. Marking layout as expired"))
             self.layoutExpired = True
+            self.expiring = True
 
             # TODO: Check that there is something else to show before killing
             #       the layout off completely.
@@ -500,9 +506,14 @@ class XiboLayoutManager(Thread):
             # Enqueue region exit transitions by calling the dispose method on each regionManager
             for i in self.regions:
                 i.dispose()
-
+                
+            self.__regionLock.release()
             return True
         else:
+            self.__regionLock.release()
+            if allExpired:
+                return True
+            
             return False
 
     def regionDisposed(self):
@@ -514,7 +525,8 @@ class XiboLayoutManager(Thread):
                 log.log(3,"info",_("Region " + i.regionNodeName + " has not disposed. Waiting"))
                 allExpired = False
 
-        if allExpired == True:
+        self.__regionDisposeLock.acquire()
+        if allExpired == True and not self.nextLayoutTriggered:
             log.log(2,"info",_("All regions have disposed. Marking layout as disposed"))
             self.layoutDisposed = True
 
@@ -522,7 +534,10 @@ class XiboLayoutManager(Thread):
                 log.log(2,"info",_("Holding the splash screen until we're told otherwise"))
             else:
                 log.log(2,"info",_("LayoutManager->parent->nextLayout()"))
+                self.nextLayoutTriggered = True
                 self.parent.nextLayout()
+                
+        self.__regionDisposeLock.release()
 
     def dispose(self):
         # Enqueue region exit transitions by calling the dispose method on each regionManager
@@ -630,12 +645,12 @@ class XiboRegionManager(Thread):
         #  * When all items complete, mark region complete by setting regionExpired = True and calling parent.regionElapsed()
         mediaCount = 0
 
-        while self.disposed == False and self.oneItemOnly == False:
+        while self.disposed == False and self.oneItemOnly == False and self.disposing == False:
             for cn in self.regionNode.childNodes:
                 if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "media":
                     log.log(3,"info","Encountered media")
                     mediaCount = mediaCount + 1
-                    if self.disposed == False:
+                    if self.disposed == False and self.disposing == False:
                         type = str(cn.attributes['type'].value)
                         type = type[0:1].upper() + type[1:]
                         log.log(4,"info","Media is of type: " + type)
@@ -1539,7 +1554,8 @@ class XiboPlayer(Thread):
             log.log(1,"error",_("A runtime error occured: ") + str(detail))
         # TODO: Put this catchall back when finished debugging.
         except:
-               log.log(1,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
+               # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
+               log.log(0,"audit",str(cmd) + " : " + str(data))
 
 class XiboClient:
     "Main Xibo DisplayClient Class. May (in time!) host many DisplayManager classes"
