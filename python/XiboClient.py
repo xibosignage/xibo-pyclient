@@ -21,6 +21,7 @@ import socket
 from collections import defaultdict
 from threading import Thread, Semaphore
 import threading
+import serial
 
 version = "1.1.0"
 #TODO: Change to 2!
@@ -1038,6 +1039,7 @@ class XmdsScheduler(XiboScheduler):
         self.__layouts = []
         self.__lock = Semaphore()
         self.previousSchedule = "<schedule/>"
+        self.validTag = "default"
 
     def run(self):
         while self.running:
@@ -1127,7 +1129,8 @@ class XmdsScheduler(XiboScheduler):
         while count < len(self):
             self.__pointer = (self.__pointer + 1) % len(self)
             tmpLayout = self.__layouts[self.__pointer]
-            if tmpLayout.canRun():
+            
+            if tmpLayout.canRun() and self.validTag in tmpLayout.tags:
                 self.__lock.release()
                 return tmpLayout
             else:
@@ -1141,6 +1144,48 @@ class XmdsScheduler(XiboScheduler):
         log.log(3,"info",_("XmdsScheduler: hasNext() -> true"))
         return True
 #### Finish Scheduler Classes
+
+#### Switch Input Watcher ####
+class SwitchWatcher(Thread):
+    
+    def __init__(self,scheduler,displayManager):
+        Thread.__init__(self)
+        self.scheduler = scheduler
+        self.displayManager = displayManager
+        self.prev = False
+        
+    def run(self):
+        ser = serial.Serial('/dev/ttyUSB0')
+        
+        while True:
+            flag = False
+            
+            if ser.getCD():
+                self.scheduler.validTag = "switch1"
+                flag = True
+            if ser.getDSR():
+                self.scheduler.validTag = "switch2"
+                flag = True
+            if ser.getCTS():
+                self.scheduler.validTag = "switch3"
+                flag = True
+            if ser.getRI():
+                self.scheduler.validTag = "switch4"
+                flag = True
+            
+            if not self.prev == flag:
+                if not flag:
+                    self.scheduler.validTag = "default"
+                    self.displayManager.nextLayout()
+                else:
+                    self.displayManager.nextLayout()
+                
+                self.prev = flag
+            
+            time.sleep(1)
+            
+    
+#### End Switch Input Watcher ####
 
 #### Webservice
 class XMDSException(Exception):
@@ -1404,6 +1449,10 @@ class XiboDisplayManager:
             log.log(0,"error",_("Please check your scheduler configuration."))
             exit(1)
         # End of scheduler init
+        
+        # Thread to watch the switch inputs and control the scheduler
+        self.switch = SwitchWatcher(self.scheduler,self)
+        self.switch.start()
 
         # Attempt to register with the webservice.
         # The RegisterDisplay code will block here if
