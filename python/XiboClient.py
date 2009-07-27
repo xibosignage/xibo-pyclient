@@ -946,6 +946,15 @@ class XiboLayout:
                 self.pluginCheck = False
                 log.log(0,"error",_("Plugin missing for media in layout ") + self.layoutID)
             self.media = self.media + tmpMedia.requiredFiles()
+        
+        # Find all the tag nodes
+        tagNodes = self.doc.getElementsByTagName('tag')
+        
+        # Iterate over the tag nodes and extract the tags
+        for tag in tagNodes:
+            self.tags.append(str(tag.firstChild.nodeValue))
+        
+        log.log(3,"info","Layout " + str(self.layoutID) + " has tags: " + str(self.tags)) 
 
     def canRun(self):
         # See if we were built with no XLF
