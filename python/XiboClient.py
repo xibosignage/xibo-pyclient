@@ -729,8 +729,9 @@ class XiboRegionManager(Thread):
                             except AttributeError:
                                 pass
 
-                            # Wait for the new media to finish
-                            self.lock.acquire()
+                            if self.disposing == False and self.disposed == False:
+                                # Wait for the new media to finish
+                                self.lock.acquire()
                             self.previousMedia = self.currentMedia
                             self.currentMedia = None
                         except ImportError as detail:
@@ -1185,9 +1186,9 @@ class SwitchWatcher(Thread):
             if not self.prev == flag:
                 if not flag:
                     self.scheduler.validTag = "default"
-                    self.displayManager.nextLayout()
+                    self.displayManager.currentLM.dispose()
                 else:
-                    self.displayManager.nextLayout()
+                    self.displayManager.currentLM.dispose()
                 
                 self.prev = flag
             
