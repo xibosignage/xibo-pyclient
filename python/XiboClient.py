@@ -1165,7 +1165,11 @@ class SwitchWatcher(Thread):
         self.prev = False
         
     def run(self):
-        ser = serial.Serial('/dev/ttyUSB0')
+        try:
+            ser = serial.Serial('/dev/ttyUSB0')
+        except serial.SerialException:
+            log.log(0,"error","Unable to open configured serial port. Switch interface disabled.")
+            return
         
         while True:
             flag = False
@@ -1192,7 +1196,7 @@ class SwitchWatcher(Thread):
                 
                 self.prev = flag
             
-            time.sleep(1)
+            time.sleep(0.5)
             
     
 #### End Switch Input Watcher ####
