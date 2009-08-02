@@ -16,8 +16,10 @@ import gettext
 import os
 import re
 import time
+import datetime
 import sys
 import socket
+import inspect
 from collections import defaultdict
 from threading import Thread, Semaphore
 import threading
@@ -32,7 +34,9 @@ class XiboLog:
     level=0
     def __init__(self,level): abstract
     def log(self,level,category,message): abstract
-    def stat(self,type, message, layoutID, scheduleID, mediaID): abstract
+    def stat(self,statType, fromDT, toDT, message, layoutID, scheduleID, mediaID): abstract
+    def setXmds(self,xmds):
+        pass
 
 class XiboScheduler(Thread):
     "Abstract Class - Interface for Schedulers"
@@ -50,7 +54,7 @@ class XiboLogFile(XiboLog):
     def log(self,level, category, message):
         pass
 
-    def stat(self,type, message, layoutID, scheduleID, mediaID):
+    def stat(self,statType, fromDT, toDT, message, layoutID, scheduleID, mediaID):
         pass
 
 class XiboLogScreen(XiboLog):
@@ -67,15 +71,122 @@ class XiboLogScreen(XiboLog):
         if self.level >= severity:
             print "LOG: " + str(severity) + " " + category + " " + message
 
-    def stat(self, type, message, layoutID, scheduleID, mediaID=""):
-        print "STAT: " + type + " " + message + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
+    def stat(self, statType, fromDT, toDT, message, layoutID, scheduleID, mediaID=""):
+        print "STAT: " + statType + " " + message + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
 
 class XiboLogXmds(XiboLog):
-    def log(self,level, category, message):
-        pass
+    def __init__(self,level):
+        # Make sure level is sane
+        if level == "" or int(level) < 0:
+            level=0
+        self.level = int(level)
+        self.logs = Queue.Queue(0)
+        self.stats = Queue.Queue(0)
+        
+        self.worker = XiboLogXmdsWorker(self.logs,self.stats)
+        self.worker.start()
+    
+    # Fast non-blocking log and stat functions
+    # Logs and Stats pushed in native format on to the queue.
+    # A worker thread will then format the messages in to XML
+    # ready for transmission to the server.
+    
+    def log(self, severity, category, message):
+        
+        if self.level >= severity:
+            try:
+                currFrame = inspect.currentframe().f_back
+                inspArray = inspect.getframeinfo(currFrame)
+                callingMethod = inspArray[2]
+                callingLineNumber = inspArray[1]
+                # TODO: Figure out how to get the class name too
+                callingClass = ""
+            finally:
+                del currFrame
+            
+            function = callingClass + "." + callingMethod
+            
+            date = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
+            self.logs.put((date,severity,category,function,callingLineNumber,message),False)
 
-    def stat(self,type, message, layoutID, scheduleID, mediaID):
-        pass
+    def stat(self,statType, fromDT, toDT, message, layoutID, scheduleID, mediaID):
+        self.stats.put((statType,fromDT,toDT,message,layoutID,scheduleID,mediaID),False)
+        
+    def setXmds(self,xmds):
+        self.worker.xmds = xmds
+
+class XiboLogXmdsWorker(Thread):
+    def __init__(self,logs,stats):
+        Thread.__init__(self)
+        self.xmds = None
+        self.logs = logs
+        self.stats = stats
+        self.running = True
+        self.logXml = minidom.Document()
+        self.logE = self.logXml.createElement("log")
+        self.logXml.appendChild(self.logE)
+    
+    def run(self):
+        # Wait for XMDS to be initialised and available to us
+        while self.xmds == None:
+            time.sleep(5)
+            
+        while self.running:
+            # Deal with logs:
+            try:
+                # Prepare logs to XML and store in self.logXml
+                while True:
+                    date, severity, category, function, lineNo, message = self.logs.get(False)
+                    traceE = self.logXml.createElement("trace")
+                    traceE.setAttribute("date",date)
+                    traceE.setAttribute("category",category)
+                    self.logE.appendChild(traceE)
+                    
+                    messageE = self.logXml.createElement("message")
+                    messageTxt = self.logXml.createTextNode(message)
+                    messageE.appendChild(messageTxt)
+                    
+                    scheduleE = self.logXml.createElement("scheduleid")
+                    layoutE = self.logXml.createElement("layoutid")
+                    mediaE = self.logXml.createElement("mediaid")
+                    methodE = self.logXml.createElement("method")
+                    methodTxt = self.logXml.createTextNode(function)
+                    methodE.appendChild(methodTxt)
+                    lineE = self.logXml.createElement("line")
+                    lineTxt = self.logXml.createTextNode(str(lineNo))
+                    lineE.appendChild(lineTxt)
+                    
+                    traceE.appendChild(messageE)
+                    traceE.appendChild(scheduleE)
+                    traceE.appendChild(layoutE)
+                    traceE.appendChild(mediaE)
+                    traceE.appendChild(methodE)
+                    traceE.appendChild(lineE)
+                    
+            except Queue.Empty:
+                # Exception thrown breaks the inner while loop
+                # Do nothing
+                pass
+            
+            try:
+                # Ship the logXml off to XMDS
+                self.xmds.SubmitLog(self.logXml.toxml())
+                print "LOGGING: " + self.logXml.toxml()
+                # Reset logXml
+                self.logXml = minidom.Document()
+                self.logE = self.logXml.createElement("log")
+                self.logXml.appendChild(self.logE)
+            except XMDSException:
+                # TODO: Probably should flush to HDD here. 
+                pass
+                
+                
+            # Deal with stats:
+            if self.stats.qsize() > 99:
+                pass
+            
+            time.sleep(30)
+        
 #### Finish Log Classes
 
 #### Download Manager
@@ -113,8 +224,8 @@ class XiboFile(object):
 
 class XiboDownloadManager(Thread):
     def __init__(self,xmds):
-        log.log(3,"info",_("New XiboDownloadManager instance created."))
         Thread.__init__(self)
+        log.log(3,"info",_("New XiboDownloadManager instance created."))
         self.xmds = xmds
         self.running = True
         self.dlQueue = Queue.Queue(0)
@@ -1260,6 +1371,49 @@ class XMDS:
             raise XMDSException("XMDS could not be initialised")
 
         return req
+    
+    def SubmitLog(self,logXml):
+        response = None
+        
+        if self.check():
+            try:
+                # response = self.server.SubmitLog(serverKey=self.getKey(),hardwareKey=self.getUUID(),logXml=logXml,version="1")
+                response = self.server.SubmitLog("1",self.getKey(),self.getUUID(),logXml)
+            except SOAPpy.Types.faultType, err:
+                log.log(0,"error",str(err))
+                raise XMDSException("SubmitLog: Incorrect arguments passed to XMDS.")
+            except SOAPpy.Errors.HTTPError, err:
+                log.log(0,"error",str(err))
+                raise XMDSException("SubmitLog: HTTP error connecting to XMDS.")
+            except socket.error, err:
+                log.log(0,"error",str(err))
+                raise XMDSException("SubmitLog: socket error connecting to XMDS.")
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            raise XMDSException("XMDS could not be initialised")
+        
+        return response
+    
+    def SubmitStats(self,statXml):
+        response = None
+        
+        if self.check():
+            try:
+                response = self.server.SubmitStats(serverKey=self.getKey(),hardwareKey=self.getUUID(),statXml=statXml,version="1")
+            except SOAPpy.Types.faultType, err:
+                log.log(0,"error",str(err))
+                raise XMDSException("SubmitStats: Incorrect arguments passed to XMDS.")
+            except SOAPpy.Errors.HTTPError, err:
+                log.log(0,"error",str(err))
+                raise XMDSException("SubmitStats: HTTP error connecting to XMDS.")
+            except socket.error, err:
+                log.log(0,"error",str(err))
+                raise XMDSException("SubmitStats: socket error connecting to XMDS.")
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            raise XMDSException("XMDS could not be initialised")
+        
+        return response
 
     def Schedule(self):
         """Connect to XMDS and get the current schedule"""
@@ -1361,6 +1515,25 @@ class XiboDisplayManager:
         pass
 
     def run(self):
+        self.xmds = XMDS()
+        
+        logLevel = config.get('Logging','logLevel');
+        print _("Log Level is: ") + logLevel;
+        print _("Logging will be handled by: ") + config.get('Logging','logWriter')
+        print _("Switching to new logger")
+
+        global log
+        logWriter = config.get('Logging','logWriter')
+        log = eval(logWriter)(logLevel)
+        log.setXmds(self.xmds)
+        try:
+
+            log.log(2,"info",_("Switched to new logger"))
+        except:
+            print logWriter + _(" does not implement the methods required to be a Xibo logWriter or does not exist.")
+            print _("Please check your logWriter configuration.")
+            exit(1)
+
         log.log(2,"info",_("New DisplayManager started"))
 
         # Create a XiboPlayer and start it running.
@@ -1371,8 +1544,8 @@ class XiboDisplayManager:
         self.currentLM = XiboLayoutManager(self, self.Player, XiboLayout('0'), 0, 1.0, True)
         self.currentLM.start()
 
-        self.xmds = XMDS()
 
+        
         # Load a DownloadManager and start it running in its own thread
         try:
             downloaderName = config.get('Main','downloader')
@@ -1574,6 +1747,7 @@ class XiboClient:
         print _("Xibo Client v") + version
 
         global schemaVersion
+        global log
 
         print _("Reading default configuration")
         global config
@@ -1582,22 +1756,6 @@ class XiboClient:
 
         print _("Reading user configuration")
         config.read(['site.cfg', os.path.expanduser('~/.xibo')])
-
-        logLevel = config.get('Logging','logLevel');
-        print _("Log Level is: ") + logLevel;
-        print _("Logging will be handled by: ") + config.get('Logging','logWriter')
-        print _("Switching to new logger")
-
-        global log
-        logWriter = config.get('Logging','logWriter')
-        log = eval(logWriter)(logLevel)
-        try:
-
-            log.log(2,"info",_("Switched to new logger"))
-        except:
-            print logWriter + _(" does not implement the methods required to be a Xibo logWriter or does not exist.")
-            print _("Please check your logWriter configuration.")
-            exit(1)
 
         # Store a dictionary of XiboFile objects so we know how recently
         # we last checked a file was present and correct.
