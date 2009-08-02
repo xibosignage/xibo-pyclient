@@ -473,7 +473,8 @@ class XiboDownloadThread(Thread):
 
         while tries < 5 and not finished:
             tries = tries + 1
-            while self.offset < self.tmpSize:
+            failCounter = 0
+            while self.offset < self.tmpSize and failCounter < 3:
                 # If downloading this chunk will complete the file
                 # work out exactly how much to download this time
                 if self.offset + self.chunk > self.tmpSize:
@@ -486,9 +487,13 @@ class XiboDownloadThread(Thread):
                     fh.write(response)
                     fh.flush()
                     self.offset = self.offset + self.chunk
+                    failCounter = 0
                 except RuntimeError:
                     # TODO: Do something sensible
                     pass
+                except XMDSException:
+                    # TODO: Do something sensible
+                    failCounter = failCounter + 1
 
             # End while offset<tmpSize
             try:
