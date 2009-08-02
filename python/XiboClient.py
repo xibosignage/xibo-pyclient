@@ -171,15 +171,26 @@ class XiboLogXmdsWorker(Thread):
             try:
                 # Ship the logXml off to XMDS
                 self.xmds.SubmitLog(self.logXml.toxml())
-                print "LOGGING: " + self.logXml.toxml()
+                #print "LOGGING: " + self.logXml.toxml()
+                
                 # Reset logXml
                 self.logXml = minidom.Document()
                 self.logE = self.logXml.createElement("log")
                 self.logXml.appendChild(self.logE)
+                try:
+                    os.remove(config.get('Main','libraryDir') + os.sep + 'log.xml')
+                except:
+                    pass
             except XMDSException:
-                # TODO: Probably should flush to HDD here. 
-                pass
-                
+                # Flush to disk incase we crash before getting another chance
+                try:
+                    try:
+                        f = open(config.get('Main','libraryDir') + os.sep + 'log.xml','w')
+                        f.write(self.logXml.toxml())
+                    finally:
+                        f.close()
+                except:
+                    pass
                 
             # Deal with stats:
             if self.stats.qsize() > 99:
@@ -266,13 +277,14 @@ class XiboDownloadManager(Thread):
             except XMDSException:
                 log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
                 try:
-                    f = open(config.get('Main','libraryDir') + os.sep + 'rf.xml')
-                    reqFiles = f.read()
+                    try:
+                        f = open(config.get('Main','libraryDir') + os.sep + 'rf.xml')
+                        reqFiles = f.read()
+                    finally:
+                        f.close()
                 except:
                     # Couldn't read or file doesn't exist. Either way, return a blank list.
                     pass
-                finally:
-                    f.close()
 
             self.doc = None
             # Pull apart the retuned XML
@@ -1176,13 +1188,14 @@ class XmdsScheduler(XiboScheduler):
             except XMDSException:
                 log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
                 try:
-                    f = open(config.get('Main','libraryDir') + os.sep + 'schedule.xml')
-                    schedule = f.read()
+                    try:
+                        f = open(config.get('Main','libraryDir') + os.sep + 'schedule.xml')
+                        schedule = f.read()
+                    finally:
+                        f.close()
                 except:
                     # Couldn't read or file doesn't exist. Either way, return the default blank schedule.
                     pass
-                finally:
-                    f.close()
             
             # TODO: Process the received schedule
             # If the schedule hasn't changed, do nothing.
