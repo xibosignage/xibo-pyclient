@@ -1729,6 +1729,18 @@ class XiboPlayer(Thread):
                 # log.log(1,'info',"Scale Factor: " + str(scaleFactor))
                 currentNode.width = dimension[0] * scaleFactor
                 currentNode.height = dimension[1] * scaleFactor
+                if data[3] == 'left':
+                    currentNode.x = 0
+                elif data[3] == 'centre':
+                    currentNode.x = (float(data[1]) - currentNode.width) / 2
+                elif data[3] == 'right':
+                    currentNode.x = (float(data[1]) - currentNode.width)
+                if data[4] == 'top':
+                    currentNode.y = 0
+                elif data[4] == 'centre':
+                    currentNode.y = (float(data[2]) - currentNode.height) / 2
+                elif data[4] == 'bottom':
+                    currentNode.y = (float(data[2]) - currentNode.height)
             elif cmd == "timer":
                 self.player.setTimeout(data[0],data[1])
             elif cmd == "eofCallback":

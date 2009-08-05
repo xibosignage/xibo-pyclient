@@ -12,7 +12,7 @@ class VideoMedia(XiboMedia):
 
     def run(self):
 	self.p.enqueue('play', self.mediaNodeName)
-	self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height))
+	self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height,'centre','centre'))
 	self.p.enqueue('setOpacity',(self.mediaNodeName,1))
 	if int(self.duration) > 0:
 		self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))

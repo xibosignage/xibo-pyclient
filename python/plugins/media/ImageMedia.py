@@ -9,7 +9,7 @@ class ImageMedia(XiboMedia):
 	# TODO: Fix the hardcoded path data/
 	tmpXML = '<image href="data/' + str(self.options['uri']) + '" id="' + self.mediaNodeName + '" opacity="0" />'
 	self.p.enqueue('add',(tmpXML,self.regionNodeName))
-	self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height))
+	self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height,'centre','centre'))
 
     def run(self):
 	self.p.enqueue('setOpacity',(self.mediaNodeName,1))
