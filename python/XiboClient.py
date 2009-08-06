@@ -49,13 +49,39 @@ class XiboScheduler(Thread):
 class XiboLogFile(XiboLog):
     "Xibo Logger - to file"
     def __init__(self,level):
-        pass
+        try:
+            self.fh = open('run.log','w')
+        except:
+            print "Unable to open run.log for writing."
+            
+        # Make sure level is sane
+        if level == "" or int(level) < 0:
+            level=0
+        self.level = int(level)
 
-    def log(self,level, category, message):
-        pass
+        self.log(2,"info",_("XiboLogFile logger started at level ") + str(level))
+
+    def log(self, severity, category, message):
+        if self.level >= severity:
+            try:
+                currFrame = inspect.currentframe().f_back
+                inspArray = inspect.getframeinfo(currFrame)
+                callingMethod = inspArray[2]
+                callingLineNumber = inspArray[1]
+                # TODO: Figure out how to get the class name too
+                callingClass = ""
+            finally:
+                del currFrame
+            
+            function = callingClass + "." + callingMethod
+            
+            date = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
+            self.fh.write("LOG: " + str(date) + " (" + str(function) + ":" + str(callingLineNumber) + ") " + str(severity) + " " + category + " " + message + "\n")
+            self.fh.flush()
 
     def stat(self,statType, fromDT, toDT, message, layoutID, scheduleID, mediaID):
         pass
+  
 
 class XiboLogScreen(XiboLog):
     "Xibo Logger - to screen"
@@ -338,6 +364,7 @@ class XiboDownloadManager(Thread):
                                 except:
                                     # TODO: Blacklist the media item.
                                     log.log(0,"error",_("RequiredFiles XML error: File type=media has no path attribute or no size attribute. Blacklisting."))
+                                log.log(5,"audit",_("File " + tmpPath + " is valid."))
 
                             # It's a Layout node.
                             if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "layout":
@@ -418,8 +445,8 @@ class XiboDownloadManager(Thread):
                     del md5Cache[tmpPath]
             # End Loop
 
-            log.log(0,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
-            log.log(3,"info",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
+            log.log(5,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
+            log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
             time.sleep(self.interval)
         # End While
 
@@ -462,8 +489,6 @@ class XiboDownloadThread(Thread):
                 log.log(0,"error",_("Unable to delete file: ") + self.tmpPath)
                 return
 
-        append = True
-
         fh = None
         try:
             fh = open(self.tmpPath, 'wb')
@@ -502,8 +527,11 @@ class XiboDownloadThread(Thread):
                 # TODO: Do something sensible
                 pass
 
-            # TODO: Should we check size/md5 here?
-            finished = True
+            # Check size/md5 here?
+            tmpFile = XiboFile(tmpPath,tmpHash)
+            if tmpFile.isValid():
+                finished = True
+                md5Cache[tmpPath] = tmpFile
         # End while
 
     def downloadLayout(self):
