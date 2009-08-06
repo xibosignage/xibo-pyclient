@@ -528,10 +528,10 @@ class XiboDownloadThread(Thread):
                 pass
 
             # Check size/md5 here?
-            tmpFile = XiboFile(tmpPath,tmpHash)
+            tmpFile = XiboFile(self.tmpPath,self.tmpHash)
             if tmpFile.isValid():
                 finished = True
-                md5Cache[tmpPath] = tmpFile
+                md5Cache[self.tmpPath] = tmpFile
         # End while
 
     def downloadLayout(self):
