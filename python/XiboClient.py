@@ -1698,8 +1698,8 @@ class XiboPlayer(Thread):
 
     def enqueue(self,command,data):
         log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
-        self.q.put((command,data))
         self.__lock.acquire()
+        self.q.put((command,data))
         if self.currentFH == None:
             self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
         self.__lock.release()
@@ -1707,6 +1707,7 @@ class XiboPlayer(Thread):
 
     def frameHandle(self):
         "Called on each new libavg frame. Takes queued commands and executes them"
+        self.__lock.acquire()
         try:
             result = self.q.get(False)
             cmd = result[0]
@@ -1781,17 +1782,19 @@ class XiboPlayer(Thread):
             # Call ourselves again to action any remaining queued items
             # This does not make an infinite loop since when all queued items are processed
             # A Queue.Empty exception is thrown and this whole block is skipped.
+            self.__lock.release()
             self.frameHandle()
         except Queue.Empty:
-            self.__lock.acquire()
             self.player.clearInterval(self.currentFH)
             self.currentFH = None
             self.__lock.release()
         except RuntimeError as detail:
             log.log(1,"error",_("A runtime error occured: ") + str(detail))
+            self.__lock.release()
         # TODO: Put this catchall back when finished debugging.
         except:
                # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
+               self.__lock.release()
                log.log(0,"audit",str(cmd) + " : " + str(data))
 
 class XiboClient:
