@@ -568,6 +568,9 @@ class XiboDownloadThread(Thread):
             except RuntimeError:
                 # TODO: Do something sensible
                 pass
+            except XMDSException:
+                # TODO: Do we need to do anything here?
+                pass
 
             try:
                 fh.close()
