@@ -904,8 +904,14 @@ class XiboRegionManager(Thread):
                                     self.currentMedia.start()
                             # Cleanup
                             try:
-                                if self.disposing == False:
-                                    self.p.enqueue('del',self.previousMedia.mediaNodeName)
+                                # TODO: I removed an if self.disposing == False: here
+                                # I _think_ this was just me being paranoid on getting rid of exceptions thrown by the player
+                                # but it's more important that the media node knows it has disposed for stats generation.
+                                
+                                # Tell the media node to dispose itself.
+                                self.previousMedia.dispose()
+                                self.tLock.acquire()
+
                             except AttributeError:
                                 pass
 
@@ -1125,6 +1131,7 @@ class XiboLayout:
             except:
                 self.pluginCheck = False
                 log.log(0,"error",_("Plugin missing for media in layout ") + self.layoutID)
+                return
             self.media = self.media + tmpMedia.requiredFiles()
 
     def canRun(self):
