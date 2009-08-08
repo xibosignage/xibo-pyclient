@@ -628,7 +628,7 @@ class XiboLayoutManager(Thread):
                     color = im.colorAllocate(self.HTMLColorToRGB(self.l.backgroundColour))
                 except ValueError:
                     log.log(3,"error",_("Layout background colour is not a valid HTML Hex Colour string. Using black instead."))
-                    color = im.colorAllocate(255,255,255)
+                    color = im.colorAllocate((255,255,255))
                 
                 im.rectangle((0,0),(1,1),color)
                 im.writePng(config.get('Main','libraryDir') + os.sep + 'bgcolour-' + self.l.backgroundColour + '.png')
