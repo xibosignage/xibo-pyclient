@@ -23,6 +23,7 @@ import inspect
 from collections import defaultdict
 from threading import Thread, Semaphore
 import threading
+import gd
 
 version = "1.1.0"
 #TODO: Change to 2!
@@ -620,6 +621,20 @@ class XiboLayoutManager(Thread):
         # This code will work with libavg > 0.8.x
         # tmpXML = '<colornode fillcolor="' + self.l.backgroundColour + '" id="bgColor' + self.layoutNodeNameExt + '" />'
         # self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+        if self.l.backgroundColour != None:
+            if not os.path.isfile(config.get('Main','libraryDir') + os.sep + 'bgcolour-' + self.l.backgroundColour + '.png'):
+                im = gd.image((1,1))
+                try:
+                    color = im.colorAllocate(self.HTMLColorToRGB(self.l.backgroundColour))
+                except ValueError:
+                    log.log(3,"error",_("Layout background colour is not a valid HTML Hex Colour string. Using black instead."))
+                    color = im.colorAllocate(255,255,255)
+                
+                im.rectangle((0,0),(1,1),color)
+                im.writePng(config.get('Main','libraryDir') + os.sep + 'bgcolour-' + self.l.backgroundColour + '.png')
+            
+            tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + 'bgcolour-' + str(self.l.backgroundColour) + '.png" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" id="bgColor' + self.layoutNodeNameExt + '" />'
+            self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
         if self.l.backgroundImage != None:
             tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + str(self.l.backgroundImage) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" id="bg' + self.layoutNodeNameExt + '" />'
@@ -641,6 +656,16 @@ class XiboLayoutManager(Thread):
                 # Store a reference to the region so we can talk to it later
                 self.regions.append(tmpRegion)
 
+    # From ActivState Recipies: http://code.activestate.com/recipes/266466/
+    def HTMLColorToRGB(self,colorstring):
+        """ convert #RRGGBB to an (R, G, B) tuple """
+        colorstring = colorstring.strip()
+        if colorstring[0] == '#': colorstring = colorstring[1:]
+        if len(colorstring) != 6:
+            raise ValueError, "input #%s is not in #RRGGBB format" % colorstring
+        r, g, b = colorstring[:2], colorstring[2:4], colorstring[4:]
+        r, g, b = [int(n, 16) for n in (r, g, b)]
+        return (r, g, b)
 
     def regionElapsed(self):
         log.log(2,"info",_("Region elapsed. Checking if layout has elapsed"))
