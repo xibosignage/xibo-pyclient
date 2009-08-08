@@ -1725,6 +1725,7 @@ class XiboPlayer(Thread):
             self.player.setResolution(False,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
         #self.player.loadPlugin("ColorNode")
         self.player.showCursor(0)
+        self.player.volume = 1
         self.player.loadString('<avg id="main" width="' + config.get('Main','width') + '" height="' + config.get('Main','height') + '"><div id="screen"></div></avg>')
         self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
         
