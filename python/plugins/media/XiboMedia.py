@@ -111,8 +111,8 @@ class XiboMedia(Thread):
     def requiredFiles(self):
         return []
 
-        def dispose(self):
+    def dispose(self):
         # Media should dispose itself
         # Call tNext to release the regionManager lock.
-            self.parent.tNext()
+        self.parent.tNext()
 
