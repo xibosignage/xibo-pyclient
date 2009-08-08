@@ -1694,13 +1694,14 @@ class XiboPlayer(Thread):
         Thread.__init__(self)
         self.q = Queue.Queue(0)
         self.uniqueId = 0
+        self.dim = (int(config.get('Main','width')),int(config.get('Main','height')))
         self.currentFH = None
         self.__lock = Semaphore()
         # Acquire the lock so that nothing can enqueue stuff until this thread starts
         self.__lock.acquire()
 
     def getDimensions(self):
-        return (self.player.width, self.player.height)
+        return self.dim
 
     def getElementByID(self,id):
         return self.player.getElementByID(id)
