@@ -1,6 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+#
+# Xibo - Digitial Signage - http://www.xibo.org.uk
+# Copyright (C) 2009 Alex Harrington
+#
+# This file is part of Xibo.
+#
+# Xibo is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version. 
+#
+# Xibo is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 from libavg import avg, anim
 from SOAPpy import WSDL
 import SOAPpy.Types
@@ -16,12 +36,17 @@ import gettext
 import os
 import re
 import time
+import datetime
 import sys
 import socket
+import inspect
 from collections import defaultdict
 from threading import Thread, Semaphore
 import threading
+import gd
+
 import serial
+
 
 version = "1.1.0"
 #TODO: Change to 2!
@@ -33,7 +58,155 @@ class XiboLog:
     level=0
     def __init__(self,level): abstract
     def log(self,level,category,message): abstract
-    def stat(self,type, message, layoutID, scheduleID, mediaID): abstract
+    def stat(self,statType, fromDT, toDT, message, layoutID, scheduleID, mediaID): abstract
+    def setXmds(self,xmds):
+        pass
+    def setupInfo(self,p):
+        self.p = p
+        # Populate the info screen
+        # Background.
+        tmpXML = '<image href="resources/bgcolour-ffffff.png" id="infoBG" opacity="0.75" width="400" height="300" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Logo + version bottom right
+        tmpXML = '<image href="resources/logo.png" id="infoLOGO" opacity="1" width="50" height="18" x="345" y="276" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words x="300" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" size="12" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Required Files Traffic Light
+        tmpXML = '<image href="resources/dotgrey.png" id="infoRFGrey" opacity="1" width="20" height="20" x="5" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoRFRed" opacity="0" width="20" height="20" x="5" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoRFAmber" opacity="0" width="20" height="20" x="5" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoRFGreen" opacity="0" width="20" height="20" x="5" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words x="10" y="270" opacity="1" text="Required Files" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # GetFile Traffic Light
+        tmpXML = '<image href="resources/dotgrey.png" id="infoGFGrey" opacity="1" width="20" height="20" x="30" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoGFRed" opacity="0" width="20" height="20" x="30" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoGFAmber" opacity="0" width="20" height="20" x="30" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoGFGreen" opacity="0" width="20" height="20" x="30" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words x="35" y="270" opacity="1" text="Get File" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="0" font="Arial" color="00000" size="10" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Schedule Traffic Light
+        tmpXML = '<image href="resources/dotgrey.png" id="infoSGrey" opacity="1" width="20" height="20" x="55" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoSRed" opacity="0" width="20" height="20" x="55" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoSAmber" opacity="0" width="20" height="20" x="55" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoSGreen" opacity="0" width="20" height="20" x="55" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words x="60" y="270" opacity="1" text="Schedule" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # RegisterDisplay Traffic Light
+        tmpXML = '<image href="resources/dotgrey.png" id="infoRDGrey" opacity="1" width="20" height="20" x="80" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoRDRed" opacity="0" width="20" height="20" x="80" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoRDAmber" opacity="0" width="20" height="20" x="80" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoRDGreen" opacity="0" width="20" height="20" x="80" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words x="85" y="270" opacity="1" text="Register Display" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Logs Traffic Light
+        tmpXML = '<image href="resources/dotgrey.png" id="infoLogGrey" opacity="1" width="20" height="20" x="105" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoLogRed" opacity="0" width="20" height="20" x="105" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoLogAmber" opacity="0" width="20" height="20" x="105" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoLogGreen" opacity="0" width="20" height="20" x="105" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words x="110" y="270" opacity="1" text="Log" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Stats Traffic Light
+        tmpXML = '<image href="resources/dotgrey.png" id="infoStatGrey" opacity="1" width="20" height="20" x="130" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoStatRed" opacity="0" width="20" height="20" x="130" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoStatAmber" opacity="0" width="20" height="20" x="130" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoStatGreen" opacity="0" width="20" height="20" x="130" y="275" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words x="135" y="270" opacity="1" text="Stats" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Schedule
+        tmpXML = '<words x="5" y="40" opacity="1" text="Schedule" font="Arial" color="000000" size="14" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words id="infoCurrentSchedule" x="5" y="55" opacity="1" text="" font="Arial" color="000000" size="11" parawidth="180" linespacing="10" alignment="left" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Now Playing
+        tmpXML = '<words x="5" y="5" opacity="1" text="Now Playing" font="Arial" color="000000" size="14" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words id="infoNowPlaying" x="5" y="20" opacity="1" text="" font="Arial" color="000000" size="11" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Media
+        tmpXML = '<words x="205" y="5" opacity="1" text="Media" font="Arial" color="000000" size="14" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" text="" font="Arial" color="000000" size="11" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+    
+    def lights(self,field,value):
+        if value == "green":
+            self.p.enqueue('setOpacity',("info" + field + "Green", 1))
+            self.p.enqueue('setOpacity',("info" + field + "Grey", 0))
+            self.p.enqueue('setOpacity',("info" + field + "Amber", 0))
+            self.p.enqueue('setOpacity',("info" + field + "Red", 0))
+        if value == "red":
+            self.p.enqueue('setOpacity',("info" + field + "Green", 0))
+            self.p.enqueue('setOpacity',("info" + field + "Grey", 0))
+            self.p.enqueue('setOpacity',("info" + field + "Amber", 0))
+            self.p.enqueue('setOpacity',("info" + field + "Red", 1))
+        if value == "amber":
+            self.p.enqueue('setOpacity',("info" + field + "Green", 0))
+            self.p.enqueue('setOpacity',("info" + field + "Grey", 0))
+            self.p.enqueue('setOpacity',("info" + field + "Amber", 1))
+            self.p.enqueue('setOpacity',("info" + field + "Red", 0))
+        if value == "grey":
+            self.p.enqueue('setOpacity',("info" + field + "Green", 0))
+            self.p.enqueue('setOpacity',("info" + field + "Grey", 1))
+            self.p.enqueue('setOpacity',("info" + field + "Amber", 0))
+            self.p.enqueue('setOpacity',("info" + field + "Red", 0))
+
+    def updateSchedule(self,schedule):
+        self.p.enqueue('del','infoCurrentSchedule')
+        tmpXML = '<words id="infoCurrentSchedule" x="5" y="55" opacity="1" text="' + schedule + '" font="Arial" color="000000" size="11" parawidth="180" linespacing="10" alignment="left" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+
+    def updateNowPlaying(self,now):
+        self.p.enqueue('del','infoNowPlaying')
+        tmpXML = '<words id="infoNowPlaying" x="5" y="20" opacity="1" text="' + now + '" font="Arial" color="000000" size="11" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+
+    def updateMedia(self,media):
+        self.p.enqueue('del','infoMedia')
+        tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" font="Arial" color="000000" size="11" parawidth="180">' + media + '</words>'
+        self.p.enqueue('add',(tmpXML,'info'))
+    
+    def updateRunningDownloads(self,num):
+        self.p.enqueue('del','infoRunningDownloads')
+        tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="' + str(num) + '" font="Arial" color="00000" size="10" />'
+        self.p.enqueue('add',(tmpXML,'info'))
 
 class XiboScheduler(Thread):
     "Abstract Class - Interface for Schedulers"
@@ -46,13 +219,39 @@ class XiboScheduler(Thread):
 class XiboLogFile(XiboLog):
     "Xibo Logger - to file"
     def __init__(self,level):
-        pass
+        try:
+            self.fh = open('run.log','w')
+        except:
+            print "Unable to open run.log for writing."
+            
+        # Make sure level is sane
+        if level == "" or int(level) < 0:
+            level=0
+        self.level = int(level)
 
-    def log(self,level, category, message):
-        pass
+        self.log(2,"info",_("XiboLogFile logger started at level ") + str(level))
 
-    def stat(self,type, message, layoutID, scheduleID, mediaID):
+    def log(self, severity, category, message):
+        if self.level >= severity:
+            try:
+                currFrame = inspect.currentframe().f_back
+                inspArray = inspect.getframeinfo(currFrame)
+                callingMethod = inspArray[2]
+                callingLineNumber = inspArray[1]
+                # TODO: Figure out how to get the class name too
+                callingClass = ""
+            finally:
+                del currFrame
+            
+            function = callingClass + "." + callingMethod
+            
+            date = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
+            self.fh.write("LOG: " + str(date) + " (" + str(function) + ":" + str(callingLineNumber) + ") " + str(severity) + " " + category + " " + message + "\n")
+            self.fh.flush()
+
+    def stat(self,statType, fromDT, toDT, message, layoutID, scheduleID, mediaID):
         pass
+  
 
 class XiboLogScreen(XiboLog):
     "Xibo Logger - to screen"
@@ -68,15 +267,133 @@ class XiboLogScreen(XiboLog):
         if self.level >= severity:
             print "LOG: " + str(severity) + " " + category + " " + message
 
-    def stat(self, type, message, layoutID, scheduleID, mediaID=""):
-        print "STAT: " + type + " " + message + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
+    def stat(self, statType, fromDT, toDT, message, layoutID, scheduleID, mediaID=""):
+        print "STAT: " + statType + " " + message + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
 
 class XiboLogXmds(XiboLog):
-    def log(self,level, category, message):
-        pass
+    def __init__(self,level):
+        # Make sure level is sane
+        if level == "" or int(level) < 0:
+            level=0
+        self.level = int(level)
+        self.logs = Queue.Queue(0)
+        self.stats = Queue.Queue(0)
+        
+        self.worker = XiboLogXmdsWorker(self.logs,self.stats)
+        self.worker.start()
+    
+    # Fast non-blocking log and stat functions
+    # Logs and Stats pushed in native format on to the queue.
+    # A worker thread will then format the messages in to XML
+    # ready for transmission to the server.
+    
+    def log(self, severity, category, message):
+        
+        if self.level >= severity:
+            try:
+                currFrame = inspect.currentframe().f_back
+                inspArray = inspect.getframeinfo(currFrame)
+                callingMethod = inspArray[2]
+                callingLineNumber = inspArray[1]
+                # TODO: Figure out how to get the class name too
+                callingClass = ""
+            finally:
+                del currFrame
+            
+            function = callingClass + "." + callingMethod
+            
+            date = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
+            self.logs.put((date,severity,category,function,callingLineNumber,message),False)
 
-    def stat(self,type, message, layoutID, scheduleID, mediaID):
-        pass
+    def stat(self,statType, fromDT, toDT, message, layoutID, scheduleID, mediaID):
+        self.stats.put((statType,fromDT,toDT,message,layoutID,scheduleID,mediaID),False)
+        
+    def setXmds(self,xmds):
+        self.worker.xmds = xmds
+
+class XiboLogXmdsWorker(Thread):
+    def __init__(self,logs,stats):
+        Thread.__init__(self)
+        self.xmds = None
+        self.logs = logs
+        self.stats = stats
+        self.running = True
+        self.logXml = minidom.Document()
+        self.logE = self.logXml.createElement("log")
+        self.logXml.appendChild(self.logE)
+    
+    def run(self):
+        # Wait for XMDS to be initialised and available to us
+        while self.xmds == None:
+            time.sleep(5)
+            
+        while self.running:
+            # Deal with logs:
+            try:
+                # Prepare logs to XML and store in self.logXml
+                while True:
+                    date, severity, category, function, lineNo, message = self.logs.get(False)
+                    traceE = self.logXml.createElement("trace")
+                    traceE.setAttribute("date",date)
+                    traceE.setAttribute("category",category)
+                    self.logE.appendChild(traceE)
+                    
+                    messageE = self.logXml.createElement("message")
+                    messageTxt = self.logXml.createTextNode(message)
+                    messageE.appendChild(messageTxt)
+                    
+                    scheduleE = self.logXml.createElement("scheduleid")
+                    layoutE = self.logXml.createElement("layoutid")
+                    mediaE = self.logXml.createElement("mediaid")
+                    methodE = self.logXml.createElement("method")
+                    methodTxt = self.logXml.createTextNode(function)
+                    methodE.appendChild(methodTxt)
+                    lineE = self.logXml.createElement("line")
+                    lineTxt = self.logXml.createTextNode(str(lineNo))
+                    lineE.appendChild(lineTxt)
+                    
+                    traceE.appendChild(messageE)
+                    traceE.appendChild(scheduleE)
+                    traceE.appendChild(layoutE)
+                    traceE.appendChild(mediaE)
+                    traceE.appendChild(methodE)
+                    traceE.appendChild(lineE)
+                    
+            except Queue.Empty:
+                # Exception thrown breaks the inner while loop
+                # Do nothing
+                pass
+            
+            try:
+                # Ship the logXml off to XMDS
+                self.xmds.SubmitLog(self.logXml.toxml())
+                #print "LOGGING: " + self.logXml.toxml()
+                
+                # Reset logXml
+                self.logXml = minidom.Document()
+                self.logE = self.logXml.createElement("log")
+                self.logXml.appendChild(self.logE)
+                try:
+                    os.remove(config.get('Main','libraryDir') + os.sep + 'log.xml')
+                except:
+                    pass
+            except XMDSException:
+                # Flush to disk incase we crash before getting another chance
+                try:
+                    try:
+                        f = open(config.get('Main','libraryDir') + os.sep + 'log.xml','w')
+                        f.write(self.logXml.toxml())
+                    finally:
+                        f.close()
+                except:
+                    pass
+                
+            # Deal with stats:
+            if self.stats.qsize() > 99:
+                pass
+            
+            time.sleep(30)
+        
 #### Finish Log Classes
 
 #### Download Manager
@@ -114,8 +431,8 @@ class XiboFile(object):
 
 class XiboDownloadManager(Thread):
     def __init__(self,xmds):
-        log.log(3,"info",_("New XiboDownloadManager instance created."))
         Thread.__init__(self)
+        log.log(3,"info",_("New XiboDownloadManager instance created."))
         self.xmds = xmds
         self.running = True
         self.dlQueue = Queue.Queue(0)
@@ -156,13 +473,14 @@ class XiboDownloadManager(Thread):
             except XMDSException:
                 log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
                 try:
-                    f = open(config.get('Main','libraryDir') + os.sep + 'rf.xml')
-                    reqFiles = f.read()
+                    try:
+                        f = open(config.get('Main','libraryDir') + os.sep + 'rf.xml')
+                        reqFiles = f.read()
+                    finally:
+                        f.close()
                 except:
                     # Couldn't read or file doesn't exist. Either way, return a blank list.
                     pass
-                finally:
-                    f.close()
 
             self.doc = None
             # Pull apart the retuned XML
@@ -187,6 +505,7 @@ class XiboDownloadManager(Thread):
                                     tmpSize = int(f.attributes['size'].value)
                                     tmpHash = str(f.attributes['md5'].value)
                                     tmpType = str(f.attributes['type'].value)
+                                    self.updateInfo()
                                     if os.path.isfile(tmpPath) and os.path.getsize(tmpPath) == tmpSize:
                                         # File exists and is the right size
                                         # See if we checksummed it recently
@@ -216,6 +535,7 @@ class XiboDownloadManager(Thread):
                                 except:
                                     # TODO: Blacklist the media item.
                                     log.log(0,"error",_("RequiredFiles XML error: File type=media has no path attribute or no size attribute. Blacklisting."))
+                                log.log(5,"audit",_("File " + tmpPath + " is valid."))
 
                             # It's a Layout node.
                             if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "layout":
@@ -223,6 +543,7 @@ class XiboDownloadManager(Thread):
                                     tmpPath = config.get('Main','libraryDir') + os.sep + str(f.attributes['path'].value) + '.xlf'
                                     tmpHash = str(f.attributes['md5'].value)
                                     tmpType = str(f.attributes['type'].value)
+                                    self.updateInfo()
                                     if os.path.isfile(tmpPath):
                                         # File exists
                                         # See if we checksummed it recently
@@ -277,6 +598,7 @@ class XiboDownloadManager(Thread):
                         # Add the running thread to the self.runningDownloads dictionary
                         self.runningDownloads[tmpPath] = XiboDownloadThread(self,tmpType,tmpPath,tmpSize,tmpHash)
                         self.runningDownloads[tmpPath].start()
+                        log.updateRunningDownloads(len(self.runningDownloads))
 
                     while len(self.runningDownloads) >= (self.maxDownloads - 1):
                         # There are no download thread slots free
@@ -296,8 +618,11 @@ class XiboDownloadManager(Thread):
                     del md5Cache[tmpPath]
             # End Loop
 
-            log.log(0,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
-            log.log(3,"info",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
+            # Update the infoscreen.
+            self.updateInfo()
+            
+            log.log(5,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
+            log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
             time.sleep(self.interval)
         # End While
 
@@ -306,6 +631,20 @@ class XiboDownloadManager(Thread):
         # self.runningDownloads
         log.log(3,"info",_("Download thread completed for ") + tmpPath)
         del self.runningDownloads[tmpPath]
+        log.updateRunningDownloads(len(self.runningDownloads))
+
+    def updateInfo(self):
+        # Update the info screen with information about the media
+        # and it's status
+        infoStr = ""
+        
+        for tmpPath, tmpFile in md5Cache.iteritems():
+            if tmpFile.isValid():
+                infoStr += tmpPath + ", "
+            else:
+                infoStr += "<i>" + tmpPath + "</i>, "
+        
+        log.updateMedia(infoStr)
 
 class XiboDownloadThread(Thread):
     def __init__(self,parent,tmpType,tmpPath,tmpSize,tmpHash):
@@ -340,8 +679,6 @@ class XiboDownloadThread(Thread):
                 log.log(0,"error",_("Unable to delete file: ") + self.tmpPath)
                 return
 
-        append = True
-
         fh = None
         try:
             fh = open(self.tmpPath, 'wb')
@@ -351,7 +688,8 @@ class XiboDownloadThread(Thread):
 
         while tries < 5 and not finished:
             tries = tries + 1
-            while self.offset < self.tmpSize:
+            failCounter = 0
+            while self.offset < self.tmpSize and failCounter < 3:
                 # If downloading this chunk will complete the file
                 # work out exactly how much to download this time
                 if self.offset + self.chunk > self.tmpSize:
@@ -364,9 +702,13 @@ class XiboDownloadThread(Thread):
                     fh.write(response)
                     fh.flush()
                     self.offset = self.offset + self.chunk
+                    failCounter = 0
                 except RuntimeError:
                     # TODO: Do something sensible
                     pass
+                except XMDSException:
+                    # TODO: Do something sensible
+                    failCounter = failCounter + 1
 
             # End while offset<tmpSize
             try:
@@ -375,8 +717,11 @@ class XiboDownloadThread(Thread):
                 # TODO: Do something sensible
                 pass
 
-            # TODO: Should we check size/md5 here?
-            finished = True
+            # Check size/md5 here?
+            tmpFile = XiboFile(self.tmpPath,self.tmpHash)
+            if tmpFile.isValid():
+                finished = True
+                md5Cache[self.tmpPath] = tmpFile
         # End while
 
     def downloadLayout(self):
@@ -411,6 +756,9 @@ class XiboDownloadThread(Thread):
                 fh.flush()
             except RuntimeError:
                 # TODO: Do something sensible
+                pass
+            except XMDSException:
+                # TODO: Do we need to do anything here?
                 pass
 
             try:
@@ -465,6 +813,20 @@ class XiboLayoutManager(Thread):
         # This code will work with libavg > 0.8.x
         # tmpXML = '<colornode fillcolor="' + self.l.backgroundColour + '" id="bgColor' + self.layoutNodeNameExt + '" />'
         # self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+        if self.l.backgroundColour != None:
+            if not os.path.isfile(config.get('Main','libraryDir') + os.sep + 'bgcolour-' + self.l.backgroundColour + '.png'):
+                im = gd.image((1,1))
+                try:
+                    color = im.colorAllocate(self.HTMLColorToRGB(self.l.backgroundColour))
+                except ValueError:
+                    log.log(3,"error",_("Layout background colour is not a valid HTML Hex Colour string. Using black instead."))
+                    color = im.colorAllocate((255,255,255))
+                
+                im.rectangle((0,0),(1,1),color)
+                im.writePng(config.get('Main','libraryDir') + os.sep + 'bgcolour-' + self.l.backgroundColour + '.png')
+            
+            tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + 'bgcolour-' + str(self.l.backgroundColour) + '.png" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" id="bgColor' + self.layoutNodeNameExt + '" />'
+            self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
         if self.l.backgroundImage != None:
             tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + str(self.l.backgroundImage) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" id="bg' + self.layoutNodeNameExt + '" />'
@@ -475,7 +837,6 @@ class XiboLayoutManager(Thread):
         # Log each region in an array for checking later.
         for cn in self.l.children():
             if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "region":
-                log.log(1,"info","Encountered region")
                 # Create a new Region Manager Thread and kick it running.
                 # Pass in cn since it contains the XML for the whole region
                 tmpRegion = XiboRegionManager(self, self.p, self.layoutNodeName, self.layoutNodeNameExt, cn)
@@ -486,6 +847,16 @@ class XiboLayoutManager(Thread):
                 # Store a reference to the region so we can talk to it later
                 self.regions.append(tmpRegion)
 
+    # From ActivState Recipies: http://code.activestate.com/recipes/266466/
+    def HTMLColorToRGB(self,colorstring):
+        """ convert #RRGGBB to an (R, G, B) tuple """
+        colorstring = colorstring.strip()
+        if colorstring[0] == '#': colorstring = colorstring[1:]
+        if len(colorstring) != 6:
+            raise ValueError, "input #%s is not in #RRGGBB format" % colorstring
+        r, g, b = colorstring[:2], colorstring[2:4], colorstring[4:]
+        r, g, b = [int(n, 16) for n in (r, g, b)]
+        return (r, g, b)
 
     def regionElapsed(self):
         log.log(2,"info",_("Region elapsed. Checking if layout has elapsed"))
@@ -724,8 +1095,14 @@ class XiboRegionManager(Thread):
                                     self.currentMedia.start()
                             # Cleanup
                             try:
-                                if self.disposing == False:
-                                    self.p.enqueue('del',self.previousMedia.mediaNodeName)
+                                # TODO: I removed an if self.disposing == False: here
+                                # I _think_ this was just me being paranoid on getting rid of exceptions thrown by the player
+                                # but it's more important that the media node knows it has disposed for stats generation.
+                                
+                                # Tell the media node to dispose itself.
+                                self.previousMedia.dispose()
+                                self.tLock.acquire()
+
                             except AttributeError:
                                 pass
 
@@ -946,6 +1323,7 @@ class XiboLayout:
             except:
                 self.pluginCheck = False
                 log.log(0,"error",_("Plugin missing for media in layout ") + self.layoutID)
+                return
             self.media = self.media + tmpMedia.requiredFiles()
         
         # Find all the tag nodes
@@ -1077,13 +1455,16 @@ class XmdsScheduler(XiboScheduler):
             except XMDSException:
                 log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
                 try:
-                    f = open(config.get('Main','libraryDir') + os.sep + 'schedule.xml')
-                    schedule = f.read()
+                    try:
+                        f = open(config.get('Main','libraryDir') + os.sep + 'schedule.xml')
+                        schedule = f.read()
+                    finally:
+                        f.close()
                 except:
                     # Couldn't read or file doesn't exist. Either way, return the default blank schedule.
                     pass
-                finally:
-                    f.close()
+            
+            scheduleText = ""
             
             # TODO: Process the received schedule
             # If the schedule hasn't changed, do nothing.
@@ -1103,6 +1484,7 @@ class XmdsScheduler(XiboScheduler):
                         if g.layoutID == layoutID:
                             # Append Schedule
                             g.addSchedule(layoutFromDT,layoutToDT)
+                            scheduleText += str(layoutID) + ', '
                             flag = False
                     
                     # The layout doesn't exist, add it and add a schedule for it
@@ -1110,11 +1492,14 @@ class XmdsScheduler(XiboScheduler):
                         tmpLayout = XiboLayout(layoutID)
                         tmpLayout.addSchedule(layoutFromDT,layoutToDT)
                         newLayouts.append(tmpLayout)
+                        scheduleText += str(layoutID) + ', '
                         
                     # Swap the newLayouts array in to the live scheduler
                     self.__lock.acquire()
                     self.__layouts = newLayouts
                     self.__lock.release()
+                    
+                    log.updateSchedule(scheduleText)
             # End if previousSchedule != schedule
             
             log.log(3,"info",_("XmdsScheduler: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
@@ -1141,12 +1526,14 @@ class XmdsScheduler(XiboScheduler):
             tmpLayout = self.__layouts[self.__pointer]
             
             if tmpLayout.canRun() and self.validTag in tmpLayout.tags:
+                log.updateNowPlaying(str(tmpLayout.layoutID))
                 self.__lock.release()
                 return tmpLayout
             else:
                 count = count + 1
         
         self.__lock.release()
+        log.updateNowPlaying(str(tmpLayout.layoutID))
         return XiboLayout('0')
 
     def hasNext(self):
@@ -1299,6 +1686,7 @@ class XMDS:
 
     def RequiredFiles(self):
         """Connect to XMDS and get a list of required files"""
+        log.lights('RF','amber')
         req = None
         if self.check():
             try:
@@ -1306,22 +1694,83 @@ class XMDS:
                 # there is a server that supports the schema to test against.
                 req = self.server.RequiredFiles(self.getKey(),self.getUUID(),"1")
             except SOAPpy.Types.faultType, err:
-                log.log(0,"error",str(err))
+                log.lights('RF','red')
+                log.lights('RF','red')
                 raise XMDSException("RequiredFiles: Incorrect arguments passed to XMDS.")
             except SOAPpy.Errors.HTTPError, err:
+                log.lights('RF','red')
                 log.log(0,"error",str(err))
                 raise XMDSException("RequiredFiles: HTTP error connecting to XMDS.")
             except socket.error, err:
+                log.lights('RF','red')
                 log.log(0,"error",str(err))
                 raise XMDSException("RequiredFiles: socket error connecting to XMDS.")
         else:
             log.log(0,"error","XMDS could not be initialised")
+            log.lights('RF','grey')
             raise XMDSException("XMDS could not be initialised")
 
+        log.lights('RF','green')
         return req
+    
+    def SubmitLog(self,logXml):
+        response = None
+        log.lights('Log','amber')
+        
+        if self.check():
+            try:
+                # response = self.server.SubmitLog(serverKey=self.getKey(),hardwareKey=self.getUUID(),logXml=logXml,version="1")
+                response = self.server.SubmitLog("1",self.getKey(),self.getUUID(),logXml)
+            except SOAPpy.Types.faultType, err:
+                log.log(0,"error",str(err))
+                log.lights('Log','red')
+                raise XMDSException("SubmitLog: Incorrect arguments passed to XMDS.")
+            except SOAPpy.Errors.HTTPError, err:
+                log.log(0,"error",str(err))
+                log.lights('Log','red')
+                raise XMDSException("SubmitLog: HTTP error connecting to XMDS.")
+            except socket.error, err:
+                log.log(0,"error",str(err))
+                log.lights('Log','red')
+                raise XMDSException("SubmitLog: socket error connecting to XMDS.")
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            log.lights('Log','grey')
+            raise XMDSException("XMDS could not be initialised")
+        
+        log.lights('Log','green')
+        return response
+    
+    def SubmitStats(self,statXml):
+        response = None
+        log.lights('Stat','amber')
+        
+        if self.check():
+            try:
+                response = self.server.SubmitStats(serverKey=self.getKey(),hardwareKey=self.getUUID(),statXml=statXml,version="1")
+            except SOAPpy.Types.faultType, err:
+                log.log(0,"error",str(err))
+                log.lights('Stat','red')
+                raise XMDSException("SubmitStats: Incorrect arguments passed to XMDS.")
+            except SOAPpy.Errors.HTTPError, err:
+                log.log(0,"error",str(err))
+                log.lights('Stat','red')
+                raise XMDSException("SubmitStats: HTTP error connecting to XMDS.")
+            except socket.error, err:
+                log.log(0,"error",str(err))
+                log.lights('Stat','red')
+                raise XMDSException("SubmitStats: socket error connecting to XMDS.")
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            log.lights('Stat','grey')
+            raise XMDSException("XMDS could not be initialised")
+        
+        log.lights('Stat','green')
+        return response
 
     def Schedule(self):
         """Connect to XMDS and get the current schedule"""
+        log.lights('S','amber')
         req = None
         if self.check():
             try:
@@ -1330,22 +1779,28 @@ class XMDS:
                 req = self.server.Schedule(self.getKey(),self.getUUID(),"1")
             except SOAPpy.Types.faultType, err:
                 log.log(0,"error",str(err))
+                log.lights('S','red')
                 raise XMDSException("Schedule: Incorrect arguments passed to XMDS.")
             except SOAPpy.Errors.HTTPError, err:
                 log.log(0,"error",str(err))
+                log.lights('S','red')
                 raise XMDSException("Schedule: HTTP error connecting to XMDS.")
             except socket.error, err:
                 log.log(0,"error",str(err))
+                log.lights('S','red')
                 raise XMDSException("Schedule: socket error connecting to XMDS.")
         else:
             log.log(0,"error","XMDS could not be initialised")
+            log.lights('S','grey')
             raise XMDSException("XMDS could not be initialised")
 
+        log.lights('S','green')
         return req
 
     def GetFile(self,tmpPath,tmpType,tmpOffset,tmpChunk):
         """Connect to XMDS and download a file"""
         response = None
+        log.lights('GF','amber')
         if self.check():
             try:
                 # TODO: Change the final arguement to use the globally defined schema version once
@@ -1353,17 +1808,22 @@ class XMDS:
                 response = self.server.GetFile(self.getKey(),self.getUUID(),tmpPath,tmpType,tmpOffset,tmpChunk,"1")
             except SOAPpy.Types.faultType, err:
                 log.log(0,"error",str(err))
+                log.lights('GF','red')
                 raise XMDSException("GetFile: Incorrect arguments passed to XMDS.")
             except SOAPpy.Errors.HTTPError, err:
                 log.log(0,"error",str(err))
+                log.lights('GF','red')
                 raise XMDSException("GetFile: HTTP error connecting to XMDS.")
             except socket.error, err:
                 log.log(0,"error",str(err))
+                log.lights('GF','red')
                 raise XMDSException("GetFile: socket error connecting to XMDS.")
         else:
             log.log(0,"error","XMDS could not be initialised")
+            log.lights('GF','grey')
             raise XMDSException("XMDS could not be initialised")
 
+        log.lights('GF','green')
         return response
 
     def RegisterDisplay(self):
@@ -1376,6 +1836,7 @@ class XMDS:
             pass
 
         if requireXMDS:
+            log.lights('RD','amber')
             regReturn = ""
             regOK = "Display is active and ready to start."
             regInterval = 20
@@ -1389,49 +1850,78 @@ class XMDS:
                         regReturn = self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),"1")
                         log.log(0,"info",regReturn)
                     except SOAPpy.Types.faultType, err:
+                        log.lights('RD','red')
                         log.log(0,"error",str(err))
                     except SOAPpy.Errors.HTTPError, err:
+                        log.lights('RD','red')
                         log.log(0,"error",str(err))
                     except socket.error, err:
+                        log.lights('RD','red')
                         log.log(0,"error",str(err))
 
                 if regReturn != regOK:
                     # We're not licensed. Sleep 20 * tries seconds and try again.
                     log.log(0,"info",_("Waiting for license to be issued, or connection restored to the webservice. Set requireXMDS=false to skip this check"))
+                    log.lights('RD','red')
                     time.sleep(regInterval * tries)
             # End While
+            log.lights('RD','green')
         else:
             if self.check():
                 #TODO: Change the final arguement to use the globally defined schema version once
                 # there  is a server that supports the schema to test against.
                 try:
                     log.log(0,"info",self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),"1"))
+                    log.lights('RD','green')
                 except SOAPpy.Types.faultType, err:
+                    log.lights('RD','red')
                     log.log(0,"error",str(err))
                 except SOAPpy.Errors.HTTPError, err:
+                    log.lights('RD','red')
                     log.log(0,"error",str(err))
                 except socket.error, err:
+                    log.lights('RD','red')
                     log.log(0,"error",str(err))
 
-#### Finish Webservice
+#### Finish Websevrvice
 
 class XiboDisplayManager:
     def __init__(self):
         pass
 
     def run(self):
+        self.xmds = XMDS()
+        
+        logLevel = config.get('Logging','logLevel');
+        print _("Log Level is: ") + logLevel;
+        print _("Logging will be handled by: ") + config.get('Logging','logWriter')
+        print _("Switching to new logger")
+
+        global log
+        logWriter = config.get('Logging','logWriter')
+        log = eval(logWriter)(logLevel)
+        log.setXmds(self.xmds)
+        try:
+
+            log.log(2,"info",_("Switched to new logger"))
+        except:
+            print logWriter + _(" does not implement the methods required to be a Xibo logWriter or does not exist.")
+            print _("Please check your logWriter configuration.")
+            exit(1)
+
         log.log(2,"info",_("New DisplayManager started"))
 
         # Create a XiboPlayer and start it running.
-        self.Player = XiboPlayer()
+        self.Player = XiboPlayer(self)
         self.Player.start()
 
         # TODO: Display the splash screen
         self.currentLM = XiboLayoutManager(self, self.Player, XiboLayout('0'), 0, 1.0, True)
         self.currentLM.start()
 
-        self.xmds = XMDS()
-
+        # Let the log object see the player so it can update the hidden info screen.
+        log.setupInfo(self.Player)
+        
         # Load a DownloadManager and start it running in its own thread
         try:
             downloaderName = config.get('Main','downloader')
@@ -1499,17 +1989,20 @@ class XiboDisplayManager:
 
 class XiboPlayer(Thread):
     "Class to handle libavg interactions"
-    def __init__(self):
+    def __init__(self,parent):
         Thread.__init__(self)
+        self.info = False
         self.q = Queue.Queue(0)
         self.uniqueId = 0
+        self.dim = (int(config.get('Main','width')),int(config.get('Main','height')))
         self.currentFH = None
+        self.parent = parent
         self.__lock = Semaphore()
         # Acquire the lock so that nothing can enqueue stuff until this thread starts
         self.__lock.acquire()
 
     def getDimensions(self):
-        return (self.player.width, self.player.height)
+        return self.dim
 
     def getElementByID(self,id):
         return self.player.getElementByID(id)
@@ -1533,17 +2026,58 @@ class XiboPlayer(Thread):
             self.player.setResolution(False,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
         #self.player.loadPlugin("ColorNode")
         self.player.showCursor(0)
-        self.player.loadString('<avg id="main" width="' + config.get('Main','width') + '" height="' + config.get('Main','height') + '"><div id="screen"></div></avg>')
+        self.player.volume = 1
+        
+        # Calculate the information window
+        infoX = (int(config.get('Main','width')) - 400) / 2
+        infoY = (int(config.get('Main','height')) - 300) / 2
+        
+        # If the info window is bigger than the client, stick it in the top left corner.
+        if infoX < 0:
+            infoX = 0
+        if infoY < 0:
+            infoY = 0
+        
+        # Build the XML that defines the avg node and divs for screen and information
+        avgContent = '<avg id="main" width="'
+        avgContent += config.get('Main','width')
+        avgContent += '" height="'
+        avgContent += config.get('Main','height')
+        avgContent += '"><div id="screen"/>'
+        avgContent += '<div id="info" width="400" height="300" x="'
+        avgContent += str(infoX)
+        avgContent += '" y="'
+        avgContent += str(infoY)
+        avgContent += '" opacity="0" />'
+        avgContent += '</avg>'
+        self.player.loadString(avgContent)
+        avgNode = self.player.getElementByID("main")
+        avgNode.setEventHandler(avg.KEYDOWN,avg.NONE,self.keyDown)
         self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
         
         # Release the lock so other threads can add content
         self.__lock.release()
         self.player.play()
+    
+    def keyDown(self,e):
+        if e.keystring == "i":
+            if self.info:
+                self.info = False
+                self.enqueue('setOpacity',('info',0))
+            else:
+                self.info = True
+                self.enqueue('setOpacity',('info',1))
+                
+        if self.info:
+            # Process key strokes that are only active when the info
+            # screen is showing
+            if e.keystring == "n":
+                self.parent.currentLM.dispose()
 
     def enqueue(self,command,data):
         log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
-        self.q.put((command,data))
         self.__lock.acquire()
+        self.q.put((command,data))
         if self.currentFH == None:
             self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
         self.__lock.release()
@@ -1551,6 +2085,7 @@ class XiboPlayer(Thread):
 
     def frameHandle(self):
         "Called on each new libavg frame. Takes queued commands and executes them"
+        self.__lock.acquire()
         try:
             result = self.q.get(False)
             cmd = result[0]
@@ -1601,6 +2136,18 @@ class XiboPlayer(Thread):
                 # log.log(1,'info',"Scale Factor: " + str(scaleFactor))
                 currentNode.width = dimension[0] * scaleFactor
                 currentNode.height = dimension[1] * scaleFactor
+                if data[3] == 'left':
+                    currentNode.x = 0
+                elif data[3] == 'centre':
+                    currentNode.x = (float(data[1]) - currentNode.width) / 2
+                elif data[3] == 'right':
+                    currentNode.x = (float(data[1]) - currentNode.width)
+                if data[4] == 'top':
+                    currentNode.y = 0
+                elif data[4] == 'centre':
+                    currentNode.y = (float(data[2]) - currentNode.height) / 2
+                elif data[4] == 'bottom':
+                    currentNode.y = (float(data[2]) - currentNode.height)
             elif cmd == "timer":
                 self.player.setTimeout(data[0],data[1])
             elif cmd == "eofCallback":
@@ -1613,17 +2160,19 @@ class XiboPlayer(Thread):
             # Call ourselves again to action any remaining queued items
             # This does not make an infinite loop since when all queued items are processed
             # A Queue.Empty exception is thrown and this whole block is skipped.
+            self.__lock.release()
             self.frameHandle()
         except Queue.Empty:
-            self.__lock.acquire()
             self.player.clearInterval(self.currentFH)
             self.currentFH = None
             self.__lock.release()
         except RuntimeError as detail:
             log.log(1,"error",_("A runtime error occured: ") + str(detail))
+            self.__lock.release()
         # TODO: Put this catchall back when finished debugging.
         except:
                # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
+               self.__lock.release()
                log.log(0,"audit",str(cmd) + " : " + str(data))
 
 class XiboClient:
@@ -1637,6 +2186,7 @@ class XiboClient:
         print _("Xibo Client v") + version
 
         global schemaVersion
+        global log
 
         print _("Reading default configuration")
         global config
@@ -1645,22 +2195,6 @@ class XiboClient:
 
         print _("Reading user configuration")
         config.read(['site.cfg', os.path.expanduser('~/.xibo')])
-
-        logLevel = config.get('Logging','logLevel');
-        print _("Log Level is: ") + logLevel;
-        print _("Logging will be handled by: ") + config.get('Logging','logWriter')
-        print _("Switching to new logger")
-
-        global log
-        logWriter = config.get('Logging','logWriter')
-        log = eval(logWriter)(logLevel)
-        try:
-
-            log.log(2,"info",_("Switched to new logger"))
-        except:
-            print logWriter + _(" does not implement the methods required to be a Xibo logWriter or does not exist.")
-            print _("Please check your logWriter configuration.")
-            exit(1)
 
         # Store a dictionary of XiboFile objects so we know how recently
         # we last checked a file was present and correct.
