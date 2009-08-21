@@ -94,6 +94,8 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         tmpXML = '<words x="35" y="270" opacity="1" text="Get File" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
         self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="0" font="Arial" color="00000" size="10" />'
+        self.p.enqueue('add',(tmpXML,'info'))
         
         # Schedule Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoSGrey" opacity="1" width="20" height="20" x="55" y="275" />'
@@ -144,15 +146,21 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Schedule
-        tmpXML = '<words x="5" y="5" opacity="1" text="Schedule" font="Arial" color="000000" size="14" />'
+        tmpXML = '<words x="5" y="40" opacity="1" text="Schedule" font="Arial" color="000000" size="14" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words id="infoCurrentSchedule" x="5" y="25" opacity="1" text="" font="Arial" color="000000" size="11" parawidth="180" linespacing="10" alignment="left" />'
+        tmpXML = '<words id="infoCurrentSchedule" x="5" y="55" opacity="1" text="" font="Arial" color="000000" size="11" parawidth="180" linespacing="10" alignment="left" />'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Now Playing
-        tmpXML = '<words x="205" y="5" opacity="1" text="Now Playing" font="Arial" color="000000" size="14" />'
+        tmpXML = '<words x="5" y="5" opacity="1" text="Now Playing" font="Arial" color="000000" size="14" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words id="infoNowPlaying" x="205" y="25" opacity="1" text="" font="Arial" color="000000" size="11" />'
+        tmpXML = '<words id="infoNowPlaying" x="5" y="20" opacity="1" text="" font="Arial" color="000000" size="11" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Media
+        tmpXML = '<words x="205" y="5" opacity="1" text="Media" font="Arial" color="000000" size="14" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" text="" font="Arial" color="000000" size="11" />'
         self.p.enqueue('add',(tmpXML,'info'))
     
     def lights(self,field,value):
@@ -179,12 +187,22 @@ class XiboLog:
 
     def updateSchedule(self,schedule):
         self.p.enqueue('del','infoCurrentSchedule')
-        tmpXML = '<words id="infoCurrentSchedule" x="5" y="25" opacity="1" text="' + schedule + '" font="Arial" color="000000" size="11" parawidth="180" linespacing="10" alignment="left" />'
+        tmpXML = '<words id="infoCurrentSchedule" x="5" y="55" opacity="1" text="' + schedule + '" font="Arial" color="000000" size="11" parawidth="180" linespacing="10" alignment="left" />'
         self.p.enqueue('add',(tmpXML,'info'))
 
     def updateNowPlaying(self,now):
         self.p.enqueue('del','infoNowPlaying')
-        tmpXML = '<words id="infoNowPlaying" x="205" y="25" opacity="1" text="' + now + '" font="Arial" color="000000" size="11" />'
+        tmpXML = '<words id="infoNowPlaying" x="5" y="20" opacity="1" text="' + now + '" font="Arial" color="000000" size="11" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+
+    def updateMedia(self,media):
+        self.p.enqueue('del','infoMedia')
+        tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" font="Arial" color="000000" size="11" parawidth="180">' + media + '</words>'
+        self.p.enqueue('add',(tmpXML,'info'))
+    
+    def updateRunningDownloads(self,num):
+        self.p.enqueue('del','infoRunningDownloads')
+        tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="' + str(num) + '" font="Arial" color="00000" size="10" />'
         self.p.enqueue('add',(tmpXML,'info'))
 
 class XiboScheduler(Thread):
@@ -484,6 +502,7 @@ class XiboDownloadManager(Thread):
                                     tmpSize = int(f.attributes['size'].value)
                                     tmpHash = str(f.attributes['md5'].value)
                                     tmpType = str(f.attributes['type'].value)
+                                    self.updateInfo()
                                     if os.path.isfile(tmpPath) and os.path.getsize(tmpPath) == tmpSize:
                                         # File exists and is the right size
                                         # See if we checksummed it recently
@@ -521,6 +540,7 @@ class XiboDownloadManager(Thread):
                                     tmpPath = config.get('Main','libraryDir') + os.sep + str(f.attributes['path'].value) + '.xlf'
                                     tmpHash = str(f.attributes['md5'].value)
                                     tmpType = str(f.attributes['type'].value)
+                                    self.updateInfo()
                                     if os.path.isfile(tmpPath):
                                         # File exists
                                         # See if we checksummed it recently
@@ -575,6 +595,7 @@ class XiboDownloadManager(Thread):
                         # Add the running thread to the self.runningDownloads dictionary
                         self.runningDownloads[tmpPath] = XiboDownloadThread(self,tmpType,tmpPath,tmpSize,tmpHash)
                         self.runningDownloads[tmpPath].start()
+                        log.updateRunningDownloads(len(self.runningDownloads))
 
                     while len(self.runningDownloads) >= (self.maxDownloads - 1):
                         # There are no download thread slots free
@@ -594,6 +615,9 @@ class XiboDownloadManager(Thread):
                     del md5Cache[tmpPath]
             # End Loop
 
+            # Update the infoscreen.
+            self.updateInfo()
+            
             log.log(5,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
             log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
             time.sleep(self.interval)
@@ -604,6 +628,20 @@ class XiboDownloadManager(Thread):
         # self.runningDownloads
         log.log(3,"info",_("Download thread completed for ") + tmpPath)
         del self.runningDownloads[tmpPath]
+        log.updateRunningDownloads(len(self.runningDownloads))
+
+    def updateInfo(self):
+        # Update the info screen with information about the media
+        # and it's status
+        infoStr = ""
+        
+        for tmpPath, tmpFile in md5Cache.iteritems():
+            if tmpFile.isValid():
+                infoStr += tmpPath + ", "
+            else:
+                infoStr += "<i>" + tmpPath + "</i>, "
+        
+        log.updateMedia(infoStr)
 
 class XiboDownloadThread(Thread):
     def __init__(self,parent,tmpType,tmpPath,tmpSize,tmpHash):
@@ -796,7 +834,6 @@ class XiboLayoutManager(Thread):
         # Log each region in an array for checking later.
         for cn in self.l.children():
             if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "region":
-                log.log(1,"info","Encountered region")
                 # Create a new Region Manager Thread and kick it running.
                 # Pass in cn since it contains the XML for the whole region
                 tmpRegion = XiboRegionManager(self, self.p, self.layoutNodeName, self.layoutNodeNameExt, cn)
@@ -1970,7 +2007,7 @@ class XiboPlayer(Thread):
             # Process key strokes that are only active when the info
             # screen is showing
             if e.keystring == "n":
-                self.parent.nextLayout()
+                self.parent.currentLM.dispose()
 
     def enqueue(self,command,data):
         log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
