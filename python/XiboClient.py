@@ -1646,90 +1646,152 @@ class SwitchWatcher(Thread):
         Thread.__init__(self)
         self.scheduler = scheduler
         self.displayManager = displayManager
+        self.tags = []
+        
+        try:
+            self.defaultTag = config.get('LiftTags','default')
+        except ConfigParser.NoOptionError:
+            self.defaultTag = "default"
+            log.log(0,"error",_("No LiftTags.default specified in your configuration. Defaulting to 'default'."))
+        
+        for i in range(0,7):
+            try:
+                self.tags.append(str(config.get('LiftTags','lift' + str(i))))
+            except ConfigParser.NoOptionError:
+                self.tags.append("lift" + str (i + 1))
+                log.log(0,"error",_("No LiftTags.lift" + str(i) + " specified in your configuration. Defaulting to 'lift" + str(i + 1) + "'."))
+        
+        try:
+            self.serialPort0 = config.get('Lift','serial0')
+        except:
+            self.serialPort0 = '/dev/ttyUSB0'
+        
+        try:
+            self.serialPort1 = config.get('Lift','serial1')
+        except:
+            self.serialPort1 = '/dev/ttyUSB1'
         
     def run(self):
         
         state = [False,False,False,False,False,False,False,False]
         stats = ["","","","","","","",""]
+
+        ser0 = None
+        ser1 = None
         
         try:
-            ser = serial.Serial('/dev/ttyUSB0')
+            ser0 = serial.Serial(self.serialPort0)
         except serial.SerialException:
-            log.log(0,"error","Unable to open configured serial port. Switch interface disabled.")
+            log.log(0,"error","Unable to open configured serial port. Switch interface disabled: " + self.serialPort0)
             log.lights('Lift1','red')
             log.lights('Lift2','red')
             log.lights('Lift3','red')
             log.lights('Lift4','red')
+            ser0 = False
+        
+        try:
+            ser1 = serial.Serial(self.serialPort1)
+        except serial.SerialException:
+            log.log(0,"error","Unable to open configured serial port. Switch interface disabled: " + self.serialPort1)
             log.lights('Lift5','red')
             log.lights('Lift6','red')
             log.lights('Lift7','red')
             log.lights('Lift8','red')
-            return
+            ser1 = False
+            if ser0 == False:
+                # No lifts are active. Quit now.
+                return
+        
+        # Figure out which numbers to loop over
+        if ser0 and ser1:
+            # ie 0,4
+            rS=0
+            rF=5
+            rD=4
+        else:
+            if ser0:
+                # ie 0
+                rS=0
+                rF=1
+                rD=4
+            
+            if ser1:
+                # ie 4
+                rS=4
+                rF=5
+                rD=4
         
         while True:
             flag = False
             offFlag = False
             
-            if ser.getCD() == state[0]:
-                if not state[0]:
-                    self.scheduler.validTag = "switch1"
-                    log.lights('Lift1','green')
-                    flag = True
-                    state[0] = True
-                    stats[0] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+            for i in range(rS,rF,rD):
+                if i == 0:
+                    ser = ser0
                 else:
-                    log.lights('Lift1','grey')
-                    state[0] = False
-                    log.stat('event', stats[0], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift1", "", "", "")
-                    offFlag = True
-            if ser.getDSR() == state[1]:
-                if not state[1]:
-                    self.scheduler.validTag = "switch2"
-                    log.lights('Lift2','green')
-                    flag = True
-                    state[1] = True
-                    stats[1] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
-                else:
-                    log.lights('Lift2','grey')
-                    state[1] = False
-                    log.stat('event', stats[1], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift2", "", "", "")
-                    offFlag = True
-            if ser.getCTS() == state[2]:
-                if not state[2]:
-                    self.scheduler.validTag = "switch3"
-                    flag = True
-                    log.lights('Lift3','green')
-                    state[2] = True
-                    stats[2] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
-                else:
-                    log.lights('Lift3','grey')
-                    state[2] = False
-                    log.stat('event', stats[2], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift3", "", "", "")
-                    offFlag = True
-            if ser.getRI() == state[3]:
-                if not state[3]:
-                    self.scheduler.validTag = "switch4"
-                    flag = True
-                    log.lights('Lift4','green')
-                    state[3] = True
-                    stats[3] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
-                else:
-                    log.lights('Lift4','grey')
-                    state[3] = False
-                    log.stat('event', stats[3], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift4", "", "", "")
-                    offFlag = True
+                    ser = ser1
+                    
+                if ser.getCD() == state[i]:
+                    if not state[i]:
+                        self.scheduler.validTag = self.tags[i]
+                        log.lights('Lift' + str(i + 1),'green')
+                        flag = True
+                        state[i] = True
+                        stats[i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                    else:
+                        log.lights('Lift' + str(i + 1),'grey')
+                        state[i] = False
+                        log.stat('event', stats[i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift" + str(i+1), "", "", "")
+                        offFlag = True
+                if ser.getDSR() == state[1 + i]:
+                    if not state[1 + i]:
+                        self.scheduler.validTag = self.tags[i + 1]
+                        log.lights('Lift' + str(i + 2),'green')
+                        flag = True
+                        state[1 + i] = True
+                        stats[1 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                    else:
+                        log.lights('Lift' + str(i + 2),'grey')
+                        state[1 + i] = False
+                        log.stat('event', stats[1 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift" + str(i+2), "", "", "")
+                        offFlag = True
+                if ser.getCTS() == state[2 + i]:
+                    if not state[2 + i]:
+                        self.scheduler.validTag = self.tags[i + 2]
+                        flag = True
+                        log.lights('Lift' + str(i + 3),'green')
+                        state[2 + i] = True
+                        stats[2 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                    else:
+                        log.lights('Lift' + str(i + 3),'grey')
+                        state[2 + i] = False
+                        log.stat('event', stats[2 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift" + str(i+3), "", "", "")
+                        offFlag = True
+                if ser.getRI() == state[3 + i]:
+                    if not state[3 + i]:
+                        self.scheduler.validTag = self.tags[i + 3]
+                        flag = True
+                        log.lights('Lift' + str(i + 4),'green')
+                        state[3 + i] = True
+                        stats[3 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                    else:
+                        log.lights('Lift' + str(i + 4),'grey')
+                        state[3 + i] = False
+                        log.stat('event', stats[3 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift" + str(i+4), "", "", "")
+                        offFlag = True
             
             if flag:
                 log.updateLift(self.scheduler.validTag)
                 self.displayManager.currentLM.dispose()
             
             if offFlag:
+                # TODO: Could these be changed for or instead? I think they could.
                 if (not state[0]) and (not state[1]) and (not state[2]) and (not state[3]) and (not state[4]) and (not state[5]) and (not state[6]) and (not state[7]):
-                    self.scheduler.validTag = "default"
+                    self.scheduler.validTag = self.defaultTag
                     log.updateLift(self.scheduler.validTag)
                     self.displayManager.currentLM.dispose()
                             
-            time.sleep(0.5)
+            time.sleep(0.25)
             
     
 #### End Switch Input Watcher ####
