@@ -512,12 +512,15 @@ class XiboFile(object):
         return self.md5 == self.targetHash
 
 class XiboDownloadManager(Thread):
-    def __init__(self,xmds):
+    def __init__(self,xmds,player):
         Thread.__init__(self)
         log.log(3,"info",_("New XiboDownloadManager instance created."))
         self.xmds = xmds
         self.running = True
         self.dlQueue = Queue.Queue(0)
+        self.p = player
+        self.__lock = Semaphore()
+        self.__lock.acquire()
 
         # Store a dictionary of XiboDownloadThread objects so we know
         # which files are downloading and how many download slots
@@ -705,8 +708,12 @@ class XiboDownloadManager(Thread):
             
             log.log(5,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
             log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
-            time.sleep(self.interval)
+            self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+            self.__lock.acquire()
         # End While
+    
+    def collect(self):
+        self.__lock.release()
 
     def dlThreadCompleteNotify(self,tmpPath):
         # Download thread completed. Log and remove from
@@ -1468,7 +1475,7 @@ class DummyScheduler(XiboScheduler):
     layoutList = ['5','6']
     layoutIndex = 0
 
-    def __init__(self,xmds):
+    def __init__(self,xmds,player):
         Thread.__init__(self)
 
     def run(self):
@@ -1501,7 +1508,7 @@ class DummyScheduler(XiboScheduler):
 class XmdsScheduler(XiboScheduler):
     "XMDS Scheduler. Retrieves the current schedule from XMDS."
 
-    def __init__(self,xmds):
+    def __init__(self,xmds,player):
         Thread.__init__(self)
         self.xmds = xmds
         self.running = True
@@ -1509,6 +1516,10 @@ class XmdsScheduler(XiboScheduler):
         self.__layouts = []
         self.__lock = Semaphore()
         self.previousSchedule = "<schedule/>"
+        self.p = player
+        self.__collectLock = Semaphore()
+        self.__collectLock.acquire()
+        
         self.validTag = "default"
 
     def run(self):
@@ -1585,8 +1596,12 @@ class XmdsScheduler(XiboScheduler):
             # End if previousSchedule != schedule
             
             log.log(3,"info",_("XmdsScheduler: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
-            time.sleep(self.interval)
+            self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+            self.__collectLock.acquire()
         # End while self.running
+    
+    def collect(self):
+        self.__collectLock.release()
 
     def __len__(self):
         return len(self.__layouts)
@@ -2047,7 +2062,7 @@ class XiboDisplayManager:
         # Load a DownloadManager and start it running in its own thread
         try:
             downloaderName = config.get('Main','downloader')
-            self.downloader = eval(downloaderName)(self.xmds)
+            self.downloader = eval(downloaderName)(self.xmds,self.Player)
             self.downloader.start()
             log.log(2,"info",_("Loaded Download Manager ") + downloaderName)
         except ConfigParser.NoOptionError:
@@ -2063,7 +2078,7 @@ class XiboDisplayManager:
         # Load a scheduler and start it running in its own thread
         try:
             schedulerName = config.get('Main','scheduler')
-            self.scheduler = eval(schedulerName)(self.xmds)
+            self.scheduler = eval(schedulerName)(self.xmds,self.Player)
             self.scheduler.start()
             log.log(2,"info",_("Loaded Scheduler ") + schedulerName)
         except ConfigParser.NoOptionError:
@@ -2195,6 +2210,23 @@ class XiboPlayer(Thread):
             # screen is showing
             if e.keystring == "n":
                 self.parent.currentLM.dispose()
+            
+            if e.keystring == "r":
+                self.parent.downloader.collect()
+                self.parent.scheduler.collect()
+            
+            if e.keystring == "q":
+                #TODO: Fully implement a proper quit function
+                # Allow threads a chance to stop nicely before finally killing
+                # the lot off.
+                self.parent.downloader.running = False
+                self.parent.downloader.collect()
+                self.parent.downloader.join()
+                self.parent.scheduler.running = False
+                self.parent.scheduler.collect()
+                self.parent.scheduler.join()
+                self.player.stop()
+                os._exit(0)
 
     def enqueue(self,command,data):
         log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
