@@ -2033,8 +2033,10 @@ class XiboPlayer(Thread):
                 # the lot off.
                 self.parent.downloader.running = False
                 self.parent.downloader.collect()
+                self.parent.downloader.join()
                 self.parent.scheduler.running = False
                 self.parent.scheduler.collect()
+                self.parent.scheduler.join()
                 self.player.stop()
                 os._exit(0)
 
