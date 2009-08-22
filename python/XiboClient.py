@@ -2029,11 +2029,14 @@ class XiboPlayer(Thread):
             
             if e.keystring == "q":
                 #TODO: Fully implement a proper quit function
+                # Allow threads a chance to stop nicely before finally killing
+                # the lot off.
                 self.parent.downloader.running = False
                 self.parent.downloader.collect()
                 self.parent.scheduler.running = False
                 self.parent.scheduler.collect()
                 self.player.stop()
+                os._exit(0)
 
     def enqueue(self,command,data):
         log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
