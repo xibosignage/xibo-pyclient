@@ -2026,6 +2026,14 @@ class XiboPlayer(Thread):
             if e.keystring == "r":
                 self.parent.downloader.collect()
                 self.parent.scheduler.collect()
+            
+            if e.keystring == "q":
+                #TODO: Fully implement a proper quit function
+                self.parent.downloader.running = False
+                self.parent.downloader.collect()
+                self.parent.scheduler.running = False
+                self.parent.scheduler.collect()
+                self.player.stop()
 
     def enqueue(self,command,data):
         log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
