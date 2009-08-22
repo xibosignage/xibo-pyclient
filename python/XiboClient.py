@@ -1650,6 +1650,7 @@ class SwitchWatcher(Thread):
     def run(self):
         
         state = [False,False,False,False,False,False,False,False]
+        stats = ["","","","","","","",""]
         
         try:
             ser = serial.Serial('/dev/ttyUSB0')
@@ -1675,9 +1676,11 @@ class SwitchWatcher(Thread):
                     log.lights('Lift1','green')
                     flag = True
                     state[0] = True
+                    stats[0] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
                 else:
                     log.lights('Lift1','grey')
                     state[0] = False
+                    log.stat('event', stats[0], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift1", "", "", "")
                     offFlag = True
             if ser.getDSR() == state[1]:
                 if not state[1]:
@@ -1685,9 +1688,11 @@ class SwitchWatcher(Thread):
                     log.lights('Lift2','green')
                     flag = True
                     state[1] = True
+                    stats[1] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
                 else:
                     log.lights('Lift2','grey')
                     state[1] = False
+                    log.stat('event', stats[1], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift2", "", "", "")
                     offFlag = True
             if ser.getCTS() == state[2]:
                 if not state[2]:
@@ -1695,9 +1700,11 @@ class SwitchWatcher(Thread):
                     flag = True
                     log.lights('Lift3','green')
                     state[2] = True
+                    stats[2] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
                 else:
                     log.lights('Lift3','grey')
                     state[2] = False
+                    log.stat('event', stats[2], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift3", "", "", "")
                     offFlag = True
             if ser.getRI() == state[3]:
                 if not state[3]:
@@ -1705,9 +1712,11 @@ class SwitchWatcher(Thread):
                     flag = True
                     log.lights('Lift4','green')
                     state[3] = True
+                    stats[3] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
                 else:
                     log.lights('Lift4','grey')
                     state[3] = False
+                    log.stat('event', stats[3], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift4", "", "", "")
                     offFlag = True
             
             if flag:
