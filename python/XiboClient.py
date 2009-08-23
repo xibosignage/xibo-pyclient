@@ -58,7 +58,7 @@ class XiboLog:
     level=0
     def __init__(self,level): abstract
     def log(self,level,category,message): abstract
-    def stat(self,statType, fromDT, toDT, message, layoutID, scheduleID, mediaID): abstract
+    def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID): abstract
     def setXmds(self,xmds):
         pass
     def setupInfo(self,p):
@@ -331,7 +331,7 @@ class XiboLogFile(XiboLog):
             self.fh.write("LOG: " + str(date) + " (" + str(function) + ":" + str(callingLineNumber) + ") " + str(severity) + " " + category + " " + message + "\n")
             self.fh.flush()
 
-    def stat(self,statType, fromDT, toDT, message, layoutID, scheduleID, mediaID):
+    def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID):
         pass
   
 
@@ -349,8 +349,8 @@ class XiboLogScreen(XiboLog):
         if self.level >= severity:
             print "LOG: " + str(severity) + " " + category + " " + message
 
-    def stat(self, statType, fromDT, toDT, message, layoutID, scheduleID, mediaID=""):
-        print "STAT: " + statType + " " + message + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
+    def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID=""):
+        print "STAT: " + statType + " " + tag + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
 
 class XiboLogXmds(XiboLog):
     def __init__(self,level):
@@ -361,7 +361,18 @@ class XiboLogXmds(XiboLog):
         self.logs = Queue.Queue(0)
         self.stats = Queue.Queue(0)
         
-        self.worker = XiboLogXmdsWorker(self.logs,self.stats)
+        # Find out if we're doing stats, and how big the queue should be...
+        try:
+            self.statsOn = config.get('Stats','collect')
+        except ConfigParser.NoOptionError:
+            self.statsOn = 'false'        
+        
+        try:
+            self.statsQueueSize = config.get('Stats','queueSize')
+        except ConfigParser.NoOptionError:
+            self.statsQueueSize = '99'
+            
+        self.worker = XiboLogXmdsWorker(self.logs,self.stats,self.statsQueueSize)
         self.worker.start()
     
     # Fast non-blocking log and stat functions
@@ -387,19 +398,27 @@ class XiboLogXmds(XiboLog):
             date = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
             self.logs.put((date,severity,category,function,callingLineNumber,message),False)
 
-    def stat(self,statType, fromDT, toDT, message, layoutID, scheduleID, mediaID):
-        self.stats.put((statType,fromDT,toDT,message,layoutID,scheduleID,mediaID),False)
+    def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID):
+        if self.statsOn:
+            self.stats.put((statType,fromDT,toDT,tag,layoutID,scheduleID,mediaID),False)
+        return
         
     def setXmds(self,xmds):
         self.worker.xmds = xmds
 
 class XiboLogXmdsWorker(Thread):
-    def __init__(self,logs,stats):
+    def __init__(self,logs,stats,statsQueueSize):
         Thread.__init__(self)
         self.xmds = None
         self.logs = logs
         self.stats = stats
         self.running = True
+
+        self.statXml = minidom.Document()
+        self.statsE = self.statXml.createElement("stat")
+        self.statXml.appendChild(self.statsE)
+        self.statsQueueSize = statsQueueSize
+
         self.logXml = minidom.Document()
         self.logE = self.logXml.createElement("log")
         self.logXml.appendChild(self.logE)
@@ -471,8 +490,54 @@ class XiboLogXmdsWorker(Thread):
                     pass
                 
             # Deal with stats:
-            if self.stats.qsize() > 99:
-                pass
+            if self.stats.qsize() >= self.statsQueueSize:
+                try:
+                    # Prepare stats to XML and store in self.statXml
+                    while True:
+                        statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID = self.stats.get(False)
+                        statE = self.statXml.createElement("stat")
+                        statE.setAttribute("type",statType)
+                        statE.setAttribute("fromdt",fromDT)
+                        statE.setAttribute("todt",toDT)
+                        
+                        if statType == "event":
+                            statE.setAttribute("tag",tag)
+                        elif statType == "media":
+                            statE.setAttribute("mediaid",mediaID)
+                            statE.setAttribute("layoutid",layoutID)
+                        elif statType == "layout":
+                            statE.setAttribute("layoutid",layoutID)
+                            statE.setAttribute("scheduleid",scheduleID)
+                                                
+                        self.statsE.appendChild(statE)
+                                                
+                except Queue.Empty:
+                    # Exception thrown breaks the inner while loop
+                    # Do nothing
+                    pass
+                
+                try:
+                    # Ship the statXml off to XMDS
+                    self.xmds.SubmitStats(self.statXml.toxml())
+                    
+                    # Reset statXml
+                    self.statXml = minidom.Document()
+                    self.statsE = self.logXml.createElement("stats")
+                    self.statXml.appendChild(self.statsE)
+                    try:
+                        os.remove(config.get('Main','libraryDir') + os.sep + 'stats.xml')
+                    except:
+                        pass
+                except XMDSException:
+                    # Flush to disk incase we crash before getting another chance
+                    try:
+                        try:
+                            f = open(config.get('Main','libraryDir') + os.sep + 'stats.xml','w')
+                            f.write(self.statXml.toxml())
+                        finally:
+                            f.close()
+                    except:
+                        pass
             
             time.sleep(30)
         
