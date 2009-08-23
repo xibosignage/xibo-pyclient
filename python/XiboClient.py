@@ -413,8 +413,10 @@ class XiboLogXmds(XiboLog):
         self.worker.xmds = xmds
     
     def flush(self):
-        self.worker.flush = True
-        self.worker.process()
+        # TODO: Seems to cause the client to hang on quit?
+        if not self.worker.xmds == None:
+            self.worker.flush = True
+            self.worker.process()
 
 class XiboLogXmdsWorker(Thread):
     def __init__(self,logs,stats,statsQueueSize):
@@ -532,7 +534,7 @@ class XiboLogXmdsWorker(Thread):
             # Do nothing
             pass
         
-        if len(self.statsE.childNodes) >= self.stats.QueueSize or self.flush: 
+        if len(self.statsE.childNodes) >= self.statsQueueSize or self.flush: 
             self.flush = False
             try:
                 # Ship the statXml off to XMDS
