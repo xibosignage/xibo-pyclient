@@ -2191,9 +2191,8 @@ class XiboDisplayManager:
         global log
         logWriter = config.get('Logging','logWriter')
         log = eval(logWriter)(logLevel)
-        log.setXmds(self.xmds)
-        try:
 
+        try:
             log.log(2,"info",_("Switched to new logger"))
         except:
             print logWriter + _(" does not implement the methods required to be a Xibo logWriter or does not exist.")
@@ -2210,8 +2209,10 @@ class XiboDisplayManager:
         self.currentLM = XiboLayoutManager(self, self.Player, XiboLayout('0'), 0, 1.0, True)
         self.currentLM.start()
 
-        # Let the log object see the player so it can update the hidden info screen.
+        # Let the log object see the player so it can update the hidden info screen
+        # and XMDS so it can send data to the webservice if it needs to.
         log.setupInfo(self.Player)
+        log.setXmds(self.xmds)
         
         # Load a DownloadManager and start it running in its own thread
         try:
@@ -2373,11 +2374,12 @@ class XiboPlayer(Thread):
                 #TODO: Fully implement a proper quit function
                 # Allow threads a chance to stop nicely before finally killing
                 # the lot off.
+                log.flush()
+
                 self.parent.downloader.running = False
                 self.parent.downloader.collect()
                 self.parent.scheduler.running = False
                 self.parent.scheduler.collect()
-                log.flush()
 
                 self.parent.scheduler.join()
                 self.parent.downloader.join()
