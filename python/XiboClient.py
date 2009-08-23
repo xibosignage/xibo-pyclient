@@ -363,7 +363,11 @@ class XiboLogXmds(XiboLog):
         
         # Find out if we're doing stats, and how big the queue should be...
         try:
-            self.statsOn = config.get('Stats','collect')
+            statsOn = config.get('Stats','collect')
+            if statsOn == 'true':
+                self.statsOn == True
+            else:
+                self.statsOn == False
         except ConfigParser.NoOptionError:
             self.statsOn = 'false'        
         
