@@ -48,7 +48,7 @@ import gd
 import serial
 
 
-version = "1.1.0"
+version = "1.1.0a2"
 #TODO: Change to 2!
 schemaVersion = 1
 
@@ -71,7 +71,7 @@ class XiboLog:
         # Logo + version bottom right
         tmpXML = '<image href="resources/logo.png" id="infoLOGO" opacity="1" width="50" height="18" x="345" y="276" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words x="300" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" size="12" />'
+        tmpXML = '<words x="290" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" size="12" />'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Required Files Traffic Light
