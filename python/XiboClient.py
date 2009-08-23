@@ -61,6 +61,8 @@ class XiboLog:
     def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID): abstract
     def setXmds(self,xmds):
         pass
+    def flush(self):
+        pass
     def setupInfo(self,p):
         self.p = p
         # Populate the info screen
@@ -409,6 +411,10 @@ class XiboLogXmds(XiboLog):
         
     def setXmds(self,xmds):
         self.worker.xmds = xmds
+    
+    def flush(self):
+        self.worker.flush = True
+        self.worker.process()
 
 class XiboLogXmdsWorker(Thread):
     def __init__(self,logs,stats,statsQueueSize):
@@ -426,6 +432,8 @@ class XiboLogXmdsWorker(Thread):
         self.logXml = minidom.Document()
         self.logE = self.logXml.createElement("log")
         self.logXml.appendChild(self.logE)
+        
+        self.flush = False
     
     def run(self):
         # Wait for XMDS to be initialised and available to us
@@ -433,42 +441,47 @@ class XiboLogXmdsWorker(Thread):
             time.sleep(5)
             
         while self.running:
-            # Deal with logs:
-            try:
-                # Prepare logs to XML and store in self.logXml
-                while True:
-                    date, severity, category, function, lineNo, message = self.logs.get(False)
-                    traceE = self.logXml.createElement("trace")
-                    traceE.setAttribute("date",date)
-                    traceE.setAttribute("category",category)
-                    self.logE.appendChild(traceE)
-                    
-                    messageE = self.logXml.createElement("message")
-                    messageTxt = self.logXml.createTextNode(message)
-                    messageE.appendChild(messageTxt)
-                    
-                    scheduleE = self.logXml.createElement("scheduleid")
-                    layoutE = self.logXml.createElement("layoutid")
-                    mediaE = self.logXml.createElement("mediaid")
-                    methodE = self.logXml.createElement("method")
-                    methodTxt = self.logXml.createTextNode(function)
-                    methodE.appendChild(methodTxt)
-                    lineE = self.logXml.createElement("line")
-                    lineTxt = self.logXml.createTextNode(str(lineNo))
-                    lineE.appendChild(lineTxt)
-                    
-                    traceE.appendChild(messageE)
-                    traceE.appendChild(scheduleE)
-                    traceE.appendChild(layoutE)
-                    traceE.appendChild(mediaE)
-                    traceE.appendChild(methodE)
-                    traceE.appendChild(lineE)
-                    
-            except Queue.Empty:
-                # Exception thrown breaks the inner while loop
-                # Do nothing
-                pass
-            
+            self.process()
+            time.sleep(30)
+    
+    def process(self):
+        # Deal with logs:
+        try:
+            # Prepare logs to XML and store in self.logXml
+            while True:
+                date, severity, category, function, lineNo, message = self.logs.get(False)
+                traceE = self.logXml.createElement("trace")
+                traceE.setAttribute("date",date)
+                traceE.setAttribute("category",category)
+                self.logE.appendChild(traceE)
+                
+                messageE = self.logXml.createElement("message")
+                messageTxt = self.logXml.createTextNode(message)
+                messageE.appendChild(messageTxt)
+                
+                scheduleE = self.logXml.createElement("scheduleid")
+                layoutE = self.logXml.createElement("layoutid")
+                mediaE = self.logXml.createElement("mediaid")
+                methodE = self.logXml.createElement("method")
+                methodTxt = self.logXml.createTextNode(function)
+                methodE.appendChild(methodTxt)
+                lineE = self.logXml.createElement("line")
+                lineTxt = self.logXml.createTextNode(str(lineNo))
+                lineE.appendChild(lineTxt)
+                
+                traceE.appendChild(messageE)
+                traceE.appendChild(scheduleE)
+                traceE.appendChild(layoutE)
+                traceE.appendChild(mediaE)
+                traceE.appendChild(methodE)
+                traceE.appendChild(lineE)
+                
+        except Queue.Empty:
+            # Exception thrown breaks the inner while loop
+            # Do nothing
+            pass
+        
+        if len(self.logE.childNodes) > 0:
             try:
                 # Ship the logXml off to XMDS
                 self.xmds.SubmitLog(self.logXml.toxml())
@@ -492,58 +505,57 @@ class XiboLogXmdsWorker(Thread):
                         f.close()
                 except:
                     pass
-                
-            # Deal with stats:
-            if self.stats.qsize() >= self.statsQueueSize:
-                try:
-                    # Prepare stats to XML and store in self.statXml
-                    while True:
-                        statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID = self.stats.get(False)
-                        statE = self.statXml.createElement("stat")
-                        statE.setAttribute("type",statType)
-                        statE.setAttribute("fromdt",fromDT)
-                        statE.setAttribute("todt",toDT)
-                        
-                        if statType == "event":
-                            statE.setAttribute("tag",tag)
-                        elif statType == "media":
-                            statE.setAttribute("mediaid",mediaID)
-                            statE.setAttribute("layoutid",layoutID)
-                        elif statType == "layout":
-                            statE.setAttribute("layoutid",layoutID)
-                            statE.setAttribute("scheduleid",scheduleID)
-                                                
-                        self.statsE.appendChild(statE)
-                                                
-                except Queue.Empty:
-                    # Exception thrown breaks the inner while loop
-                    # Do nothing
-                    pass
-                
-                try:
-                    # Ship the statXml off to XMDS
-                    self.xmds.SubmitStats(self.statXml.toxml())
-                    
-                    # Reset statXml
-                    self.statXml = minidom.Document()
-                    self.statsE = self.logXml.createElement("stats")
-                    self.statXml.appendChild(self.statsE)
-                    try:
-                        os.remove(config.get('Main','libraryDir') + os.sep + 'stats.xml')
-                    except:
-                        pass
-                except XMDSException:
-                    # Flush to disk incase we crash before getting another chance
-                    try:
-                        try:
-                            f = open(config.get('Main','libraryDir') + os.sep + 'stats.xml','w')
-                            f.write(self.statXml.toxml())
-                        finally:
-                            f.close()
-                    except:
-                        pass
             
-            time.sleep(30)
+        # Deal with stats:
+        try:
+            # Prepare stats to XML and store in self.statXml
+            while True:
+                statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID = self.stats.get(False)
+                statE = self.statXml.createElement("stat")
+                statE.setAttribute("type",statType)
+                statE.setAttribute("fromdt",fromDT)
+                statE.setAttribute("todt",toDT)
+                
+                if statType == "event":
+                    statE.setAttribute("tag",tag)
+                elif statType == "media":
+                    statE.setAttribute("mediaid",mediaID)
+                    statE.setAttribute("layoutid",layoutID)
+                elif statType == "layout":
+                    statE.setAttribute("layoutid",layoutID)
+                    statE.setAttribute("scheduleid",scheduleID)
+                                        
+                self.statsE.appendChild(statE)
+                                        
+        except Queue.Empty:
+            # Exception thrown breaks the inner while loop
+            # Do nothing
+            pass
+        
+        if len(self.statsE.childNodes) >= self.stats.QueueSize or self.flush: 
+            self.flush = False
+            try:
+                # Ship the statXml off to XMDS
+                self.xmds.SubmitStats(self.statXml.toxml())
+                
+                # Reset statXml
+                self.statXml = minidom.Document()
+                self.statsE = self.logXml.createElement("stats")
+                self.statXml.appendChild(self.statsE)
+                try:
+                    os.remove(config.get('Main','libraryDir') + os.sep + 'stats.xml')
+                except:
+                    pass
+            except XMDSException:
+                # Flush to disk incase we crash before getting another chance
+                try:
+                    try:
+                        f = open(config.get('Main','libraryDir') + os.sep + 'stats.xml','w')
+                        f.write(self.statXml.toxml())
+                    finally:
+                        f.close()
+                except:
+                    pass
         
 #### Finish Log Classes
 
@@ -2361,10 +2373,12 @@ class XiboPlayer(Thread):
                 # the lot off.
                 self.parent.downloader.running = False
                 self.parent.downloader.collect()
-                self.parent.downloader.join()
                 self.parent.scheduler.running = False
                 self.parent.scheduler.collect()
+                log.flush()
+
                 self.parent.scheduler.join()
+                self.parent.downloader.join()
                 self.player.stop()
                 os._exit(0)
 
