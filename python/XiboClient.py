@@ -280,16 +280,16 @@ class XiboLogXmds(XiboLog):
         try:
             statsOn = config.get('Stats','collect')
             if statsOn == 'true':
-                self.statsOn == True
+                self.statsOn = True
             else:
-                self.statsOn == False
+                self.statsOn = False
         except ConfigParser.NoOptionError:
-            self.statsOn = 'false'        
+            self.statsOn = False        
         
         try:
-            self.statsQueueSize = config.get('Stats','queueSize')
+            self.statsQueueSize = int(config.get('Stats','queueSize'))
         except ConfigParser.NoOptionError:
-            self.statsQueueSize = '99'
+            self.statsQueueSize = 99
             
         self.worker = XiboLogXmdsWorker(self.logs,self.stats,self.statsQueueSize)
         self.worker.start()
@@ -1769,7 +1769,7 @@ class XMDS:
         
         if self.check():
             try:
-                response = self.server.SubmitStats(serverKey=self.getKey(),hardwareKey=self.getUUID(),statXml=statXml,version="1")
+                response = self.server.SubmitStats("1",self.getKey(),self.getUUID(),statXml=statXml)
             except SOAPpy.Types.faultType, err:
                 log.log(0,"error",str(err))
                 log.lights('Stat','red')
