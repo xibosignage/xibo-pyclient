@@ -1867,6 +1867,7 @@ class SwitchWatcher(Thread):
             
             if flag:
                 log.updateLift(self.tags[activeLift])
+                self.scheduler.validTag = self.tags[activeLift]
                 self.liftStack.put(activeLift)
                 self.displayManager.currentLM.dispose()
             
