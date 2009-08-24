@@ -1730,6 +1730,7 @@ class SwitchWatcher(Thread):
         self.scheduler = scheduler
         self.displayManager = displayManager
         self.tags = []
+        self.liftStack = Queue.LifoQueue()
         
         try:
             self.defaultTag = config.get('LiftTags','default')
@@ -1807,6 +1808,7 @@ class SwitchWatcher(Thread):
         while True:
             flag = False
             offFlag = False
+            activeLift = None
             
             for i in range(rS,rF,rD):
                 if i == 0:
@@ -1816,7 +1818,7 @@ class SwitchWatcher(Thread):
                     
                 if ser.getCD() == state[i]:
                     if not state[i]:
-                        self.scheduler.validTag = self.tags[i]
+                        activeLift = i
                         log.lights('Lift' + str(i + 1),'green')
                         flag = True
                         state[i] = True
@@ -1828,7 +1830,7 @@ class SwitchWatcher(Thread):
                         offFlag = True
                 if ser.getDSR() == state[1 + i]:
                     if not state[1 + i]:
-                        self.scheduler.validTag = self.tags[i + 1]
+                        activeLift = i + 1
                         log.lights('Lift' + str(i + 2),'green')
                         flag = True
                         state[1 + i] = True
@@ -1840,7 +1842,7 @@ class SwitchWatcher(Thread):
                         offFlag = True
                 if ser.getCTS() == state[2 + i]:
                     if not state[2 + i]:
-                        self.scheduler.validTag = self.tags[i + 2]
+                        activeLift = i + 2
                         flag = True
                         log.lights('Lift' + str(i + 3),'green')
                         state[2 + i] = True
@@ -1852,7 +1854,7 @@ class SwitchWatcher(Thread):
                         offFlag = True
                 if ser.getRI() == state[3 + i]:
                     if not state[3 + i]:
-                        self.scheduler.validTag = self.tags[i + 3]
+                        activeLift = i + 3
                         flag = True
                         log.lights('Lift' + str(i + 4),'green')
                         state[3 + i] = True
@@ -1864,16 +1866,38 @@ class SwitchWatcher(Thread):
                         offFlag = True
             
             if flag:
-                log.updateLift(self.scheduler.validTag)
+                log.updateLift(self.tags[activeLift])
+                self.liftStack.put(activeLift)
                 self.displayManager.currentLM.dispose()
             
             if offFlag:
                 # TODO: Could these be changed for or instead? I think they could.
-                if (not state[0]) and (not state[1]) and (not state[2]) and (not state[3]) and (not state[4]) and (not state[5]) and (not state[6]) and (not state[7]):
+                if not (state[0] or state[1] or state[2] or state[3] or state[4] or state[5] or state[6] or state[7]):
+                    # All the lifts are off. Reset the liftStack and show the default
+                    self.liftStack = Queue.LifoQueue()
                     self.scheduler.validTag = self.defaultTag
                     log.updateLift(self.scheduler.validTag)
                     self.displayManager.currentLM.dispose()
-                            
+                else:
+                    # At least one lift is still up. 
+                    try:
+                        inFlag = True
+                        while inFlag:
+                            lastLift = self.liftStack.get(False)
+                            if state[lastLift] == True:
+                                # The lift is still active
+                                # Replace the item on the stack
+                                self.liftStack.put(lastLift)
+                                inFlag = False
+                                if not self.scheduler.validTag == self.tags[lastLift]:
+                                    self.scheduler.validTag = self.tags[lastLift]
+                                    log.updateLift(self.scheduler.validTag)
+                                    self.displayManager.currentLM.dispose()
+
+                    except Queue.Empty:
+                        # This shouldn't ever happen, but hey ho.
+                        pass
+                    
             time.sleep(0.25)
             
     
