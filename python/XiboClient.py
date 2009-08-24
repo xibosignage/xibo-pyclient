@@ -1824,7 +1824,7 @@ class SwitchWatcher(Thread):
                     else:
                         log.lights('Lift' + str(i + 1),'grey')
                         state[i] = False
-                        log.stat('event', stats[i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift" + str(i+1), "", "", "")
+                        log.stat('event', stats[i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i], "", "", "")
                         offFlag = True
                 if ser.getDSR() == state[1 + i]:
                     if not state[1 + i]:
@@ -1836,7 +1836,7 @@ class SwitchWatcher(Thread):
                     else:
                         log.lights('Lift' + str(i + 2),'grey')
                         state[1 + i] = False
-                        log.stat('event', stats[1 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift" + str(i+2), "", "", "")
+                        log.stat('event', stats[1 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+1], "", "", "")
                         offFlag = True
                 if ser.getCTS() == state[2 + i]:
                     if not state[2 + i]:
@@ -1848,7 +1848,7 @@ class SwitchWatcher(Thread):
                     else:
                         log.lights('Lift' + str(i + 3),'grey')
                         state[2 + i] = False
-                        log.stat('event', stats[2 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift" + str(i+3), "", "", "")
+                        log.stat('event', stats[2 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+2], "", "", "")
                         offFlag = True
                 if ser.getRI() == state[3 + i]:
                     if not state[3 + i]:
@@ -1860,7 +1860,7 @@ class SwitchWatcher(Thread):
                     else:
                         log.lights('Lift' + str(i + 4),'grey')
                         state[3 + i] = False
-                        log.stat('event', stats[3 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), "lift" + str(i+4), "", "", "")
+                        log.stat('event', stats[3 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+3], "", "", "")
                         offFlag = True
             
             if flag:
