@@ -23,32 +23,91 @@
 
 import os
 import time
+import sys
+import urllib
 
 from XiboMedia import XiboMedia
 from threading import Thread
-import FeedParser.feedparser
+
+sys.path.append('./FeedParser')
+import feedparser
 
 class TickerMedia(XiboMedia):
+    def add(self):
+        tmpXML = '<div id="' + self.mediaNodeName + '" />'
+        self.p.enqueue('add',(tmpXML,self.regionNodeName))
+        tmpXML = '<words id="' + self.mediaNodeName + '-loading" opacity="1" font="Arial" color="000000" size="12" text="Loading..." />'
+        self.p.enqueue('add',(tmpXML,self.mediaNodeName))
+            	
+    def requiredFiles(self):
+        return []
+    
     def run(self):
-	# TODO: Remove this return
-	self.parent.next()
-	return
-	# Insert a cacheTimeout field to options.
-	# This should become part of the XLF in the future.
-	self.options['cacheTimeout'] = 20
-	self.feed = None
+        self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+        
+        # Insert a cacheTimeout field to options.
+        # This should become part of the XLF in the future.
+        self.options['cacheTimeout'] = 20
+        self.options['uri'] = urllib.unquote(self.options['uri'])
+        
+        self.feed = None
+        self.log.log(0,"info","RSS Ticker starting")
+        self.log.log(0,"info","URI: " + self.options['uri'])
 
-	# If data/self.mediaId-cache.xml exists then check if it's too old to use
-	if os.path.exists('data' + os.sep + self.mediaId + '-cache.xml'):
-		file_stats = os.stat('data' + os.sep + self.mediaId + '-cache.xml')
-		mtime = file_stats[stat.ST_MTIME]
-		if time.ctime() > (mtime + (self.options['cacheTimeout'] * 60)):
-			self.feed = Feedparser.feedparser.parse('data' + os.sep + self.mediaId + '-cache.xml')
-		else:
-			self.feed = Feedparser.feedparser.parse(self.options['uri'])
-	else:
-		self.feed = Feedparser.feedparser.parse(self.options['uri'])
+        # If data/self.mediaId-cache.xml exists then check if it's too old to use
+        # TODO: This is broken!
+        #if os.path.exists('data' + os.sep + self.mediaId + '-cache.xml'):
+    	#    file_stats = os.stat('data' + os.sep + self.mediaId + '-cache.xml')
+    	#    mtime = file_stats[ST_MTIME]
+        #    if time.ctime() > (mtime + (self.options['cacheTimeout'] * 60)):
+        #        pass
+        #    else:
+        #        self.download()
+        #else:
+        #    self.download()
+        
+        # TODO: Remove this line when above fixed.
+        self.download()
 
-	self.log.log(3,"info","Feed title: " + self.feed['feed']['title'])
+        self.feed = feedparser.parse('data' + os.sep + self.mediaId + '-cache.xml')
+        self.log.log(0,"info","Feed parsed")
 
-	# TODO: Broken :( - Need to figure out the import properly.
+        if self.feed != None:
+            self.log.log(0,"info","Feed title: " + self.feed['feed']['title'])
+            tmpXML = '<words id="' + self.mediaNodeName + '-content" opacity="1" font="Arial" color="000000" size="12">'
+            tmpXML += str(self.feed['feed']['title']) + "</words>"
+            self.p.enqueue('del',self.mediaNodeName + '-loading')
+            self.p.enqueue('add',(tmpXML, self.mediaNodeName))
+        
+        self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
+
+	   
+    def download(self):
+        tries = 3
+        i = 0
+        flag = False
+        
+        while i < tries and flag == False:
+            try:
+                try:
+                    f = urllib.urlopen(self.options['uri'])
+                    s = f.read()
+                    flag = True
+                finally:
+                    f.close()
+            except:
+                self.log.log(1,"error","Unable to load from URL " + self.options['uri'])
+        
+        if flag:
+            try:
+                try:
+                    f = open("data" + os.sep + self.mediaId + '-cache.xml','w')
+                    f.write(s)
+                finally:
+                    f.close()
+            except:
+                self.log.log(0,"error","Unable to write data/" + self.mediaId + "-cache.xml")
+
+    def dispose(self):
+        self.p.enqueue('del',self.mediaNodeName)
+        self.parent.tNext()
