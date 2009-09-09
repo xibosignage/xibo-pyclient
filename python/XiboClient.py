@@ -1518,7 +1518,7 @@ class XiboLayout:
         
         self.mediaCheck = True
         
-        if len(self.mediaNodes < 1):
+        if len(self.mediaNodes) < 1:
             log.log(3,"warn",_("Layout ") + self.layoutID + _(" cannot run because layout has no media nodes."))
             self.mediaCheck = False
 
