@@ -1394,12 +1394,12 @@ class XiboLayout:
             return
 
         # Find all the media nodes
-        mediaNodes = self.doc.getElementsByTagName('media')
+        self.mediaNodes = self.doc.getElementsByTagName('media')
 
         # Iterate over the media nodes and extract path names
         # Make a media object minus its Player (to prevent any accidents!) and ask it
         # what media it needs to run. This allows us to be extensible.
-        for mn in mediaNodes:
+        for mn in self.mediaNodes:
             type = str(mn.attributes['type'].value)
             type = type[0:1].upper() + type[1:]
             try:
@@ -1422,6 +1422,10 @@ class XiboLayout:
                 return False
         
         self.mediaCheck = True
+        
+        if len(self.mediaNodes < 1):
+            log.log(3,"warn",_("Layout ") + self.layoutID + _(" cannot run because layout has no media nodes."))
+            self.mediaCheck = False
 
         # Loop through all the media items in the layout
         # Check them against md5Cache
