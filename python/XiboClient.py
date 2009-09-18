@@ -300,6 +300,27 @@ class XiboScheduler(Thread):
 #### Finish Abstract Classes
 
 #### Log Classes
+class XiboLogSplit(XiboLog):
+    "Xibo Log Splitter - so log output can go to two log objects"
+    def __init__(self,level):
+        self.level = int(level)
+        
+        logWriter1 = config.get('Logging','splitLogWriter1')
+        logWriter2 = config.get('Logging','splitLogWriter2')
+        
+        self.log1 = eval(logWriter1)(self.level)
+        self.log2 = eval(logWriter2)(self.level)
+        
+        self.log(2,"info",_("XiboLogSplit logger started at level ") + str(level))
+        
+    def log(self, severity, category, message):
+        self.log1.log(severity, category, message)
+        self.log2.log(severity, category, message)
+        
+    def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID=""):
+        self.log1.stat(statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID)
+        self.log2.stat(statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID)
+
 class XiboLogFile(XiboLog):
     "Xibo Logger - to file"
     def __init__(self,level):

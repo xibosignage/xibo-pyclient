@@ -21,15 +21,83 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os
+import time
+import sys
+
 from XiboMedia import XiboMedia
 from threading import Thread
+from HTMLParser import HTMLParser
 
 class TextMedia(XiboMedia):
     def add(self):
-        pass
+        tmpXML = '<div id="' + self.mediaNodeName + '" opacity="1" />'
+        self.p.enqueue('add',(tmpXML,self.regionNodeName))
     
     def run(self):
-        self.parent.next()
+        # TODO: Parse out the text element from the raw tag.
+        html = """<p><span style="color: rgb(255, 255, 255);"><span style="font-size: 1.6em;"><span style="font-family: Arial;">There should be some flowers above me!</span></span></span></p>"""
+        parser = HTMLPango()
+        parser.feed(html)
+        tmpXML = '<words id="' + self.mediaNodeName + 'T1" opacity="1" parawidth="' + str(self.getWidth()) + '">' + parser.getPango() + '</words>'
+        self.p.enqueue('add',(tmpXML,self.mediaNodeName))
+        self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
+        print(parser.getPango())
     
     def dispose(self):
+        self.p.enqueue('del',self.mediaNodeName)
         self.parent.tNext()
+        
+class HTMLPango(HTMLParser):
+
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.outputStr = ""
+
+    def handle_starttag(self, tag, attrs):
+        # print(tag)
+        if tag == "span":
+            # print(attrs)
+            for i in attrs:
+                if i[0] == "style":
+                    tmpStyle = i[1].split(':')
+                    if tmpStyle[0] == 'font-size':
+                        size = tmpStyle[1].split('em;')[0].strip()
+                        size = float(size) * 1024 * 12
+                        size = int(size)
+                        self.output('<span size="' + str(size) + '">')
+                    if tmpStyle[0] == 'font-family':
+                        face = tmpStyle[1].split(';')[0].strip()
+                        self.output('<span face="' + str(face) + '">')
+                    if tmpStyle[0] == 'color':
+                        color = tmpStyle[1].split(';')[0].strip()
+                        if color.find('rgb(') != -1:
+                            color.strip()
+                            # Remove leading rgb
+                            # Leaves (255, 255, 255)
+                            color = color[3:]
+                            rgb = tuple(int(s) for s in color[1:-1].split(','))
+                            color = self.RGBToHTMLColor(rgb)
+                            # self.output('<span color="' + color + '">')
+                            self.output('<span>')
+    
+    def handle_endtag(self, tag):
+        if tag == "span":
+            self.output('</span>')
+    
+    def handle_data(self, data):
+        # print("Encountered data " + data ) 
+        self.output(data)   
+
+    # From ActivState Recipies: http://code.activestate.com/recipes/266466/        
+    def RGBToHTMLColor(self, rgb_tuple):
+        """ convert an (R, G, B) tuple to #RRGGBB """
+        hexcolor = '#%02x%02x%02x' % rgb_tuple
+        # that's it! '%02x' means zero-padded, 2-digit hex values
+        return hexcolor
+
+    def output(self, pango):
+        self.outputStr += pango
+
+    def getPango(self):
+        return self.outputStr
