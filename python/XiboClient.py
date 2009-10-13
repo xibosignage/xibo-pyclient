@@ -376,17 +376,22 @@ class XiboLogXmdsWorker(Thread):
         self.logXml.appendChild(self.logE)
         
         self.flush = False
+        self.processing = False
     
     def run(self):
         # Wait for XMDS to be initialised and available to us
         while self.xmds == None:
-            time.sleep(5)
+            time.sleep(60)
             
         while self.running:
-            self.process()
+            if (self.processing):
+                pass
+            else:
+                self.process()
             time.sleep(30)
     
     def process(self):
+        self.processing = True
         # Deal with logs:
         try:
             # Prepare logs to XML and store in self.logXml
@@ -424,29 +429,39 @@ class XiboLogXmdsWorker(Thread):
             pass
         
         if len(self.logE.childNodes) > 0:
-            try:
+            # Get each trace in turn and send it to XMDS
+            traceNodes = self.logXml.getElementsByTagName('trace')
+
+            for trace in traceNodes:
                 # Ship the logXml off to XMDS
-                self.xmds.SubmitLog(self.logXml.toxml())
-                #print "LOGGING: " + self.logXml.toxml()
-                
-                # Reset logXml
-                self.logXml = minidom.Document()
-                self.logE = self.logXml.createElement("log")
-                self.logXml.appendChild(self.logE)
                 try:
-                    os.remove(config.get('Main','libraryDir') + os.sep + 'log.xml')
+                    self.xmds.SubmitLog("<log>" + trace.toxml() + "</log>")
+                    self.logE.removeChild(trace)
+                except XMDSException:
+                    pass
                 except:
                     pass
-            except XMDSException:
-                # Flush to disk incase we crash before getting another chance
+            
+            if len(self.logE.childNodes) > 0:
+                # Some logs didn't send
+                # Flush to disk    
+#                    os.remove(config.get('Main','libraryDir') + os.sep + 'log.xml')
                 try:
                     try:
-                        f = open(config.get('Main','libraryDir') + os.sep + 'log.xml','w')
+                        f = open(config.get('Main','libraryDir') + os.sep + 'log' + str(time.time()) + '.ready','w')
                         f.write(self.logXml.toprettyxml())
+                        self.logXml.unlink()
+                        self.logXml = minidom.Document()
+                        self.logE = self.logXml.createElement("log")
+                        self.logXml.appendChild(self.logE)    
                     finally:
                         f.close()
                 except:
                     pass
+            else:
+                # All the logs send
+                # TODO: Read in a past log file and append to logE for processing on the next run
+                pass
             
         # Deal with stats:
         try:
@@ -498,7 +513,7 @@ class XiboLogXmdsWorker(Thread):
                         f.close()
                 except:
                     pass
-        
+        self.processing = False
 #### Finish Log Classes
 
 #### Download Manager
