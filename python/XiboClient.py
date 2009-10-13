@@ -235,6 +235,10 @@ class XiboLogSplit(XiboLog):
     def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID=""):
         self.log1.stat(statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID)
         self.log2.stat(statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID)
+        
+    def flush(self):
+        self.log1.flush()
+        self.log2.flush()
 
 class XiboLogFile(XiboLog):
     "Xibo Logger - to file"
@@ -438,7 +442,7 @@ class XiboLogXmdsWorker(Thread):
                 try:
                     try:
                         f = open(config.get('Main','libraryDir') + os.sep + 'log.xml','w')
-                        f.write(self.logXml.toxml())
+                        f.write(self.logXml.toprettyxml())
                     finally:
                         f.close()
                 except:
@@ -489,7 +493,7 @@ class XiboLogXmdsWorker(Thread):
                 try:
                     try:
                         f = open(config.get('Main','libraryDir') + os.sep + 'stats.xml','w')
-                        f.write(self.statXml.toxml())
+                        f.write(self.statXml.toprettyxml())
                     finally:
                         f.close()
                 except:
@@ -1692,7 +1696,19 @@ class XMDS:
             log.log(0,"error",_("No XMDS server key specified in your configuration"))
             log.log(0,"error",_("Please check your xmdsKey configuration option"))
             exit(1)
-
+        
+        self.socketTimeout = None
+        try:
+            self.socketTimeout = int(config.get('Main','socketTimeout'))
+        except:
+            self.socketTimeout = 30
+        
+        try:
+            socket.setdefaulttimeout(self.socketTimeout)
+            log.log(2,"info",_("Set socket timeout to: ") + str(self.socketTimeout))
+        except:
+            log.log(0,"warning",_("Unable to set socket timeout. Using system default"))
+            
         # Setup a Proxy for XMDS
         self.xmdsUrl = None
         try:
@@ -1783,17 +1799,29 @@ class XMDS:
                 # response = self.server.SubmitLog(serverKey=self.getKey(),hardwareKey=self.getUUID(),logXml=logXml,version="1")
                 response = self.server.SubmitLog("1",self.getKey(),self.getUUID(),logXml)
             except SOAPpy.Types.faultType, err:
+                print(str(err))
                 log.log(0,"error",str(err))
                 log.lights('Log','red')
                 raise XMDSException("SubmitLog: Incorrect arguments passed to XMDS.")
             except SOAPpy.Errors.HTTPError, err:
+                print(str(err))
                 log.log(0,"error",str(err))
                 log.lights('Log','red')
                 raise XMDSException("SubmitLog: HTTP error connecting to XMDS.")
             except socket.error, err:
+                print(str(err))
                 log.log(0,"error",str(err))
                 log.lights('Log','red')
                 raise XMDSException("SubmitLog: socket error connecting to XMDS.")
+            except KeyError, err:
+                print("KeyError: " + str(err))
+                log.log(0,"error","KeyError: " + str(err))
+                log.lights('Log','red')
+                raise XMDSException("SubmitLog: Key error connecting to XMDS.")
+            except:
+                print("SubmitLog: An unexpected error occured.")
+                log.lights('Log','red')
+                raise XMDSException("SubmitLog: Unknown exception was handled.")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('Log','grey')
@@ -1808,7 +1836,7 @@ class XMDS:
         
         if self.check():
             try:
-                response = self.server.SubmitStats("1",self.getKey(),self.getUUID(),statXml=statXml)
+                response = self.server.SubmitStats("1",self.getKey(),self.getUUID(),statXml)
             except SOAPpy.Types.faultType, err:
                 log.log(0,"error",str(err))
                 log.lights('Stat','red')
@@ -1821,6 +1849,14 @@ class XMDS:
                 log.log(0,"error",str(err))
                 log.lights('Stat','red')
                 raise XMDSException("SubmitStats: socket error connecting to XMDS.")
+            except KeyError, err:
+                log.log(0,"error","KeyError: " + str(err))
+                log.lights('Stat','red')
+                raise XMDSException("SubmitStats: Key error connecting to XMDS.")
+            except:
+                print("SubmitStats: An unexpected error occured.")
+                log.lights('Stat','red')
+                raise XMDSException("SubmitStats: Unknown exception was handled.")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('Stat','grey')
@@ -1951,14 +1987,17 @@ class XiboDisplayManager:
         pass
 
     def run(self):
-        self.xmds = XMDS()
-        
+        # Run up a XiboLogScreen temporarily until XMDS is initialised.
+        global log
         logLevel = config.get('Logging','logLevel');
+        log = XiboLogScreen(logLevel)
+        
+        self.xmds = XMDS()
+                
         print _("Log Level is: ") + logLevel;
         print _("Logging will be handled by: ") + config.get('Logging','logWriter')
         print _("Switching to new logger")
 
-        global log
         logWriter = config.get('Logging','logWriter')
         log = eval(logWriter)(logLevel)
 
