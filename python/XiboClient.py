@@ -34,6 +34,7 @@ import Queue
 import ConfigParser
 import gettext
 import os
+import fnmatch
 import re
 import time
 import datetime
@@ -320,6 +321,10 @@ class XiboLogSplit(XiboLog):
     def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID=""):
         self.log1.stat(statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID)
         self.log2.stat(statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID)
+        
+    def flush(self):
+        self.log1.flush()
+        self.log2.flush()
 
 class XiboLogFile(XiboLog):
     "Xibo Logger - to file"
@@ -457,17 +462,24 @@ class XiboLogXmdsWorker(Thread):
         self.logXml.appendChild(self.logE)
         
         self.flush = False
+        self.processing = False
+        self.__lock = Semaphore()
     
     def run(self):
         # Wait for XMDS to be initialised and available to us
         while self.xmds == None:
-            time.sleep(5)
+            time.sleep(60)
             
         while self.running:
-            self.process()
+            if (self.processing):
+                pass
+            else:
+                self.process()
             time.sleep(30)
     
     def process(self):
+        self.__lock.acquire()
+        self.processing = True
         # Deal with logs:
         try:
             # Prepare logs to XML and store in self.logXml
@@ -505,29 +517,92 @@ class XiboLogXmdsWorker(Thread):
             pass
         
         if len(self.logE.childNodes) > 0:
-            try:
+            # Get each trace in turn and send it to XMDS
+            traceNodes = self.logXml.getElementsByTagName('trace')
+
+            nExceptions = 0
+            xml = '<log>'
+            nodes = []
+            nProcessed = 0
+            for trace in traceNodes:
                 # Ship the logXml off to XMDS
-                self.xmds.SubmitLog(self.logXml.toxml())
-                #print "LOGGING: " + self.logXml.toxml()
+                if len(nodes) < 10:
+                    nProcessed += 1
+                    nodes.append(trace)
+                    xml += trace.toxml()
                 
-                # Reset logXml
-                self.logXml = minidom.Document()
-                self.logE = self.logXml.createElement("log")
-                self.logXml.appendChild(self.logE)
+                if len(nodes) >= 10 or nProcessed == len(traceNodes):
+                    try:
+                        self.xmds.SubmitLog(xml + "</log>")
+                        xml = '<log>'
+                        for n in nodes:
+                            self.logE.removeChild(n)
+                        nodes = []
+                    except XMDSException:
+                        nExceptions += 1
+                        if nExceptions > 4:
+                            break
+                    except:
+                        pass
+            
+            if len(self.logXml.getElementsByTagName('trace')) > 0:
+                # Some logs didn't send
+                # Flush to disk    
+                # Check the log folder exists:
                 try:
-                    os.remove(config.get('Main','libraryDir') + os.sep + 'log.xml')
+                    os.makedirs(config.get('Main','libraryDir') + os.sep + 'log')
                 except:
                     pass
-            except XMDSException:
-                # Flush to disk incase we crash before getting another chance
+
                 try:
                     try:
-                        f = open(config.get('Main','libraryDir') + os.sep + 'log.xml','w')
-                        f.write(self.logXml.toxml())
+                        f = open(config.get('Main','libraryDir') + os.sep + 'log' + os.sep + 'log' + str(time.time()) + '.ready','w')
+                        f.write(self.logXml.toprettyxml())
+                        self.logXml.unlink()
+                        self.logXml = minidom.Document()
+                        self.logE = self.logXml.createElement("log")
+                        self.logXml.appendChild(self.logE)    
                     finally:
                         f.close()
                 except:
                     pass
+            else:
+                # All the logs send
+                # Read in a past log file and append to logE for processing on the next run
+                readOne = False
+                
+                # If this is a flush being called, skip reading in a new file as it will be lost in memory.
+                if self.flush:
+                    readOne = True
+                
+                # Check the log folder exists:
+                try:
+                    os.makedirs(config.get('Main','libraryDir') + os.sep + 'log')
+                except:
+                    pass
+                
+                for f in os.listdir(config.get('Main','libraryDir') + os.sep + 'log'):
+                    if readOne == False:
+                        if fnmatch.fnmatch(f, '*.ready'):
+                            try:
+                                self.logXml.unlink()
+                                self.logXml = minidom.parse(config.get('Main','libraryDir') + os.sep + 'log' + os.sep + f)
+                                for n in self.logXml.getElementsByTagName('log'):
+                                    self.logE = n
+                            except:
+                                # File must be invalid. Delete it
+                                try:
+                                    os.remove(config.get('Main','libraryDir') + os.sep + 'log' + os.sep + f)
+                                except:
+                                    readOne = False
+                                    continue
+                                    
+                            # Now the file is back in memory, delete it
+                            try:
+                                os.remove(config.get('Main','libraryDir') + os.sep + 'log' + os.sep + f)
+                                readOne = True
+                            except:
+                                pass
             
         # Deal with stats:
         try:
@@ -574,12 +649,13 @@ class XiboLogXmdsWorker(Thread):
                 try:
                     try:
                         f = open(config.get('Main','libraryDir') + os.sep + 'stats.xml','w')
-                        f.write(self.statXml.toxml())
+                        f.write(self.statXml.toprettyxml())
                     finally:
                         f.close()
                 except:
                     pass
-        
+        self.processing = False
+        self.__lock.release()
 #### Finish Log Classes
 
 #### Download Manager
@@ -1972,7 +2048,19 @@ class XMDS:
             log.log(0,"error",_("No XMDS server key specified in your configuration"))
             log.log(0,"error",_("Please check your xmdsKey configuration option"))
             exit(1)
-
+        
+        self.socketTimeout = None
+        try:
+            self.socketTimeout = int(config.get('Main','socketTimeout'))
+        except:
+            self.socketTimeout = 30
+        
+        try:
+            socket.setdefaulttimeout(self.socketTimeout)
+            log.log(2,"info",_("Set socket timeout to: ") + str(self.socketTimeout))
+        except:
+            log.log(0,"warning",_("Unable to set socket timeout. Using system default"))
+            
         # Setup a Proxy for XMDS
         self.xmdsUrl = None
         try:
@@ -2063,17 +2151,29 @@ class XMDS:
                 # response = self.server.SubmitLog(serverKey=self.getKey(),hardwareKey=self.getUUID(),logXml=logXml,version="1")
                 response = self.server.SubmitLog("1",self.getKey(),self.getUUID(),logXml)
             except SOAPpy.Types.faultType, err:
+                print(str(err))
                 log.log(0,"error",str(err))
                 log.lights('Log','red')
                 raise XMDSException("SubmitLog: Incorrect arguments passed to XMDS.")
             except SOAPpy.Errors.HTTPError, err:
+                print(str(err))
                 log.log(0,"error",str(err))
                 log.lights('Log','red')
                 raise XMDSException("SubmitLog: HTTP error connecting to XMDS.")
             except socket.error, err:
+                print(str(err))
                 log.log(0,"error",str(err))
                 log.lights('Log','red')
                 raise XMDSException("SubmitLog: socket error connecting to XMDS.")
+            except KeyError, err:
+                print("KeyError: " + str(err))
+                log.log(0,"error","KeyError: " + str(err))
+                log.lights('Log','red')
+                raise XMDSException("SubmitLog: Key error connecting to XMDS.")
+            except:
+                print("SubmitLog: An unexpected error occured.")
+                log.lights('Log','red')
+                raise XMDSException("SubmitLog: Unknown exception was handled.")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('Log','grey')
@@ -2088,7 +2188,7 @@ class XMDS:
         
         if self.check():
             try:
-                response = self.server.SubmitStats("1",self.getKey(),self.getUUID(),statXml=statXml)
+                response = self.server.SubmitStats("1",self.getKey(),self.getUUID(),statXml)
             except SOAPpy.Types.faultType, err:
                 log.log(0,"error",str(err))
                 log.lights('Stat','red')
@@ -2101,6 +2201,14 @@ class XMDS:
                 log.log(0,"error",str(err))
                 log.lights('Stat','red')
                 raise XMDSException("SubmitStats: socket error connecting to XMDS.")
+            except KeyError, err:
+                log.log(0,"error","KeyError: " + str(err))
+                log.lights('Stat','red')
+                raise XMDSException("SubmitStats: Key error connecting to XMDS.")
+            except:
+                print("SubmitStats: An unexpected error occured.")
+                log.lights('Stat','red')
+                raise XMDSException("SubmitStats: Unknown exception was handled.")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('Stat','grey')
@@ -2231,14 +2339,17 @@ class XiboDisplayManager:
         pass
 
     def run(self):
-        self.xmds = XMDS()
-        
+        # Run up a XiboLogScreen temporarily until XMDS is initialised.
+        global log
         logLevel = config.get('Logging','logLevel');
+        log = XiboLogScreen(logLevel)
+        
+        self.xmds = XMDS()
+                
         print _("Log Level is: ") + logLevel;
         print _("Logging will be handled by: ") + config.get('Logging','logWriter')
         print _("Switching to new logger")
 
-        global log
         logWriter = config.get('Logging','logWriter')
         log = eval(logWriter)(logLevel)
 
