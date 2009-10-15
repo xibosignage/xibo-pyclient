@@ -34,6 +34,7 @@ import Queue
 import ConfigParser
 import gettext
 import os
+import fnmatch
 import re
 import time
 import datetime
@@ -377,6 +378,7 @@ class XiboLogXmdsWorker(Thread):
         
         self.flush = False
         self.processing = False
+        self.__lock = Semaphore()
     
     def run(self):
         # Wait for XMDS to be initialised and available to us
@@ -391,6 +393,7 @@ class XiboLogXmdsWorker(Thread):
             time.sleep(30)
     
     def process(self):
+        self.__lock.acquire()
         self.processing = True
         # Deal with logs:
         try:
@@ -432,23 +435,43 @@ class XiboLogXmdsWorker(Thread):
             # Get each trace in turn and send it to XMDS
             traceNodes = self.logXml.getElementsByTagName('trace')
 
+            nExceptions = 0
+            xml = '<log>'
+            nodes = []
+            nProcessed = 0
             for trace in traceNodes:
                 # Ship the logXml off to XMDS
-                try:
-                    self.xmds.SubmitLog("<log>" + trace.toxml() + "</log>")
-                    self.logE.removeChild(trace)
-                except XMDSException:
-                    pass
-                except:
-                    pass
+                if len(nodes) < 10:
+                    nProcessed += 1
+                    nodes.append(trace)
+                    xml += trace.toxml()
+                
+                if len(nodes) >= 10 or nProcessed == len(traceNodes):
+                    try:
+                        self.xmds.SubmitLog(xml + "</log>")
+                        xml = '<log>'
+                        for n in nodes:
+                            self.logE.removeChild(n)
+                        nodes = []
+                    except XMDSException:
+                        nExceptions += 1
+                        if nExceptions > 4:
+                            break
+                    except:
+                        pass
             
-            if len(self.logE.childNodes) > 0:
+            if len(self.logXml.getElementsByTagName('trace')) > 0:
                 # Some logs didn't send
                 # Flush to disk    
-#                    os.remove(config.get('Main','libraryDir') + os.sep + 'log.xml')
+                # Check the log folder exists:
+                try:
+                    os.makedirs(config.get('Main','libraryDir') + os.sep + 'log')
+                except:
+                    pass
+
                 try:
                     try:
-                        f = open(config.get('Main','libraryDir') + os.sep + 'log' + str(time.time()) + '.ready','w')
+                        f = open(config.get('Main','libraryDir') + os.sep + 'log' + os.sep + 'log' + str(time.time()) + '.ready','w')
                         f.write(self.logXml.toprettyxml())
                         self.logXml.unlink()
                         self.logXml = minidom.Document()
@@ -460,8 +483,41 @@ class XiboLogXmdsWorker(Thread):
                     pass
             else:
                 # All the logs send
-                # TODO: Read in a past log file and append to logE for processing on the next run
-                pass
+                # Read in a past log file and append to logE for processing on the next run
+                readOne = False
+                
+                # If this is a flush being called, skip reading in a new file as it will be lost in memory.
+                if self.flush:
+                    readOne = True
+                
+                # Check the log folder exists:
+                try:
+                    os.makedirs(config.get('Main','libraryDir') + os.sep + 'log')
+                except:
+                    pass
+                
+                for f in os.listdir(config.get('Main','libraryDir') + os.sep + 'log'):
+                    if readOne == False:
+                        if fnmatch.fnmatch(f, '*.ready'):
+                            try:
+                                self.logXml.unlink()
+                                self.logXml = minidom.parse(config.get('Main','libraryDir') + os.sep + 'log' + os.sep + f)
+                                for n in self.logXml.getElementsByTagName('log'):
+                                    self.logE = n
+                            except:
+                                # File must be invalid. Delete it
+                                try:
+                                    os.remove(config.get('Main','libraryDir') + os.sep + 'log' + os.sep + f)
+                                except:
+                                    readOne = False
+                                    continue
+                                    
+                            # Now the file is back in memory, delete it
+                            try:
+                                os.remove(config.get('Main','libraryDir') + os.sep + 'log' + os.sep + f)
+                                readOne = True
+                            except:
+                                pass
             
         # Deal with stats:
         try:
@@ -514,6 +570,7 @@ class XiboLogXmdsWorker(Thread):
                 except:
                     pass
         self.processing = False
+        self.__lock.release()
 #### Finish Log Classes
 
 #### Download Manager
