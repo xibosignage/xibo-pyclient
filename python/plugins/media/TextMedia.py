@@ -44,9 +44,8 @@ class TextMedia(XiboMedia):
             self.textNode = t
         
         for node in self.textNode.childNodes:
-#            print 'NODE:::::::' + str(node) + " ::: " + str(node.nodeType)
-#            print 'NODE:::::::' + str(node.TEXT_NODE)
             if node.nodeType == node.CDATA_SECTION_NODE:
+                # TODO: This should accept unicode encoded text. The str() casting is wrong. No idea why it doesn't work.
                 html = str(node.data)
                 self.log.log(7,'audit','HTML to display is: ' + html)
         
