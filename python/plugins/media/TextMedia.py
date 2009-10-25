@@ -44,11 +44,12 @@ class TextMedia(XiboMedia):
             self.textNode = t
         
         for node in self.textNode.childNodes:
-            if node.nodeType == node.TEXT_NODE:
-                html = node.data
-                log.log(7,'HTML to display is: ' + html)
+#            print 'NODE:::::::' + str(node) + " ::: " + str(node.nodeType)
+#            print 'NODE:::::::' + str(node.TEXT_NODE)
+            if node.nodeType == node.CDATA_SECTION_NODE:
+                html = str(node.data)
+                self.log.log(7,'audit','HTML to display is: ' + html)
         
-        html = """<p><span style="color: rgb(255, 255, 255);"><span style="font-size: 1.6em;"><span style="font-family: Arial;">There should be some flowers above me!</span></span></span></p>"""
         parser = HTMLPango()
         parser.feed(html)
         tmpXML = '<words id="' + self.mediaNodeName + 'T1" opacity="1" parawidth="' + str(self.getWidth()) + '">' + parser.getPango() + '</words>'
