@@ -35,7 +35,18 @@ class TextMedia(XiboMedia):
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
     
     def run(self):
-        # TODO: Parse out the text element from the raw tag.
+        
+        html = "<p>Empty HTML Text Node</p>"
+        
+        # Parse out the text element from the raw tag.
+        text = self.rawNode.getElementsByTagName('text')
+        for t in text:
+            self.textNode = t
+        
+        for node in self.textNode:
+            node.nodeType == node.TEXT_NODE:
+                html = node.data
+        
         html = """<p><span style="color: rgb(255, 255, 255);"><span style="font-size: 1.6em;"><span style="font-family: Arial;">There should be some flowers above me!</span></span></span></p>"""
         parser = HTMLPango()
         parser.feed(html)
