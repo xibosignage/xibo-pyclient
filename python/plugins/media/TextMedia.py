@@ -65,6 +65,7 @@ class HTMLPango(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
         self.outputStr = ""
+        self.hasOutput = False
 
     def handle_starttag(self, tag, attrs):
         # print(tag)
@@ -92,10 +93,60 @@ class HTMLPango(HTMLParser):
                             color = self.RGBToHTMLColor(rgb)
                             # self.output('<span color="' + color + '">')
                             self.output('<span>')
+        elif tag == "b":
+            self.output('<b>')
+        elif tag == "i":
+            self.output('<i>')
+        elif tag == "u":
+            self.output('<u>')
+        elif tag == "strike":
+            self.output('<s>')
+        elif tag == "sup":
+            self.output('<sup>')
+        elif tag == "sub":
+            self.output('<sub>')
+        elif tag == "big":
+            self.output('<big>')
+        elif tag == "small":
+            self.output('<small>')
+        elif tag == "tt" or tag == "pre":
+            self.output('<tt>')
+        elif tag == "p":
+            if self.hasOutput:
+                # TODO: Broken
+                self.output("\n\n")
+        elif tag == "br":
+            # Handled by the close tag.
+            pass
+        elif tag == "div":
+            # TODO: Broken
+            self.output("\n")
     
     def handle_endtag(self, tag):
         if tag == "span":
             self.output('</span>')
+        elif tag == "b":
+            self.output('</b>')
+        elif tag == "i":
+            self.output('</i>')
+        elif tag == "u":
+            self.output('</u>')
+        elif tag == "strike":
+            self.output('</s>')
+        elif tag == "sup":
+            self.output('</sup>')
+        elif tag == "sub":
+            self.output('</sub>')
+        elif tag == "big":
+            self.output('</big>')
+        elif tag == "small":
+            self.output('</small>')
+        elif tag == "tt" or tag == "pre":
+            self.output('</tt>')
+        elif tag == "br":
+            # TODO: Broken
+            self.output("\n")
+
     
     def handle_data(self, data):
         # print("Encountered data " + data ) 
@@ -109,6 +160,7 @@ class HTMLPango(HTMLParser):
         return hexcolor
 
     def output(self, pango):
+        self.hasOutput = True
         self.outputStr += pango
 
     def getPango(self):
