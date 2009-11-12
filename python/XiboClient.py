@@ -49,7 +49,7 @@ import gd
 import serial
 
 
-version = "1.1.0a6"
+version = "1.1.0a9"
 #TODO: Change to 2!
 schemaVersion = 1
 
