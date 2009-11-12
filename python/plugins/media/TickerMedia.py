@@ -96,6 +96,7 @@ class TickerMedia(XiboMedia):
                 finally:
                     f.close()
             except:
+                tries =+ 1
                 self.log.log(1,"error","Unable to load from URL " + self.options['uri'])
         
         if flag:

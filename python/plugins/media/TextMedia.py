@@ -35,8 +35,20 @@ class TextMedia(XiboMedia):
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
     
     def run(self):
-        # TODO: Parse out the text element from the raw tag.
-        html = """<p><span style="color: rgb(255, 255, 255);"><span style="font-size: 1.6em;"><span style="font-family: Arial;">There should be some flowers above me!</span></span></span></p>"""
+        
+        html = "<p>Empty HTML Text Node</p>"
+        
+        # Parse out the text element from the raw tag.
+        text = self.rawNode.getElementsByTagName('text')
+        for t in text:
+            self.textNode = t
+        
+        for node in self.textNode.childNodes:
+            if node.nodeType == node.CDATA_SECTION_NODE:
+                # TODO: This should accept unicode encoded text. The str() casting is wrong. No idea why it doesn't work.
+                html = str(node.data)
+                self.log.log(7,'audit','HTML to display is: ' + html)
+        
         parser = HTMLPango()
         parser.feed(html)
         tmpXML = '<words id="' + self.mediaNodeName + 'T1" opacity="1" parawidth="' + str(self.getWidth()) + '">' + parser.getPango() + '</words>'
@@ -53,6 +65,7 @@ class HTMLPango(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
         self.outputStr = ""
+        self.hasOutput = False
 
     def handle_starttag(self, tag, attrs):
         # print(tag)
@@ -80,10 +93,60 @@ class HTMLPango(HTMLParser):
                             color = self.RGBToHTMLColor(rgb)
                             # self.output('<span color="' + color + '">')
                             self.output('<span>')
+        elif tag == "b":
+            self.output('<b>')
+        elif tag == "i":
+            self.output('<i>')
+        elif tag == "u":
+            self.output('<u>')
+        elif tag == "strike":
+            self.output('<s>')
+        elif tag == "sup":
+            self.output('<sup>')
+        elif tag == "sub":
+            self.output('<sub>')
+        elif tag == "big":
+            self.output('<big>')
+        elif tag == "small":
+            self.output('<small>')
+        elif tag == "tt" or tag == "pre":
+            self.output('<tt>')
+        elif tag == "p":
+            if self.hasOutput:
+                # TODO: Broken
+                self.output("\n\n")
+        elif tag == "br":
+            # Handled by the close tag.
+            pass
+        elif tag == "div":
+            # TODO: Broken
+            self.output("\n")
     
     def handle_endtag(self, tag):
         if tag == "span":
             self.output('</span>')
+        elif tag == "b":
+            self.output('</b>')
+        elif tag == "i":
+            self.output('</i>')
+        elif tag == "u":
+            self.output('</u>')
+        elif tag == "strike":
+            self.output('</s>')
+        elif tag == "sup":
+            self.output('</sup>')
+        elif tag == "sub":
+            self.output('</sub>')
+        elif tag == "big":
+            self.output('</big>')
+        elif tag == "small":
+            self.output('</small>')
+        elif tag == "tt" or tag == "pre":
+            self.output('</tt>')
+        elif tag == "br":
+            # TODO: Broken
+            self.output("\n")
+
     
     def handle_data(self, data):
         # print("Encountered data " + data ) 
@@ -97,6 +160,7 @@ class HTMLPango(HTMLParser):
         return hexcolor
 
     def output(self, pango):
+        self.hasOutput = True
         self.outputStr += pango
 
     def getPango(self):
