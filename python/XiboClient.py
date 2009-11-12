@@ -49,7 +49,7 @@ import gd
 import serial
 
 
-version = "1.1.0a9"
+version = "1.1.0a10"
 #TODO: Change to 2!
 schemaVersion = 1
 
@@ -1860,9 +1860,16 @@ class SwitchWatcher(Thread):
         
         state = [False,False,False,False,False,False,False,False]
         stats = ["","","","","","","",""]
+        liftHistory = [0,0,0,0,0,0,0,0]
 
         ser0 = None
         ser1 = None
+        
+        trigger = None
+        try:
+            trigger = int(config.get('Lift','trigger'))
+        except:
+            trigger = 3
         
         try:
             ser0 = serial.Serial(self.serialPort0)
@@ -1919,52 +1926,76 @@ class SwitchWatcher(Thread):
                     
                 if ser.getCD() == state[i]:
                     if not state[i]:
-                        activeLift = i
-                        log.lights('Lift' + str(i + 1),'green')
-                        flag = True
-                        state[i] = True
-                        stats[i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                        if liftHistory[i] < trigger:
+                            liftHistory[i] += 1
+                        if liftHistory[i] == trigger:
+                            activeLift = i
+                            log.lights('Lift' + str(i + 1),'green')
+                            flag = True
+                            state[i] = True
+                            stats[i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
                     else:
-                        log.lights('Lift' + str(i + 1),'grey')
-                        state[i] = False
-                        log.stat('event', stats[i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i], "", "", "")
-                        offFlag = True
+                        if liftHistory[i] > 0:
+                            liftHistory[i] -= 1
+                        if liftHistory[i] == 0:
+                            log.lights('Lift' + str(i + 1),'grey')
+                            state[i] = False
+                            log.stat('event', stats[i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i], "", "", "")
+                            offFlag = True                            
                 if ser.getDSR() == state[1 + i]:
                     if not state[1 + i]:
-                        activeLift = i + 1
-                        log.lights('Lift' + str(i + 2),'green')
-                        flag = True
-                        state[1 + i] = True
-                        stats[1 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                        if liftHistory[1 + i] < trigger:
+                            liftHistory[1 + i] += 1
+                        if liftHistory[1 + i] == trigger:
+                            activeLift = i + 1
+                            log.lights('Lift' + str(i + 2),'green')
+                            flag = True
+                            state[1 + i] = True
+                            stats[1 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
                     else:
-                        log.lights('Lift' + str(i + 2),'grey')
-                        state[1 + i] = False
-                        log.stat('event', stats[1 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+1], "", "", "")
-                        offFlag = True
+                        if liftHistory[1 + i] > 0:
+                            liftHistory[1 + i] -= 1
+                        if liftHistory[1 + i] == 0:
+                            log.lights('Lift' + str(i + 2),'grey')
+                            state[1 + i] = False
+                            log.stat('event', stats[1 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+1], "", "", "")
+                            offFlag = True
                 if ser.getCTS() == state[2 + i]:
                     if not state[2 + i]:
-                        activeLift = i + 2
-                        flag = True
-                        log.lights('Lift' + str(i + 3),'green')
-                        state[2 + i] = True
-                        stats[2 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                        if liftHistory[2 + i] < trigger:
+                            liftHistory[2 + i] += 1
+                        if liftHistory[2 + i] == trigger:
+                            activeLift = i + 2
+                            flag = True
+                            log.lights('Lift' + str(i + 3),'green')
+                            state[2 + i] = True
+                            stats[2 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
                     else:
-                        log.lights('Lift' + str(i + 3),'grey')
-                        state[2 + i] = False
-                        log.stat('event', stats[2 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+2], "", "", "")
-                        offFlag = True
+                        if liftHistory[2 + i] > 0:
+                            liftHistory[2 + i] -= 1
+                        if liftHistory[2 + i] == 0:
+                            log.lights('Lift' + str(i + 3),'grey')
+                            state[2 + i] = False
+                            log.stat('event', stats[2 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+2], "", "", "")
+                            offFlag = True
                 if ser.getRI() == state[3 + i]:
                     if not state[3 + i]:
-                        activeLift = i + 3
-                        flag = True
-                        log.lights('Lift' + str(i + 4),'green')
-                        state[3 + i] = True
-                        stats[3 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                        if liftHistory[3 + i] < trigger:
+                            liftHistory[3 + i] += 1
+                        if liftHistory[3 + i] == trigger:
+                            activeLift = i + 3
+                            flag = True
+                            log.lights('Lift' + str(i + 4),'green')
+                            state[3 + i] = True
+                            stats[3 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
                     else:
-                        log.lights('Lift' + str(i + 4),'grey')
-                        state[3 + i] = False
-                        log.stat('event', stats[3 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+3], "", "", "")
-                        offFlag = True
+                        if liftHistory[3 + i] > 0:
+                            liftHistory[3 + i] -= 1
+                        if liftHistory[3 + i] == 0:                        
+                            log.lights('Lift' + str(i + 4),'grey')
+                            state[3 + i] = False
+                            log.stat('event', stats[3 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+3], "", "", "")
+                            offFlag = True
             
             if flag:
                 log.updateLift(self.tags[activeLift])
@@ -1973,7 +2004,7 @@ class SwitchWatcher(Thread):
                 self.displayManager.currentLM.dispose()
             
             if offFlag:
-                # TODO: Could these be changed for or instead? I think they could.
+                # Work our way back down the stack of lift events until we reach a matching state
                 if not (state[0] or state[1] or state[2] or state[3] or state[4] or state[5] or state[6] or state[7]):
                     # All the lifts are off. Reset the liftStack and show the default
                     self.liftStack = Queue.LifoQueue()
