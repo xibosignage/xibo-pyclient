@@ -21,7 +21,8 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim
+from libavg import avg, anim, button
+from optparse import OptionParser
 from SOAPpy import WSDL
 import SOAPpy.Types
 import SOAPpy.Errors
@@ -2394,9 +2395,71 @@ class XiboClient:
 
         self.dm.run()
 
+class XiboOptions:
+    "Xibo Options Dialogue"
+    def __init__(self):
+        pass
+    
+    def exitClicked(event):
+        self.player.stop()
+        exit()
+    
+    def play(self):
+        global version
+        print _("Xibo Client v") + version
+        
+        global schemaVersion
+        global log
+        log = XiboLogScreen(0)
+        
+        global config
+        
+        print _("Reading default configuration")
+        config = ConfigParser.ConfigParser()
+        config.readfp(open('defaults.cfg'))
+        
+        print _("Reading user configuration")
+        config.read(['site.cfg', os.path.expanduser('~/.xibo')])
+        
+        # Load avg UI
+        log.log(1,"info",_("New XiboPlayer running"))
+        self.player = avg.Player()
+#        self.player.setResolution(False,400,300,24)
+        self.player.showCursor(1)
+        self.player.volume = 1
+        
+        # Build the XML that defines the avg node and divs for screen and information
+        avgContent = '<avg id="main" width="400" height="300">'
+        avgContent += '<div id="options_screen">'
+        avgContent += '<words id="exitButton">Exit</words>'
+        avgContent += '</div>'
+        avgContent += '</avg>'
+        self.player.loadString(avgContent)
+
+        button.init(avg)
+        exitButton = button.Button(self.player.getElementByID("options_screen"),self.exitClicked)
+        
+        # Release the lock so other threads can add content
+        self.player.play()
+        
+        # Create AVG Player
+        
+        # Add scripts
+        
+        # Run AVG player
+# END XiboOptions Class        
+
 # Main - create a XiboClient and run
 gettext.install("messages", "locale")
 
-xc = XiboClient()
+parser = OptionParser(usage="usage: %prog [options]",version="%prog v" + version)
+parser.add_option("-o","--options", action="store_true", dest="show_options", default=False, help="Open Xibo Client Options")
+(options, args) = parser.parse_args()
+
+if options.show_options:
+    xc = XiboOptions()
+else:
+    xc = XiboClient()
+
 xc.play()
 

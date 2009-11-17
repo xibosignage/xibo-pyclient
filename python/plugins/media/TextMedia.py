@@ -46,15 +46,17 @@ class TextMedia(XiboMedia):
         for node in self.textNode.childNodes:
             if node.nodeType == node.CDATA_SECTION_NODE:
                 # TODO: This should accept unicode encoded text. The str() casting is wrong. No idea why it doesn't work.
-                html = str(node.data)
+                # html = str(node.data)
+                html = node.data.encode('UTF-8')
                 self.log.log(7,'audit','HTML to display is: ' + html)
         
         parser = HTMLPango()
         parser.feed(html)
         tmpXML = '<words id="' + self.mediaNodeName + 'T1" opacity="1" parawidth="' + str(self.getWidth()) + '">' + parser.getPango() + '</words>'
+        #TODO: Remove this next line.
+        print tmpXML
         self.p.enqueue('add',(tmpXML,self.mediaNodeName))
         self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
-        print(parser.getPango())
     
     def dispose(self):
         self.p.enqueue('del',self.mediaNodeName)
@@ -113,14 +115,17 @@ class HTMLPango(HTMLParser):
             self.output('<tt>')
         elif tag == "p":
             if self.hasOutput:
+                pass
                 # TODO: Broken
-                self.output("\n\n")
+                # self.output("<br/> <br/>")
         elif tag == "br":
             # Handled by the close tag.
             pass
         elif tag == "div":
             # TODO: Broken
-            self.output("\n")
+            if self.hasOutput:
+                # self.output("<br/>")
+                pass
     
     def handle_endtag(self, tag):
         if tag == "span":
@@ -144,8 +149,9 @@ class HTMLPango(HTMLParser):
         elif tag == "tt" or tag == "pre":
             self.output('</tt>')
         elif tag == "br":
+            pass
             # TODO: Broken
-            self.output("\n")
+            # self.output('<br/>')
 
     
     def handle_data(self, data):
