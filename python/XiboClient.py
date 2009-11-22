@@ -672,113 +672,113 @@ class XiboDownloadManager(Thread):
 
             # Find the layout node and store it
             if self.doc != None:
-                for e in self.doc.childNodes:
-                    if e.nodeType == e.ELEMENT_NODE and e.localName == "files":
-                        # e is a files node.
-                        #log.log(5,"info","Files Node found!")
-                        for f in e.childNodes:
-                            # It's a Media node
-                            if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "media":
-                                #log.log(5,"info","Media File Node found!")
-                                # Does the file exist? Is it the right size?
-                                try:
-                                    tmpPath = config.get('Main','libraryDir') + os.sep + str(f.attributes['path'].value)
-                                    tmpSize = int(f.attributes['size'].value)
-                                    tmpHash = str(f.attributes['md5'].value)
-                                    tmpType = str(f.attributes['type'].value)
-                                    self.updateInfo()
-                                    if os.path.isfile(tmpPath) and os.path.getsize(tmpPath) == tmpSize:
-                                        # File exists and is the right size
-                                        # See if we checksummed it recently
-                                        if tmpPath in md5Cache:
-                                            # Check if the md5 cache is old for this file
-                                            if md5Cache[tmpPath].isExpired():
-                                                # Update the cache if it is
-                                                md5Cache[tmpPath].update()
+                fileNodes = self.doc.getElementsByTagName('file')
+                for f in fileNodes:
+                    # Does the file exist? Is it the right size?
+                    if str(f.attributes['type'].value) == 'media':
+                        try:
+                            tmpPath = os.path.join(config.get('Main','libraryDir'),str(f.attributes['path'].value))
+                            tmpFileName = str(f.attributes['path'].value)
+                            tmpSize = int(f.attributes['size'].value)
+                            tmpHash = str(f.attributes['md5'].value)
+                            tmpType = str(f.attributes['type'].value)
+                            self.updateInfo()
+                            if os.path.isfile(tmpPath) and os.path.getsize(tmpPath) == tmpSize:
+                                # File exists and is the right size
+                                # See if we checksummed it recently
+                                if tmpFileName in md5Cache:
+                                    # Check if the md5 cache is old for this file
+                                    if md5Cache[tmpFileName].isExpired():
+                                        # Update the cache if it is
+                                        md5Cache[tmpFileName].update()
 
-                                            if not md5Cache[tmpPath].isValid():
-                                                # The hashes don't match.
-                                                # Queue for download.
-                                                log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
-                                                self.dlQueue.put((tmpType,tmpPath,tmpSize,tmpHash),False)
-                                        else:
-                                            tmpFile = XiboFile(tmpPath,tmpHash)
-                                            md5Cache[tmpPath] = tmpFile
-                                            if not tmpFile.isValid():
-                                                # The hashes don't match.
-                                                # Queue for download.
-                                                log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
-                                                self.dlQueue.put((tmpType,tmpPath,tmpSize,tmpHash),False)
-                                    else:
-                                        # Queue the file for download later.
-                                        log.log(3,"info",_("File does not exist or is not the correct size. Queueing for download. ") + tmpPath)
-                                        self.dlQueue.put((tmpType,tmpPath,tmpSize,tmpHash),False)
-                                except:
-                                    # TODO: Blacklist the media item.
-                                    log.log(0,"error",_("RequiredFiles XML error: File type=media has no path attribute or no size attribute. Blacklisting."))
-                                log.log(5,"audit",_("File " + tmpPath + " is valid."))
+                                    if not md5Cache[tmpFileName].isValid():
+                                        # The hashes don't match.
+                                        # Queue for download.
+                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName)
+                                        self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
+                                else:
+                                    tmpFile = XiboFile(tmpPath,tmpHash)
+                                    md5Cache[tmpFileName] = tmpFile
+                                    if not tmpFile.isValid():
+                                        # The hashes don't match.
+                                        # Queue for download.
+                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName)
+                                        self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
+                            else:
+                                # Queue the file for download later.
+                                log.log(3,"info",_("File does not exist or is not the correct size. Queueing for download. ") + tmpFileName)
+                                self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
+                        except:
+                            # TODO: Blacklist the media item.
+                            log.log(0,"error",_("RequiredFiles XML error: File type=media has no path attribute or no size attribute. Blacklisting."))
+                        log.log(5,"audit",_("File " + tmpFileName + " is valid."))
+                        
+                    elif str(f.attributes['type'].value) == 'layout':
+                    # It's a Layout node.
+                        try:
+                            tmpPath = os.path.join(config.get('Main','libraryDir'),str(f.attributes['path'].value) + '.xlf')
+                            tmpFileName = str(f.attributes['path'].value) + '.xlf'
+                            tmpHash = str(f.attributes['md5'].value)
+                            tmpType = str(f.attributes['type'].value)
+                            self.updateInfo()
+                            if os.path.isfile(tmpPath):
+                                # File exists
+                                # See if we checksummed it recently
+                                if tmpFileName in md5Cache:
+                                    # Check if the md5 cache is old for this file
+                                    if md5Cache[tmpFileName].isExpired():
+                                        # Update the cache if it is
+                                        md5Cache[tmpFileName].update()
+                                    
+                                    # The file is in cache, but has changed hash on the server
+                                    if md5Cache[tmpFileName].targetHash != tmpHash:
+                                        md5Cache[tmpFileName].targetHash = tmpHash
+                                        md5Cache[tmpFileName].update()
 
-                            # It's a Layout node.
-                            if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "layout":
-                                try:
-                                    tmpPath = config.get('Main','libraryDir') + os.sep + str(f.attributes['path'].value) + '.xlf'
-                                    tmpHash = str(f.attributes['md5'].value)
-                                    tmpType = str(f.attributes['type'].value)
-                                    self.updateInfo()
-                                    if os.path.isfile(tmpPath):
-                                        # File exists
-                                        # See if we checksummed it recently
-                                        if tmpPath in md5Cache:
-                                            # Check if the md5 cache is old for this file
-                                            if md5Cache[tmpPath].isExpired():
-                                                # Update the cache if it is
-                                                md5Cache[tmpPath].update()
-                                            
-                                            # The file is in cache, but has changed hash on the server
-                                            if md5Cache[tmpPath].targetHash != tmpHash:
-                                                md5Cache[tmpPath].targetHash = tmpHash
-                                                md5Cache[tmpPath].update()
-
-                                            if md5Cache[tmpPath].md5 != tmpHash:
-                                                # The hashes don't match.
-                                                # Queue for download.
-                                                log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
-                                                self.dlQueue.put((tmpType,tmpPath,0,tmpHash),False)
-                                        else:
-                                            tmpFile = XiboFile(tmpPath,tmpHash)
-                                            md5Cache[tmpPath] = tmpFile
-                                            if not tmpFile.isValid():
-                                                # The hashes don't match.
-                                                # Queue for download.
-                                                log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpPath)
-                                                self.dlQueue.put((tmpType,tmpPath,0,tmpHash),False)
-                                    else:
-                                        # Queue the file for download later.
-                                        log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpPath)
-                                        self.dlQueue.put((tmpType,tmpPath,0,tmpHash),False)
-                                except:
-                                    # TODO: Blacklist the media item.
-                                    log.log(0,"error",_("RequiredFiles XML error: File type=layout has no path attribute or no hash attribute. Blacklisting."))
-
-                            # It's a Blacklist node
-                            if f.nodeType == f.ELEMENT_NODE and f.localName == "file" and str(f.attributes['type'].value) == "blacklist":
-                                #log.log(5,"info","Blacklist File Node found!")
-                                # TODO: Do something with the blacklist
-                                pass
+                                    if md5Cache[tmpFileName].md5 != tmpHash:
+                                        # The hashes don't match.
+                                        # Queue for download.
+                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName)
+                                        self.dlQueue.put((tmpType,tmpFileName,0,tmpHash),False)
+                                else:
+                                    tmpFile = XiboFile(tmpFileName,tmpHash)
+                                    md5Cache[tmpFileName] = tmpFile
+                                    if not tmpFile.isValid():
+                                        # The hashes don't match.
+                                        # Queue for download.
+                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName)
+                                        self.dlQueue.put((tmpType,tmpFileName,0,tmpHash),False)
+                            else:
+                                # Queue the file for download later.
+                                log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpFileName)
+                                self.dlQueue.put((tmpType,tmpFileName,0,tmpHash),False)
+                        except:
+                            # TODO: Blacklist the media item.
+                            log.log(0,"error",_("RequiredFiles XML error: File type=layout has no path attribute or no hash attribute. Blacklisting."))
+                    elif str(f.attributes['type'].value) == 'blacklist':
+                        # It's a Blacklist node
+                        #log.log(5,"info","Blacklist File Node found!")
+                        # TODO: Do something with the blacklist
+                        pass
+                    else:
+                        # Unknown node. Ignore
+                        pass
+                fileNodes = None
             # End If self.doc != None
 
             # Loop over the queue and download as required
             try:
                 # Throttle this to a maximum number of dl threads.
                 while True:
-                    tmpType, tmpPath, tmpSize, tmpHash = self.dlQueue.get(False)
+                    tmpType, tmpFileName, tmpSize, tmpHash = self.dlQueue.get(False)
 
                     # Check if the file is downloading already
-                    if not tmpPath in self.runningDownloads:
+                    if not tmpFileName in self.runningDownloads:
                         # Make a download thread and actually download the file.
                         # Add the running thread to the self.runningDownloads dictionary
-                        self.runningDownloads[tmpPath] = XiboDownloadThread(self,tmpType,tmpPath,tmpSize,tmpHash)
-                        self.runningDownloads[tmpPath].start()
+                        self.runningDownloads[tmpFileName] = XiboDownloadThread(self,tmpType,tmpFileName,tmpSize,tmpHash)
+                        self.runningDownloads[tmpFileName].start()
                         log.updateRunningDownloads(len(self.runningDownloads))
 
                     while len(self.runningDownloads) >= (self.maxDownloads - 1):
@@ -794,9 +794,9 @@ class XiboDownloadManager(Thread):
 
             # Loop over the MD5 hash cache and remove any entries older than 1 hour
             # TODO: Throws an exception "ValueError: too many values to unpack"
-            for tmpPath, tmpFile in md5Cache.iteritems():
+            for tmpFileName, tmpFile in md5Cache.iteritems():
                 if tmpFile.isExpired():
-                    del md5Cache[tmpPath]
+                    del md5Cache[tmpFileName]
             # End Loop
 
             # Update the infoscreen.
@@ -811,11 +811,11 @@ class XiboDownloadManager(Thread):
     def collect(self):
         self.__lock.release()
 
-    def dlThreadCompleteNotify(self,tmpPath):
+    def dlThreadCompleteNotify(self,tmpFileName):
         # Download thread completed. Log and remove from
         # self.runningDownloads
-        log.log(3,"info",_("Download thread completed for ") + tmpPath)
-        del self.runningDownloads[tmpPath]
+        log.log(3,"info",_("Download thread completed for ") + tmpFileName)
+        del self.runningDownloads[tmpFileName]
         log.updateRunningDownloads(len(self.runningDownloads))
 
     def updateInfo(self):
@@ -823,19 +823,20 @@ class XiboDownloadManager(Thread):
         # and it's status
         infoStr = ""
         
-        for tmpPath, tmpFile in md5Cache.iteritems():
+        for tmpFileName, tmpFile in md5Cache.iteritems():
             if tmpFile.isValid():
-                infoStr += tmpPath + ", "
+                infoStr += tmpFileName + ", "
             else:
-                infoStr += "<i>" + tmpPath + "</i>, "
+                infoStr += "<i>" + tmpFileName + "</i>, "
         
         log.updateMedia(infoStr)
 
 class XiboDownloadThread(Thread):
-    def __init__(self,parent,tmpType,tmpPath,tmpSize,tmpHash):
+    def __init__(self,parent,tmpType,tmpFileName,tmpSize,tmpHash):
         Thread.__init__(self)
         self.tmpType = tmpType
-        self.tmpPath = tmpPath
+        self.tmpFileName = tmpFileName
+        self.tmpPath = os.path.join(config.get('Main','libraryDir'),self.tmpFileName)
         self.tmpSize = tmpSize
         self.tmpHash = tmpHash
         self.parent = parent
@@ -850,7 +851,7 @@ class XiboDownloadThread(Thread):
             self.downloadLayout()
 
         # Let the DownloadManager know we're complete
-        self.parent.dlThreadCompleteNotify(self.tmpPath)
+        self.parent.dlThreadCompleteNotify(self.tmpFileName)
 
     def downloadMedia(self):
         # Actually download the Media file
@@ -881,9 +882,7 @@ class XiboDownloadThread(Thread):
                     self.chunk = self.tmpSize - self.offset
 
                 try:
-                    # Fix path attribute so it's just the filename (minus the client path)
-                    shortPath = self.tmpPath.replace(config.get('Main','libraryDir') + os.sep,'',1)
-                    response = self.parent.xmds.GetFile(shortPath,self.tmpType,self.offset,self.chunk)
+                    response = self.parent.xmds.GetFile(self.tmpFileName,self.tmpType,self.offset,self.chunk)
                     fh.write(response)
                     fh.flush()
                     self.offset = self.offset + self.chunk
@@ -902,11 +901,11 @@ class XiboDownloadThread(Thread):
                 # TODO: Do something sensible
                 pass
 
-            # Check size/md5 here?
-            tmpFile = XiboFile(self.tmpPath,self.tmpHash)
+            # Check size/md5 here
+            tmpFile = XiboFile(self.tmpFileName,self.tmpHash)
             if tmpFile.isValid():
                 finished = True
-                md5Cache[self.tmpPath] = tmpFile
+                md5Cache[self.tmpFileName] = tmpFile
         # End while
 
     def downloadLayout(self):
@@ -932,11 +931,7 @@ class XiboDownloadThread(Thread):
             tries = tries + 1
 
             try:
-                # Fix path attribute so it's just the filename (minus the client path) and trailing .xlf
-                shortPath = self.tmpPath.replace(config.get('Main','libraryDir') + os.sep,'',1)
-                shortPath = self.tmpPath.replace('.xlf','',1)
-
-                response = self.parent.xmds.GetFile(shortPath,self.tmpType,0,0)
+                response = self.parent.xmds.GetFile(self.tmpFileName,self.tmpType,0,0)
                 fh.write(response + '\n')
                 fh.flush()
             except RuntimeError:
@@ -952,8 +947,11 @@ class XiboDownloadThread(Thread):
                 # TODO: Do something sensible
                 pass
 
-            # TODO: Should we check size/md5 here?
-            finished = True
+            # Check size/md5 here
+            tmpFile = XiboFile(self.tmpFileName,self.tmpHash)
+            if tmpFile.isValid():
+                finished = True
+                md5Cache[self.tmpFileName] = tmpFile
         # End while
 
 #### Finish Download Manager
