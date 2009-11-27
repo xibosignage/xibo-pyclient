@@ -72,7 +72,7 @@ class XiboLog:
         # Logo + version bottom right
         tmpXML = '<image href="resources/logo.png" id="infoLOGO" opacity="1" width="50" height="18" x="345" y="276" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words x="300" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" size="12" />'
+        tmpXML = '<words x="300" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" fontsize="12" />'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Required Files Traffic Light
@@ -84,7 +84,7 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoRFGreen" opacity="0" width="20" height="20" x="5" y="275" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words x="10" y="270" opacity="1" text="Required Files" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        tmpXML = '<words x="10" y="270" opacity="1" text="Required Files" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # GetFile Traffic Light
@@ -96,9 +96,9 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoGFGreen" opacity="0" width="20" height="20" x="30" y="275" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words x="35" y="270" opacity="1" text="Get File" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        tmpXML = '<words x="35" y="270" opacity="1" text="Get File" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="0" font="Arial" color="00000" size="10" />'
+        tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="0" font="Arial" color="000000" fontsize="10" />'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Schedule Traffic Light
@@ -110,7 +110,7 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoSGreen" opacity="0" width="20" height="20" x="55" y="275" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words x="60" y="270" opacity="1" text="Schedule" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        tmpXML = '<words x="60" y="270" opacity="1" text="Schedule" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # RegisterDisplay Traffic Light
@@ -122,7 +122,7 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoRDGreen" opacity="0" width="20" height="20" x="80" y="275" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words x="85" y="270" opacity="1" text="Register Display" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        tmpXML = '<words x="85" y="270" opacity="1" text="Register Display" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Logs Traffic Light
@@ -134,7 +134,7 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoLogGreen" opacity="0" width="20" height="20" x="105" y="275" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words x="110" y="270" opacity="1" text="Log" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        tmpXML = '<words x="110" y="270" opacity="1" text="Log" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Stats Traffic Light
@@ -146,25 +146,25 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoStatGreen" opacity="0" width="20" height="20" x="130" y="275" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words x="135" y="270" opacity="1" text="Stats" font="Arial" color="000000" size="10" angle="-1.57079633" pivotx="0" pivoty="0"/>'
+        tmpXML = '<words x="135" y="270" opacity="1" text="Stats" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Schedule
-        tmpXML = '<words x="5" y="40" opacity="1" text="Schedule" font="Arial" color="000000" size="14" />'
+        tmpXML = '<words x="5" y="40" opacity="1" text="Schedule" font="Arial" color="000000" fontsize="14" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words id="infoCurrentSchedule" x="5" y="55" opacity="1" text="" font="Arial" color="000000" size="11" parawidth="180" linespacing="10" alignment="left" />'
+        tmpXML = '<words id="infoCurrentSchedule" x="5" y="55" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Now Playing
-        tmpXML = '<words x="5" y="5" opacity="1" text="Now Playing" font="Arial" color="000000" size="14" />'
+        tmpXML = '<words x="5" y="5" opacity="1" text="Now Playing" font="Arial" color="000000" fontsize="14" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words id="infoNowPlaying" x="5" y="20" opacity="1" text="" font="Arial" color="000000" size="11" />'
+        tmpXML = '<words id="infoNowPlaying" x="5" y="20" opacity="1" text="" font="Arial" color="000000" fontsize="11" />'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Media
-        tmpXML = '<words x="205" y="5" opacity="1" text="Media" font="Arial" color="000000" size="14" />'
+        tmpXML = '<words x="205" y="5" opacity="1" text="Media" font="Arial" color="000000" fontsize="14" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" text="" font="Arial" color="000000" size="11" />'
+        tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" text="" font="Arial" color="000000" fontsize="11" />'
         self.p.enqueue('add',(tmpXML,'info'))
     
     def lights(self,field,value):
@@ -191,22 +191,22 @@ class XiboLog:
 
     def updateSchedule(self,schedule):
         self.p.enqueue('del','infoCurrentSchedule')
-        tmpXML = '<words id="infoCurrentSchedule" x="5" y="55" opacity="1" text="' + schedule + '" font="Arial" color="000000" size="11" parawidth="180" linespacing="10" alignment="left" />'
+        tmpXML = '<words id="infoCurrentSchedule" x="5" y="55" opacity="1" text="' + schedule + '" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
         self.p.enqueue('add',(tmpXML,'info'))
 
     def updateNowPlaying(self,now):
         self.p.enqueue('del','infoNowPlaying')
-        tmpXML = '<words id="infoNowPlaying" x="5" y="20" opacity="1" text="' + now + '" font="Arial" color="000000" size="11" />'
+        tmpXML = '<words id="infoNowPlaying" x="5" y="20" opacity="1" text="' + now + '" font="Arial" color="000000" fontsize="11" />'
         self.p.enqueue('add',(tmpXML,'info'))
 
     def updateMedia(self,media):
         self.p.enqueue('del','infoMedia')
-        tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" font="Arial" color="000000" size="11" parawidth="180">' + media + '</words>'
+        tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" font="Arial" color="000000" fontsize="11" width="180">' + media + '</words>'
         self.p.enqueue('add',(tmpXML,'info'))
     
     def updateRunningDownloads(self,num):
         self.p.enqueue('del','infoRunningDownloads')
-        tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="' + str(num) + '" font="Arial" color="00000" size="10" />'
+        tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="' + str(num) + '" font="Arial" color="000000" fontsize="10" />'
         self.p.enqueue('add',(tmpXML,'info'))
 
 class XiboScheduler(Thread):
@@ -2158,6 +2158,11 @@ class XiboDisplayManager:
 class XiboPlayer(Thread):
     "Class to handle libavg interactions"
     def __init__(self,parent):
+        global AVG_080
+        global AVG_090
+        global AVG_090SVN4277
+        global libavgVersion
+
         Thread.__init__(self)
         self.info = False
         self.q = Queue.Queue(0)
@@ -2187,7 +2192,8 @@ class XiboPlayer(Thread):
 
     def run(self):
         log.log(1,"info",_("New XiboPlayer running"))
-        self.player = avg.Player()
+        self.player = avg.Player.get()
+        
         if config.get('Main','fullscreen') == "true":
             self.player.setResolution(True,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
         else:
@@ -2371,6 +2377,7 @@ class XiboClient:
 
     def play(self):
         global version
+        
         print _("Xibo Client v") + version
 
         global schemaVersion
@@ -2404,6 +2411,7 @@ class XiboOptions:
     
     def play(self):
         global version
+        
         print _("Xibo Client v") + version
         
         global schemaVersion
@@ -2420,8 +2428,8 @@ class XiboOptions:
         config.read(['site.cfg', os.path.expanduser('~/.xibo')])
         
         # Load avg UI
-        log.log(1,"info",_("New XiboPlayer running"))
-        self.player = avg.Player()
+        self.player = avg.Player.get()
+            
 #        self.player.setResolution(False,400,300,24)
         self.player.showCursor(1)
         self.player.volume = 1
