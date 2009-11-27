@@ -575,8 +575,9 @@ class XiboLogXmdsWorker(Thread):
 
 #### Download Manager
 class XiboFile(object):
-    def __init__(self,path,targetHash):
-        self.__path = path
+    def __init__(self,fileName,targetHash):
+        self.__path = os.path.join(config.get('Main','libraryDir'),fileName)
+        self.__fileName = fileName
         self.md5 = ""
         self.checkTime = 1
         self.update()
@@ -919,15 +920,15 @@ class XiboDownloadThread(Thread):
                 log.log(0,"error",_("Unable to delete file: ") + self.tmpPath)
                 return
 
-        fh = None
-        try:
-            fh = open(self.tmpPath, 'wb')
-        except:
-            log.log(0,"error",_("Unable to write file: ") + self.tmpPath)
-            return
-
         while tries < 5 and not finished:
             tries = tries + 1
+
+            fh = None
+            try:
+                fh = open(self.tmpPath, 'wb')
+            except:
+                log.log(0,"error",_("Unable to write file: ") + self.tmpPath)
+                return
 
             try:
                 response = self.parent.xmds.GetFile(self.tmpFileName,self.tmpType,0,0)
@@ -951,6 +952,8 @@ class XiboDownloadThread(Thread):
             if tmpFile.isValid():
                 finished = True
                 md5Cache[self.tmpFileName] = tmpFile
+            else:
+                log.log(4,"warning",_("File completed downloading but MD5 did not match.") + self.tmpFileName)
         # End while
 
 #### Finish Download Manager
@@ -1403,6 +1406,7 @@ class XiboLayout:
                 xlfSchemaVersion = int(self.layoutNode.attributes['schemaVersion'].value)
             except KeyError:
                 log.log(1,"error",_("Layout has no schemaVersion attribute and cannot be shown by this client"))
+                self.builtWithNoXLF = True
                 self.schemaCheck = False
                 return
 
@@ -1411,6 +1415,7 @@ class XiboLayout:
                 # Set the flag so the scheduler doesn't present this to the display
                 log.log(1,"error",_("Layout has incorrect schemaVersion attribute and cannot be shown by this client.") + " " + str(xlfSchemaVersion) + " != " + str(schemaVersion))
                 self.schemaCheck = False
+                self.builtWithNoXLF = True
                 return
             else:
                 self.schemaCheck = True
@@ -1498,23 +1503,24 @@ class XiboLayout:
 
         # Loop through all the media items in the layout
         # Check them against md5Cache
-        for tmpPath in self.media:
-            if tmpPath in md5Cache:
+        for tmpFileName in self.media:
+            tmpPath = os.path.join(config.get('Main','libraryDir'),tmpFileName)
+            if tmpFileName in md5Cache:
                 # Check if the md5 cache is old for this file
                 try:
-                    if not md5Cache[tmpPath].isValid():
+                    if not md5Cache[tmpFileName].isValid():
                         self.mediaCheck = False
-                        log.log(3,"warn",_("Layout ") + self.layoutID + _(" cannot run because MD5 is incorrect on ") + tmpPath)
+                        log.log(3,"warn",_("Layout ") + self.layoutID + _(" cannot run because MD5 is incorrect on ") + tmpFileName)
 
                     if not os.path.isfile(tmpPath):
                         self.mediaCheck = False
-                        log.log(0,"error",_("Layout ") + self.layoutID + _(" cannot run because file is missing: ") + tmpPath)
+                        log.log(0,"error",_("Layout ") + self.layoutID + _(" cannot run because file is missing: ") + tmpFileName)
                 except:
                     self.mediaCheck = False
-                    log.log(0,"error",_("Layout ") + self.layoutID + _(" cannot run because an exception was thrown.") + tmpPath)
+                    log.log(0,"error",_("Layout ") + self.layoutID + _(" cannot run because an exception was thrown.") + tmpFileName)
             else:
                 self.mediaCheck = False
-                log.log(3,"info",_("Layout ") + self.layoutID + _(" cannot run because file is missing from the md5Cache: ") + tmpPath)
+                log.log(3,"info",_("Layout ") + self.layoutID + _(" cannot run because file is missing from the md5Cache: ") + tmpFileName)
 
         # See if the item is in a scheduled window to run
 
@@ -2171,7 +2177,10 @@ class XiboPlayer(Thread):
             self.player.setResolution(True,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
         else:
             self.player.setResolution(False,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
-        #self.player.loadPlugin("ColorNode")
+
+        # Load the BrowserNode plugin
+        self.player.loadPlugin("libbrowsernode")
+        
         self.player.showCursor(0)
         self.player.volume = 1
         
@@ -2323,6 +2332,16 @@ class XiboPlayer(Thread):
             elif cmd == "setOpacity":
                 currentNode = self.player.getElementByID(data[0])
                 currentNode.opacity = data[1]
+            elif cmd == "browserNavigate":
+                currentNode = self.player.getElementByID(data[0])
+                currentNode.loadUrl(data[1])
+            elif cmd == "browserOptions":
+                currentNode = self.player.getElementByID(data[0])
+                if not data[1] == None:
+                    currentNode.transparent = data[1]
+                if not data[2] == None:
+                    if data[2] == False:
+                        currentNode.executeJavascript('document.body.style.overflow=\'hidden\';')
             self.q.task_done()
             # Call ourselves again to action any remaining queued items
             # This does not make an infinite loop since when all queued items are processed

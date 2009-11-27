@@ -36,8 +36,7 @@ class ImageMedia(XiboMedia):
         self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
 
     def requiredFiles(self):
-        # TODO: Fix the hardcoded path data/
-        return ['data/' + str(self.options['uri'])]
+        return [str(self.options['uri'])]
 	
     def dispose(self):
         self.p.enqueue('del',self.mediaNodeName)
