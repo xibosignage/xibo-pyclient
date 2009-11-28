@@ -23,10 +23,12 @@
 
 from XiboMedia import XiboMedia
 from threading import Thread
+import sys, os
 
 class BrowserMediaBase(XiboMedia):
         
     def add(self):
+        self.tmpPath = "data" + os.sep + self.mediaNodeName + "-tmp.html"
         tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + '"/>'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
@@ -198,7 +200,6 @@ class BrowserMediaBase(XiboMedia):
         try:
             try:
                 #TODO: Fix hardcoded path
-                self.tmpPath = "data" + os.sep + self.mediaNodeName + "-tmp.html"
                 f = open(self.tmpPath,'w')
                 f.write(header)
                 f.write(script)
@@ -212,8 +213,9 @@ class BrowserMediaBase(XiboMedia):
             self.log.log(0,"error","Unable to write " + self.tmpPath)
         
         # TODO: Navigate the browser to the temporary file
-        self.p.enqueue('browserNavigate',(self.mediaNodeName,self.tmpPath))
-        optionsTuple = (self.mediaNodeName) + self.browserOptions()
+        self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath)))
+#        optionsTuple = (self.mediaNodeName,) + self.browserOptions()
+        optionsTuple = (self.mediaNodeName,True,False)
         self.p.enqueue('browserOptions',optionsTuple)
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
         self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
@@ -223,7 +225,6 @@ class BrowserMediaBase(XiboMedia):
 	
     def dispose(self):
         self.p.enqueue('del',self.mediaNodeName)
-        # TODO: Cleanup the Temporary File
         try:
             os.remove(self.tmpPath)
         except:

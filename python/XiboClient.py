@@ -995,7 +995,7 @@ class XiboLayoutManager(Thread):
         # Add a ColorNode and maybe ImageNode to the layout div to draw the background
 
         # This code will work with libavg > 0.8.x
-        tmpXML = '<rect fillcolor="' + self.l.backgroundColour.strip("#") + '" size="(' + str(self.l.sWidth) + ',' + str(self.l.sHeight) + ')" id="bgColor' + self.layoutNodeNameExt + '" />'
+        tmpXML = '<rect fillopacity="1" fillcolor="' + self.l.backgroundColour.strip("#") + '" size="(' + str(self.l.sWidth) + ',' + str(self.l.sHeight) + ')" id="bgColor' + self.layoutNodeNameExt + '" />'
         self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
         if self.l.backgroundImage != None:
@@ -1480,7 +1480,7 @@ class XiboLayout:
                 import plugins.media
                 __import__("plugins.media." + type + "Media",None,None,[''])
                 tmpMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,None,None,mn)
-            except:
+            except IOError:
                 self.pluginCheck = False
                 log.log(0,"error",_("Plugin missing for media in layout ") + self.layoutID)
                 return
@@ -2341,7 +2341,7 @@ class XiboPlayer(Thread):
                     currentNode.transparent = data[1]
                 if not data[2] == None:
                     if data[2] == False:
-                        currentNode.executeJavascript('document.body.style.overflow=\'hidden\';')
+                        currentNode.executeJavascript("document.body.style.overflow='hidden';")
             self.q.task_done()
             # Call ourselves again to action any remaining queued items
             # This does not make an infinite loop since when all queued items are processed

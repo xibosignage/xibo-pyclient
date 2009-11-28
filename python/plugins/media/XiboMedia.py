@@ -81,7 +81,7 @@ class XiboMedia(Thread):
         # Calculate the media type
         try:
             self.mediaType = str(self.mediaNode.attributes['type'].value)
-        except KeyError:
+        except:
             log.log(1,"error",_("Media XLF is invalid. Missing required type attribute"))
             self.invalid = True
             return
@@ -104,8 +104,12 @@ class XiboMedia(Thread):
         # Parse the options block in to the self.options[] array:
         for cn in self.optionsNode.childNodes:
             if cn.localName != None:
-                self.options[str(cn.localName)] = cn.childNodes[0].nodeValue
-                log.log(5,"info","Media Options: " + str(cn.localName) + " -> " + str(cn.childNodes[0].nodeValue))
+                try:
+                    self.options[str(cn.localName)] = cn.childNodes[0].nodeValue
+                    log.log(5,"info","Media Options: " + str(cn.localName) + " -> " + str(cn.childNodes[0].nodeValue))
+                except IndexError:
+                    # Some options are allowed to be empty. Ignore these.
+                    self.options[str(cn.localName)] = ""
 
     def run(self):
         # If there was a problem initialising the media object, kill it off and go to the next media item

@@ -24,6 +24,10 @@
 from BrowserMediaBase import BrowserMediaBase
 from threading import Thread
 import urllib
+import sys, os
+
+sys.path.append('./FeedParser')
+import feedparser
 
 class TickerMedia(BrowserMediaBase):
         
@@ -60,12 +64,12 @@ class TickerMedia(BrowserMediaBase):
             self.log.log(5,"audit","Feed title: " + self.feed['feed']['title'])
             for item in self.feed['entries']:
                 # TODO: Need to format the items
-                content += "<div class='XiboRssItem' style='display:block;padding:4px;width:%d'>%s</div>" % (self.width - 10,item.content[0].value)
+                content += "<div class='XiboRssItem' style='display:block;padding:4px;width:%d'>%s</div>" % (self.width - 10,item.description)
         return content
     
     def injectScript(self):
         """ Returns a string of script to inject in to the page """
-        if self.options['direction'] == single:
+        if self.options['direction'] == "single":
             js = ""
         else:
             js = "<script type='text/javascript'>function init() { tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "'); var timer = 0; timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + "); }</script>"
