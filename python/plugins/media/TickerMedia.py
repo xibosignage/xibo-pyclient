@@ -21,38 +21,22 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os
-import time
-import sys
+from BrowserMediaBase import BrowserMediaBase
+from threading import Thread
 import urllib
 
-from XiboMedia import XiboMedia
-from threading import Thread
-
-sys.path.append('./FeedParser')
-import feedparser
-
-class TickerMedia(XiboMedia):
-    def add(self):
-        tmpXML = '<div id="' + self.mediaNodeName + '" />'
-        self.p.enqueue('add',(tmpXML,self.regionNodeName))
-        tmpXML = '<words id="' + self.mediaNodeName + '-loading" opacity="1" font="Arial" color="000000" size="12" text="Loading..." />'
-        self.p.enqueue('add',(tmpXML,self.mediaNodeName))
-            	
-    def requiredFiles(self):
-        return []
-    
-    def run(self):
-        self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+class TickerMedia(BrowserMediaBase):
         
-        # Insert a cacheTimeout field to options.
-        # This should become part of the XLF in the future.
+    def injectContent(self):
+        """ Returns a string of content to inject in to the page """
+        content = ""
+        
         self.options['cacheTimeout'] = 20
         self.options['uri'] = urllib.unquote(self.options['uri'])
         
         self.feed = None
-        self.log.log(0,"info","RSS Ticker starting")
-        self.log.log(0,"info","URI: " + self.options['uri'])
+        self.log.log(5,"audit","RSS Ticker starting")
+        self.log.log(5,"audit","URI: " + self.options['uri'])
 
         # If data/self.mediaId-cache.xml exists then check if it's too old to use
         # TODO: This is broken!
@@ -69,19 +53,31 @@ class TickerMedia(XiboMedia):
         # TODO: Remove this line when above fixed.
         self.download()
 
-        self.feed = feedparser.parse('data' + os.sep + self.mediaId + '-cache.xml')
-        self.log.log(0,"info","Feed parsed")
+        self.feed = feedparser.parse(os.path.join("data", self.mediaId + '-cache.xml'))
+        self.log.log(5,"audit","Feed parsed")
 
         if self.feed != None:
-            self.log.log(0,"info","Feed title: " + self.feed['feed']['title'])
-            tmpXML = '<words id="' + self.mediaNodeName + '-content" opacity="1" font="Arial" color="000000" size="12">'
-            tmpXML += str(self.feed['feed']['title']) + "</words>"
-            self.p.enqueue('del',self.mediaNodeName + '-loading')
-            self.p.enqueue('add',(tmpXML, self.mediaNodeName))
-        
-        self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
-
-	   
+            self.log.log(5,"audit","Feed title: " + self.feed['feed']['title'])
+            for item in self.feed['entries']:
+                # TODO: Need to format the items
+                content += "<div class='XiboRssItem' style='display:block;padding:4px;width:%d'>%s</div>" % (self.width - 10,item.content[0].value)
+        return content
+    
+    def injectScript(self):
+        """ Returns a string of script to inject in to the page """
+        if self.options['direction'] == single:
+            js = ""
+        else:
+            js = "<script type='text/javascript'>function init() { tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "'); var timer = 0; timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + "); }</script>"
+        return js
+    
+    def browserOptions(self):
+        """ Return a tuple of options for the Browser component. True/False/None. None makes no change to the
+        current state. True sets to on, False sets to off. Options order is:
+            Transparency,Scrollbars
+        """
+        return (True,False)
+    
     def download(self):
         tries = 3
         i = 0
@@ -102,13 +98,11 @@ class TickerMedia(XiboMedia):
         if flag:
             try:
                 try:
+                    #TODO: Fix hardcoded path
                     f = open("data" + os.sep + self.mediaId + '-cache.xml','w')
                     f.write(s)
                 finally:
                     f.close()
             except:
+                # TODO: Fix hardcoded path
                 self.log.log(0,"error","Unable to write data/" + self.mediaId + "-cache.xml")
-
-    def dispose(self):
-        self.p.enqueue('del',self.mediaNodeName)
-        self.parent.tNext()
