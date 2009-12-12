@@ -47,8 +47,8 @@ class BrowserMediaBase(XiboMedia):
         
         # Write the two out to temporary file
         
-        tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",self.injectScript().decode('utf-8'))
-        tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",self.injectContent().decode('utf-8'))
+        tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",str(self.injectScript()))
+        tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",str(self.injectContent()))
         
         try:
             try:
@@ -65,7 +65,7 @@ class BrowserMediaBase(XiboMedia):
             return
         
         # TODO: Navigate the browser to the temporary file
-        self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath)))
+        self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),self.finishedRendering))
 #        optionsTuple = (self.mediaNodeName,) + self.browserOptions()
         optionsTuple = (self.mediaNodeName,True,False)
         self.p.enqueue('browserOptions',optionsTuple)
@@ -97,3 +97,6 @@ class BrowserMediaBase(XiboMedia):
             Transparency,Scrollbars
         """
         return (False,False)
+    
+    def finishedRendering(self):
+        pass

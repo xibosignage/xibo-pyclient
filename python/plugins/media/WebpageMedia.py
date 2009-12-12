@@ -29,11 +29,9 @@ class WebpageMedia(XiboMedia):
     def add(self):
         tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + '"/>'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
-        self.p.enqueue('browserNavigate',(self.mediaNodeName,urllib.unquote(str(self.options['uri']))))
-        self.p.enqueue('browserOptions',(self.mediaNodeName,False,False))
 
     def run(self):
-        self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+        self.p.enqueue('browserNavigate',(self.mediaNodeName,urllib.unquote(str(self.options['uri'])),self.finishedRendering))
         self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
 
     def requiredFiles(self):
@@ -42,3 +40,7 @@ class WebpageMedia(XiboMedia):
     def dispose(self):
         self.p.enqueue('del',self.mediaNodeName)
         self.parent.tNext()
+    
+    def finishedRendering(self):
+        self.p.enqueue('browserOptions',(self.mediaNodeName,False,False))
+        self.p.enqueue('setOpacity',(self.mediaNodeName,1))

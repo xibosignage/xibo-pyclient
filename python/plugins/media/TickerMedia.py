@@ -60,11 +60,23 @@ class TickerMedia(BrowserMediaBase):
         self.feed = feedparser.parse(os.path.join("data", self.mediaId + '-cache.xml'))
         self.log.log(5,"audit","Feed parsed")
 
+        if self.options['direction'] == "single":
+            pass
+        else:
+            content += "<div id='text' style='position:relative;overflow:hidden;width:" + str(self.width) + "px; height:" + str(self.height) + "px;'>"
+            content += "<div id='innerText' style='position:absolute; left: 0px; top: 0px; white-space: nowrap'><nobr>"
+
         if self.feed != None:
             self.log.log(5,"audit","Feed title: " + self.feed['feed']['title'])
             for item in self.feed['entries']:
                 # TODO: Need to format the items
-                content += "<div class='XiboRssItem' style='display:block;padding:4px;width:%d'>%s</div>" % (self.width - 10,item.description)
+                content += "<span class='article' style='padding-left:4px;'>%s</span>" % (item.description)
+        
+        if self.options['direction'] == 'single':
+            pass
+        else:
+            content += "</nobr></div></div>"
+        
         return content
     
     def injectScript(self):
@@ -72,8 +84,17 @@ class TickerMedia(BrowserMediaBase):
         if self.options['direction'] == "single":
             js = ""
         else:
-            js = "<script type='text/javascript'>function init() { tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "'); var timer = 0; timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + "); }</script>"
+            js = "<script type='text/javascript'>\n\n"
+            js += "function init() {\n"
+            js += "  tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "');\n"
+            js += "  var timer = 0;\n"
+            js += "  timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + ");\n"
+            js += "}"
+            js += "</script>\n\n"
+            js += "<style type='text/css'>html {overflow:hidden;}</style>"
         return js
+    
+    """ <style type='text/css'>body {background-color:#000000;}, p, h1, h2, h3, h4, h5 { margin:2px; font-size:2.1em; }</style> """
     
     def browserOptions(self):
         """ Return a tuple of options for the Browser component. True/False/None. None makes no change to the
