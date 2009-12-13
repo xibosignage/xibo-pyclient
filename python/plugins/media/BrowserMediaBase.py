@@ -70,10 +70,20 @@ class BrowserMediaBase(XiboMedia):
         optionsTuple = (self.mediaNodeName,True,False)
         self.p.enqueue('browserOptions',optionsTuple)
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
-        self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
+        # TODO: This next line should really callback self.parent.next. See timerElapsed function
+        self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
 
     def requiredFiles(self):
         return []
+	
+    def timerElapsed(self):
+        # TODO: This shouldn't be required. When media is finally disposed properly then the file should be deleted
+        # as part of the dispose method.
+        try:
+            os.remove(self.tmpPath)
+        except:
+            log.log(0,"error","Unable to delete file %s" % (self.tmpPath))  
+        self.parent.next()
 	
     def dispose(self):
         self.p.enqueue('del',self.mediaNodeName)
