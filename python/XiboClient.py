@@ -698,7 +698,7 @@ class XiboDownloadManager(Thread):
                                         log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName)
                                         self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
                                 else:
-                                    tmpFile = XiboFile(tmpPath,tmpHash)
+                                    tmpFile = XiboFile(tmpFileName,tmpHash)
                                     md5Cache[tmpFileName] = tmpFile
                                     if not tmpFile.isValid():
                                         # The hashes don't match.
