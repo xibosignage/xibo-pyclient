@@ -995,11 +995,11 @@ class XiboLayoutManager(Thread):
         # Add a ColorNode and maybe ImageNode to the layout div to draw the background
 
         # This code will work with libavg > 0.8.x
-        tmpXML = '<rect fillopacity="1" fillcolor="' + self.l.backgroundColour.strip("#") + '" size="(' + str(self.l.sWidth) + ',' + str(self.l.sHeight) + ')" id="bgColor' + self.layoutNodeNameExt + '" />'
+        tmpXML = '<rect fillopacity="1" fillcolor="%s" color="%s" size="(%d,%d)" id="bgColor%s" />' % (self.l.backgroundColour.strip("#"),self.l.backgroundColour.strip("#"),self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt)
         self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
         if self.l.backgroundImage != None:
-            tmpXML = '<image href="' + config.get('Main','libraryDir') + os.sep + str(self.l.backgroundImage) + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" id="bg' + self.layoutNodeNameExt + '" />'
+            tmpXML = '<image href="%s" width="%d" height="%d" id="bg%s" />' % (os.path.join(config.get('Main','libraryDir'),self.l.backgroundImage),self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt)
             self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
         # Break layout in to regions
