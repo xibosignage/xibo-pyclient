@@ -575,7 +575,7 @@ class XiboLogXmdsWorker(Thread):
 
 #### Download Manager
 class XiboFile(object):
-    def __init__(self,fileName,targetHash,mtime=None):
+    def __init__(self,fileName,targetHash,mtime=0):
         self.__path = os.path.join(config.get('Main','libraryDir'),fileName)
         self.__fileName = fileName
         self.md5 = ""
@@ -589,10 +589,12 @@ class XiboFile(object):
             self.paranoid = True
         else:
             self.paranoid = False
-            if not self.mtime == None:
+            try:
                 if os.path.getmtime(self.__path) == self.mtime:
                     self.md5 = self.targetHash
-            else:
+                else:
+                    self.update()
+            except:
                 self.update()
         
 
@@ -600,9 +602,11 @@ class XiboFile(object):
         # Generate MD5
         m = hashlib.md5()
         try:
+#            print "*** GENERATING MD5 for file %s" % self.__fileName
             for line in open(self.__path,"rb"):
                 m.update(line)    
         except IOError:
+#            print "*** IOERROR"
             return False
                     
         self.md5 = m.hexdigest()
@@ -612,9 +616,10 @@ class XiboFile(object):
 
     def isExpired(self):
         if self.paranoid:
-            return self.checkTime > (time.time() + 3600)
+            return self.checkTime + 3600 < time.time()
         else:
-            return self.mtime == os.path.getmtime(self.__path)
+#            print "*** Cached mtime: %f vs Filesystem mtime: %f" % (self.mtime,os.path.getmtime(self.__path))
+            return not self.mtime == os.path.getmtime(self.__path)
 
     def isValid(self):
         return (self.md5 == self.targetHash) and (self.mtime == os.path.getmtime(self.__path))
@@ -642,16 +647,17 @@ class XiboDownloadManager(Thread):
         self.maxDownloads = 5
         
         # Populate md5Cache
-        try:
-            tmpDoc = minidom.parse(os.path.join(config.get('Main','libraryDir'),'cache.xml'))
-            for f in tmpDoc.getElementsByTagName('file'):
-                tmpFileName = str(f.attributes['name'].value)
-                tmpHash = str(f.attributes['md5'].value)
-                tmpMtime = float(f.attributes['mtime'].value)
-                tmpFile = XiboFile(tmpFileName,tmpHash,tmpMtime)
-                md5Cache[tmpFileName] = tmpFile
-        except IOError:
-            log.log(0,"warning",_("Could not open cache.xml. Starting with an empty cache"))
+        if config.get('Main','checksumPreviousDownloads') == "false":
+            try:
+                tmpDoc = minidom.parse(os.path.join(config.get('Main','libraryDir'),'cache.xml'))
+                for f in tmpDoc.getElementsByTagName('file'):
+                    tmpFileName = str(f.attributes['name'].value)
+                    tmpHash = str(f.attributes['md5'].value)
+                    tmpMtime = float(f.attributes['mtime'].value)
+                    tmpFile = XiboFile(tmpFileName,tmpHash,tmpMtime)
+                    md5Cache[tmpFileName] = tmpFile
+            except IOError:
+                log.log(0,"warning",_("Could not open cache.xml. Starting with an empty cache"))
 
     def run(self):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
@@ -717,6 +723,7 @@ class XiboDownloadManager(Thread):
                                     # Check if the md5 cache is old for this file
                                     if md5Cache[tmpFileName].isExpired():
                                         # Update the cache if it is
+#                                        print "*** It's 726 updating %s" % tmpFileName
                                         md5Cache[tmpFileName].update()
 
                                     if not md5Cache[tmpFileName].isValid():
@@ -725,6 +732,7 @@ class XiboDownloadManager(Thread):
                                         log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName)
                                         self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
                                 else:
+#                                    print "*** It's 735 and %s isn't in md5Cache" % tmpFileName
                                     tmpFile = XiboFile(tmpFileName,tmpHash)
                                     md5Cache[tmpFileName] = tmpFile
                                     if not tmpFile.isValid():
@@ -2297,8 +2305,11 @@ class XiboPlayer(Thread):
                 self.parent.scheduler.running = False
                 self.parent.scheduler.collect()
 
+                log.log(5,"info",_("Blocking waiting for Scheduler"))
                 self.parent.scheduler.join()
+                log.log(5,"info",_("Blocking waiting for DownloadManager"))
                 self.parent.downloader.join()
+                log.log(5,"info",_("Blocking waiting for Player"))
                 self.player.stop()
                 os._exit(0)
 
