@@ -575,37 +575,52 @@ class XiboLogXmdsWorker(Thread):
 
 #### Download Manager
 class XiboFile(object):
-    def __init__(self,fileName,targetHash):
+    def __init__(self,fileName,targetHash,mtime=None):
         self.__path = os.path.join(config.get('Main','libraryDir'),fileName)
         self.__fileName = fileName
         self.md5 = ""
         self.checkTime = 1
-        self.update()
+
         self.targetHash = targetHash
+        self.mtime = mtime
+        self.paranoid = config.get('Main','checksumPreviousDownloads')
+        if self.paranoid == "true":
+            self.update()
+            self.paranoid = True
+        else:
+            self.paranoid = False
+            if not self.mtime == None:
+                if os.path.getmtime(self.__path) == self.mtime:
+                    self.md5 = self.targetHash
+            else:
+                self.update()
+        
 
     def update(self):
         # Generate MD5
         m = hashlib.md5()
         try:
-            fd = open(self.__path,"rb")
+            for line in open(self.__path,"rb"):
+                m.update(line)    
         except IOError:
             return False
-        content = fd.readlines()
-        fd.close()
-        for eachLine in content:
-            m.update(eachLine)
+                    
         self.md5 = m.hexdigest()
-
+        self.mtime = os.path.getmtime(self.__path)
         self.checkTime = time.time()
         return True
 
     def isExpired(self):
-        if self.checkTime < time.time() + 3600:
-            return False
-        return True
+        if self.paranoid:
+            return self.checkTime > (time.time() + 3600)
+        else:
+            return self.mtime == os.path.getmtime(self.__path)
 
     def isValid(self):
-        return self.md5 == self.targetHash
+        return (self.md5 == self.targetHash) and (self.mtime == os.path.getmtime(self.__path))
+    
+    def toTuple(self):
+        return (self.__fileName,self.md5,self.targetHash,self.checkTime,self.mtime)
 
 class XiboDownloadManager(Thread):
     def __init__(self,xmds,player):
@@ -625,6 +640,18 @@ class XiboDownloadManager(Thread):
 
         # How many XiboDownloadThreads should run at once
         self.maxDownloads = 5
+        
+        # Populate md5Cache
+        try:
+            tmpDoc = minidom.parse(os.path.join(config.get('Main','libraryDir'),'cache.xml'))
+            for f in tmpDoc.getElementsByTagName('file'):
+                tmpFileName = str(f.attributes['name'].value)
+                tmpHash = str(f.attributes['md5'].value)
+                tmpMtime = float(f.attributes['mtime'].value)
+                tmpFile = XiboFile(tmpFileName,tmpHash,tmpMtime)
+                md5Cache[tmpFileName] = tmpFile
+        except IOError:
+            log.log(0,"warning",_("Could not open cache.xml. Starting with an empty cache"))
 
     def run(self):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
@@ -791,12 +818,33 @@ class XiboDownloadManager(Thread):
             except Queue.Empty:
                 # Used to exit the above while once all items are downloaded.
                 pass
+            
+            cacheXml = minidom.Document()
+            cacheXmlRoot = cacheXml.createElement("cache")
+            cacheXml.appendChild(cacheXmlRoot)
 
             # Loop over the MD5 hash cache and remove any entries older than 1 hour
-            # TODO: Throws an exception "ValueError: too many values to unpack"
             for tmpFileName, tmpFile in md5Cache.iteritems():
                 if tmpFile.isExpired():
                     del md5Cache[tmpFileName]
+                    
+                # TODO: Write cache out to file
+                tmpFileInfo = tmpFile.toTuple()
+                tmpNode = cacheXml.createElement("file")
+                tmpNode.setAttribute("name",tmpFileName)
+                tmpNode.setAttribute("md5",tmpFileInfo[2])
+                tmpNode.setAttribute("mtime",str(tmpFileInfo[4]))
+                cacheXmlRoot.appendChild(tmpNode)
+
+            try:
+                f = open(os.path.join(config.get('Main','libraryDir'),'cache.xml'),'w')
+                f.write(cacheXml.toprettyxml())
+                f.close()
+            except IOError:
+                log.log(0,"error",_("Unable to write cache.xml"))
+                
+            cacheXml.unlink()
+   
             # End Loop
 
             # Update the infoscreen.
@@ -2085,7 +2133,7 @@ class XiboDisplayManager:
             exit(1)
         except:
             log.log(0,"error",downloaderName + _(" does not implement the methods required to be a Xibo DownloadManager or does not exist."))
-            log.log(0,"error",_("Please check your Download Manager configuration.") + str(e))
+            log.log(0,"error",_("Please check your Download Manager configuration."))
             exit(1)
         # End of DownloadManager init
 
