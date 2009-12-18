@@ -824,17 +824,21 @@ class XiboDownloadManager(Thread):
             cacheXml.appendChild(cacheXmlRoot)
 
             # Loop over the MD5 hash cache and remove any entries older than 1 hour
-            for tmpFileName, tmpFile in md5Cache.iteritems():
-                if tmpFile.isExpired():
-                    del md5Cache[tmpFileName]
-                    
-                # TODO: Write cache out to file
-                tmpFileInfo = tmpFile.toTuple()
-                tmpNode = cacheXml.createElement("file")
-                tmpNode.setAttribute("name",tmpFileName)
-                tmpNode.setAttribute("md5",tmpFileInfo[2])
-                tmpNode.setAttribute("mtime",str(tmpFileInfo[4]))
-                cacheXmlRoot.appendChild(tmpNode)
+            try:
+                for tmpFileName, tmpFile in md5Cache.iteritems():
+                    if tmpFile.isExpired():
+                        del md5Cache[tmpFileName]
+                        
+                    # TODO: Write cache out to file
+                    tmpFileInfo = tmpFile.toTuple()
+                    tmpNode = cacheXml.createElement("file")
+                    tmpNode.setAttribute("name",tmpFileName)
+                    tmpNode.setAttribute("md5",tmpFileInfo[2])
+                    tmpNode.setAttribute("mtime",str(tmpFileInfo[4]))
+                    cacheXmlRoot.appendChild(tmpNode)
+            except RuntimeError:
+                # Happens when we delete an item from the cache it would seem.
+                pass
 
             try:
                 f = open(os.path.join(config.get('Main','libraryDir'),'cache.xml'),'w')
