@@ -41,7 +41,7 @@ class XiboMedia(Thread):
         pass
 
     def __setupMedia__(self,log,parent,player,mediaNode):
-        log.log(2,"info",self.__class__.__name__ + " plugin loaded!")
+        log.log(6,"info",self.__class__.__name__ + " plugin loaded!")
         self.log = log
         self.parent = parent
         self.p = player

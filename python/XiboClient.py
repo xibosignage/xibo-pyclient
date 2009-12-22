@@ -953,6 +953,9 @@ class XiboDownloadThread(Thread):
                 except XMDSException:
                     # TODO: Do something sensible
                     failCounter = failCounter + 1
+                except ValueError:
+                    finished = True
+                    break
 
             # End while offset<tmpSize
             try:
