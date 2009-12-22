@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009 Alex Harrington
+# Copyright (C) 2009-2010 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -258,6 +258,11 @@ class XiboLogFile(XiboLog):
 
     def log(self, severity, category, message):
         if self.level >= severity:
+            
+            # Define these two here incase an exception is thrown below.
+            callingMethod = "unknown"
+            callingClass = ""
+            
             try:
                 currFrame = inspect.currentframe().f_back
                 inspArray = inspect.getframeinfo(currFrame)
@@ -837,7 +842,7 @@ class XiboDownloadManager(Thread):
                     if tmpFile.isExpired():
                         del md5Cache[tmpFileName]
                         
-                    # TODO: Write cache out to file
+                    # Prepare to cache out to file
                     tmpFileInfo = tmpFile.toTuple()
                     tmpNode = cacheXml.createElement("file")
                     tmpNode.setAttribute("name",tmpFileName)
@@ -848,6 +853,7 @@ class XiboDownloadManager(Thread):
                 # Happens when we delete an item from the cache it would seem.
                 pass
 
+            # Write the cache out to disk
             try:
                 f = open(os.path.join(config.get('Main','libraryDir'),'cache.xml'),'w')
                 f.write(cacheXml.toprettyxml())
@@ -855,6 +861,7 @@ class XiboDownloadManager(Thread):
             except IOError:
                 log.log(0,"error",_("Unable to write cache.xml"))
                 
+            # Force the cache to unlink and recover the RAM associated with it    
             cacheXml.unlink()
    
             # End Loop
@@ -877,6 +884,9 @@ class XiboDownloadManager(Thread):
         log.log(3,"info",_("Download thread completed for ") + tmpFileName)
         del self.runningDownloads[tmpFileName]
         log.updateRunningDownloads(len(self.runningDownloads))
+        
+        # Update the infoscreen
+        self.updateInfo()
 
     def updateInfo(self):
         # Update the info screen with information about the media
@@ -1044,7 +1054,7 @@ class XiboLayoutManager(Thread):
 
     def run(self):
         self.isPlaying = True
-        log.log(2,"info",_("XiboLayoutManager instance running."))
+        log.log(6,"info",_("XiboLayoutManager instance running."))
 
         # Add a DIV to contain the whole layout (for transitioning whole layouts in to one another)
         # TODO: Take account of the zindex parameter for transitions. Should this layout sit on top or underneath?

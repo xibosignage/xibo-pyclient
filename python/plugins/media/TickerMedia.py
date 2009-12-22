@@ -42,21 +42,9 @@ class TickerMedia(BrowserMediaBase):
         self.log.log(5,"audit","RSS Ticker starting")
         self.log.log(5,"audit","URI: " + self.options['uri'])
 
-        # If data/self.mediaId-cache.xml exists then check if it's too old to use
-        # TODO: This is broken!
-        #if os.path.exists('data' + os.sep + self.mediaId + '-cache.xml'):
-    	#    file_stats = os.stat('data' + os.sep + self.mediaId + '-cache.xml')
-    	#    mtime = file_stats[ST_MTIME]
-        #    if time.ctime() > (mtime + (self.options['cacheTimeout'] * 60)):
-        #        pass
-        #    else:
-        #        self.download()
-        #else:
-        #    self.download()
-        
-        # TODO: Remove this line when above fixed.
         self.download()
 
+        # TODO: Fix the hardcoded path
         self.feed = feedparser.parse(os.path.join("data", self.mediaId + '-cache.xml'))
         self.log.log(5,"audit","Feed parsed")
 
@@ -108,6 +96,16 @@ class TickerMedia(BrowserMediaBase):
         i = 0
         flag = False
         
+        # If data/self.mediaId-cache.xml exists then check if it's too old to use
+        # TODO: This needs to be tested.
+        try:
+    	    mtime = os.path.getmtime(os.path.join('data',self.mediaId + '-cache.xml'))
+            if time.time() < (mtime + (self.options['cacheTimeout'] * 60)):
+                return
+        except:
+            # File probably doesn't exist. Do nothing.
+            pass
+        
         while i < tries and flag == False:
             try:
                 try:
@@ -118,16 +116,17 @@ class TickerMedia(BrowserMediaBase):
                     f.close()
             except:
                 tries =+ 1
-                self.log.log(1,"error","Unable to load from URL " + self.options['uri'])
+                self.log.log(1,"error",_("Unable to load from URL %s") %  self.options['uri'])
         
         if flag:
             try:
                 try:
                     #TODO: Fix hardcoded path
-                    f = open("data" + os.sep + self.mediaId + '-cache.xml','w')
+                    f = open(os.path.join('data',self.mediaId + '-cache.xml'),'w')
                     f.write(s)
                 finally:
                     f.close()
             except:
                 # TODO: Fix hardcoded path
-                self.log.log(0,"error","Unable to write data/" + self.mediaId + "-cache.xml")
+                self.log.log(0,"error",_("Unable to write %s") % os.path.join('data',self.mediaId + '-cache.xml'))
+
