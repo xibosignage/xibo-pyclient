@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
 # Copyright (C) 2009 Alex Harrington
@@ -17,3 +20,36 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
+
+from BrowserMediaBase import BrowserMediaBase
+from threading import Thread
+import urllib
+import sys, os
+
+class FlashMedia(BrowserMediaBase):
+        
+    def injectContent(self):
+        """ Returns a string of content to inject in to the page """
+        content = ""
+        
+        # TODO: Fix hardcoded path
+        swfURI = "file://" + os.path.abspath(os.path.join("data",self.options['uri']))
+        
+        content += '<object width="%d" height="%d">\n' % (self.width,self.height)
+        content += '  <param name="movie" value="%s">\n' % swfURI
+        content += '  <embed wmode="transparent" type="application/x-shockwave-flash" src="%s" width="%d" height="%d">\n' % (swfURI,self.width,self.height)
+        content += '  </embed>\n'
+        content += '</object>\n'
+        
+        return content
+    
+    def injectScript(self):
+        return ""
+    
+    def browserOptions(self):
+        """ Return a tuple of options for the Browser component. True/False/None. None makes no change to the
+        current state. True sets to on, False sets to off. Options order is:
+            Transparency,Scrollbars
+        """
+        return (True,False)
+    

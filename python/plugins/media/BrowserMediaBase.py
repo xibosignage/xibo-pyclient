@@ -64,9 +64,9 @@ class BrowserMediaBase(XiboMedia):
             self.parent.next()
             return
         
-        # TODO: Navigate the browser to the temporary file
+        # Navigate the browser to the temporary file
         self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),self.finishedRendering))
-#        optionsTuple = (self.mediaNodeName,) + self.browserOptions()
+
         optionsTuple = (self.mediaNodeName,True,False)
         self.p.enqueue('browserOptions',optionsTuple)
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
