@@ -51,5 +51,5 @@ class FlashMedia(BrowserMediaBase):
         current state. True sets to on, False sets to off. Options order is:
             Transparency,Scrollbars
         """
-        return (True,False)
+        return (True,None)
     
