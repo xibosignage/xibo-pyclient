@@ -44,7 +44,7 @@ class FlashMedia(BrowserMediaBase):
         return content
     
     def injectScript(self):
-        return "<style type='text/css'>html {overflow:hidden;}\nbody {padding:0;margin:0;}</style>"
+        return ""
     
     def browserOptions(self):
         """ Return a tuple of options for the Browser component. True/False/None. None makes no change to the

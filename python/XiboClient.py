@@ -1239,14 +1239,15 @@ class XiboRegionManager(Thread):
             self.zindex = int(self.regionNode.attributes['zindex'].value)
         except KeyError:
             self.zindex = 1
+        
+        # Create a div for the region and add it
+        tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
+        self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
     def run(self):
         self.lock.acquire()
         self.tLock.acquire()
         log.log(3,"info",_("New XiboRegionManager instance running for region:") + self.regionNodeName)
-        # Create a div for the region and add it
-        tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
-        self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
         #  * Iterate through the media items
         #  -> For each media, display on screen and set a timer to cause the next item to be shown

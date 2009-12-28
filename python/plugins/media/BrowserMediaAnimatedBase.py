@@ -78,7 +78,6 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             js += "  $('#text').cycle({fx: 'fade', timeout:itemTime});\n"
             js += "  }\n"
             js += "</script>\n\n"
-            js += "<style type='text/css'>html {overflow:hidden;}</style>\n\n"
         else:
             js = "<script type='text/javascript'>\n\n"
             js += "function init() {\n"
@@ -87,7 +86,6 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             js += "  timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + ");\n"
             js += "}"
             js += "</script>\n\n"
-            js += "<style type='text/css'>html {overflow:hidden;}</style>\n\n"
         return js
     
     def browserOptions(self):
