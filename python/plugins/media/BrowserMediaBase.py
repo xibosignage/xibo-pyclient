@@ -67,12 +67,6 @@ class BrowserMediaBase(XiboMedia):
         # Navigate the browser to the temporary file
         self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),self.finishedRendering))
 
-        optionsTuple = (self.mediaNodeName,True,False)
-        self.p.enqueue('browserOptions',optionsTuple)
-        self.p.enqueue('setOpacity',(self.mediaNodeName,1))
-        # TODO: This next line should really callback self.parent.next. See timerElapsed function
-        self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
-
     def requiredFiles(self):
         return []
 	
@@ -90,7 +84,7 @@ class BrowserMediaBase(XiboMedia):
         try:
             os.remove(self.tmpPath)
         except:
-            log.log(0,"error","Unable to delete file %s" % (self.tmpPath))
+            self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))
         self.parent.tNext()
     
     def injectContent(self):
@@ -109,4 +103,8 @@ class BrowserMediaBase(XiboMedia):
         return (False,False)
     
     def finishedRendering(self):
-        pass
+        optionsTuple = (self.mediaNodeName,True,False)
+        self.p.enqueue('browserOptions',optionsTuple)
+        self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+        # TODO: This next line should really callback self.parent.next. See timerElapsed function
+        self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
