@@ -1,20 +1,38 @@
+# Xibo Site Configuration File
+# Copy this to site.cfg in the same folder as XiboClient.py
+
 [Main]
-key=default
-xmdsUrl=http://10.108.1.111/xibo
-xmdsClientID=chickenChowMeinNomNomNom
+# Change to the URL of your Xibo server
+xmdsUrl=http://localhost/xibo
+
+# Change to a random string. Used to generate your client key.
+# Must be unique for all your clients
+xmdsClientID=aLongRandomString
+
+# The server key for your Xibo server
 xmdsKey=test
-xmdsUpdateInterval=90
+
+# How frequently to poll the Xibo server for updates (in seconds)
+xmdsUpdateInterval=900
+
+# Require a valid connection to the server for the client to start
+# If the server is unavailable or the client is unlicensed, sit
+# at the splash screen.
 requireXmds=False
+
+# Width of the Xibo Client window to use (or screen width if fullscreen)
 width=960
+
+# Height of the Xibo Client window to use (or screen width if fullscreen)
 height=540
-bpp=24
+
+# Run fullscreen? Can be true or false. Case sensitive.
 fullscreen=false
-checksumPreviousDownloads=false
 
 [Logging]
-logWriter=XiboLogScreen
-logLevel=2
+logWriter=XiboLogXmds
+logLevel=0
 
 [Stats]
-collect=true
+collect=false
 queueSize=10
