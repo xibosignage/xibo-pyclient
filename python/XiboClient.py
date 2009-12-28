@@ -623,8 +623,12 @@ class XiboFile(object):
         if self.paranoid:
             return self.checkTime + 3600 < time.time()
         else:
-#            print "*** Cached mtime: %f vs Filesystem mtime: %f" % (self.mtime,os.path.getmtime(self.__path))
-            return not self.mtime == os.path.getmtime(self.__path)
+            try:
+                tmpMtime = os.path.getmtime(self.__path)
+            except:
+                return True
+            
+            return not self.mtime == tmpMtime
 
     def isValid(self):
         return (self.md5 == self.targetHash) and (self.mtime == os.path.getmtime(self.__path))

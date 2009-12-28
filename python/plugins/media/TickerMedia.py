@@ -21,21 +21,20 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from BrowserMediaBase import BrowserMediaBase
+from BrowserMediaAnimatedBase import BrowserMediaAnimatedBase
 from threading import Thread
 import urllib
-import sys, os
+import sys, os, time
 
 sys.path.append('./FeedParser')
 import feedparser
 
-class TickerMedia(BrowserMediaBase):
+class TickerMedia(BrowserMediaAnimatedBase):
         
-    def injectContent(self):
-        """ Returns a string of content to inject in to the page """
-        content = ""
+    def getContent(self):
+        """ Returns a string of content items to inject in to the page """
+        content = []
         
-        self.options['cacheTimeout'] = 20
         self.options['uri'] = urllib.unquote(self.options['uri'])
         
         self.feed = None
@@ -54,7 +53,7 @@ class TickerMedia(BrowserMediaBase):
                 if node.nodeType == node.CDATA_SECTION_NODE:
                     self.template = node.data.encode('UTF-8')
                     self.log.log(5,'audit','Template is: ' + self.template)
-        except IOError:
+        except:
             self.log.log(2,'error','%s Error parsing out the template from the xlf' % self.mediaNodeName)
             return
 
@@ -104,7 +103,7 @@ class TickerMedia(BrowserMediaBase):
             
             for item in self.feed['entries']:
                 # Copy the array above and add in item specific items
-                itemDetails = feedDetails
+                itemDetails = []
                 
                 try:
                     itemDetails.append(('Description',item['description']))
@@ -141,63 +140,17 @@ class TickerMedia(BrowserMediaBase):
                 
                 # Loop over the array and attempt to replace each key in tmpItem
                 for field in itemDetails:
-                    print "RSS Modifying [%s]" % field[0]
                     tmpItem = tmpItem.replace("[%s]" % field[0], str(field[1]))
-                    print "RSS Output: %s" % tmpItem
                 
-                if self.options['direction'] == 'left' or self.options['direction'] == 'right':
-                    tmpItem = tmpItem.replace('<p>','')
-                    tmpItem = tmpItem.replace('</p>','')
-                    
-                    tmpItem = "<span class='article' style='padding-left:4px;'>%s</span>" % tmpItem
-                    tmpItem += "<span style='padding-left:4px;'> - </span>"
-                else:
-                    tmpItem = "<div class='XiboRssItem' style='display:block;padding:4px;width:%d'>%s</div>" % (self.width - 10,tmpItem)
+                for field in feedDetails:
+                    tmpItem = tmpItem.replace("[%s]" % field[0], str(field[1]))
+
                 
-                content += tmpItem
-        
-        textWrap = ""
-        
-        if self.options['direction'] == 'none':
-            pass
-        else:
-            if self.options['direction'] == 'left' or self.options['direction'] == 'right':
-                textWrap = "white-space: nowrap";
-                content = "<nobr>%s</nobr>" % content
-            else:
-                textWrap = "width: %dpx;" % (self.width - 50);
-            
-            if self.options['direction'] == 'single':
-                content = "<div id='text'>%s</div>" % content
-            else:
-                content = "<div id='text' style='position:relative;overflow:hidden;width:%dpx; height:%dpx;'><div id='innerText' style='position:absolute; left: 0px; top: 0px; %s'>%s</div></div>" % (self.width - 10,self.height, textWrap, content)
-                
+                content.append(tmpItem)
+                                
         return content
-    
-    def injectScript(self):
-        """ Returns a string of script to inject in to the page """
-        if self.options['direction'] == "single":
-            js = ""
-        else:
-            js = "<script type='text/javascript'>\n\n"
-            js += "function init() {\n"
-            js += "  tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "');\n"
-            js += "  var timer = 0;\n"
-            js += "  timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + ");\n"
-            js += "}"
-            js += "</script>\n\n"
-            js += "<style type='text/css'>html {overflow:hidden;}</style>"
-        return js
-    
-    def browserOptions(self):
-        """ Return a tuple of options for the Browser component. True/False/None. None makes no change to the
-        current state. True sets to on, False sets to off. Options order is:
-            Transparency,Scrollbars
-        """
-        return (True,False)
-    
+        
     def download(self):
-        print "*** DOWNLOAD CALLED ***"
         
         tries = 3
         i = 0
@@ -207,14 +160,11 @@ class TickerMedia(BrowserMediaBase):
         # TODO: This needs to be tested.
         try:
     	    mtime = os.path.getmtime(os.path.join('data',self.mediaId + '-cache.xml'))
-            if time.time() < (mtime + (self.options['cacheTimeout'] * 60)):
-                print "*** CACHE IS FRESH ***"
+            if time.time() < (mtime + (int(self.options['updateInterval']) * 60)):
                 return
         except:
             # File probably doesn't exist. Do nothing.
             pass
-        
-        print "*** CACHE IS STALE ***"
         
         while i < tries and flag == False:
             try:

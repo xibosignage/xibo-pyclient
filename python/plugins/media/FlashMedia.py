@@ -35,7 +35,7 @@ class FlashMedia(BrowserMediaBase):
         # TODO: Fix hardcoded path
         swfURI = "file://" + os.path.abspath(os.path.join("data",self.options['uri']))
         
-        content += '<object width="%d" height="%d">\n' % (self.width,self.height)
+        content += '<object width="%d" height="%d">\n' % (self.width ,self.height)
         content += '  <param name="movie" value="%s">\n' % swfURI
         content += '  <embed wmode="transparent" type="application/x-shockwave-flash" src="%s" width="%d" height="%d">\n' % (swfURI,self.width,self.height)
         content += '  </embed>\n'
@@ -44,7 +44,7 @@ class FlashMedia(BrowserMediaBase):
         return content
     
     def injectScript(self):
-        return "<style type='text/css'>html {overflow:hidden;}</style>"
+        return "<style type='text/css'>html {overflow:hidden;}\nbody {padding:0;margin:0;}</style>"
     
     def browserOptions(self):
         """ Return a tuple of options for the Browser component. True/False/None. None makes no change to the
