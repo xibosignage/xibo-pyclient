@@ -76,7 +76,7 @@ class BrowserMediaBase(XiboMedia):
         try:
             os.remove(self.tmpPath)
         except:
-            log.log(0,"error","Unable to delete file %s" % (self.tmpPath))  
+            self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))  
         self.parent.next()
 	
     def dispose(self):
