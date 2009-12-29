@@ -42,7 +42,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
                 tmpItem = "<span class='article' style='padding-left:4px;'>%s</span>" % tmpItem
                 tmpItem += "<span style='padding-left:4px;'> - </span>"
             else:
-                tmpItem = "<div class='XiboRssItem' style='display:block;padding:4px;width:%d'>%s</div>" % (self.width - 10,tmpItem)
+                tmpItem = "<div class='XiboRssItem' style='display:block;padding:4px;width:%dpx'>%s</div>" % (self.width - 10,tmpItem)
             
             content += tmpItem
         
@@ -75,7 +75,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             js += "  var itemTime = totalDuration / itemCount;\n"
             js += "  if (itemTime < 2000) itemTime = 2000;\n"
             js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
-            js += "  $('#text').cycle({fx: 'fade', timeout:itemTime});\n"
+            js += "  $('#text').cycle({fx: 'none', timeout:itemTime});\n"
             js += "  }\n"
             js += "</script>\n\n"
         else:

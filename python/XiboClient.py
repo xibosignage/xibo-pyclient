@@ -45,8 +45,9 @@ import inspect
 from collections import defaultdict
 from threading import Thread, Semaphore
 import threading
+import urlparse
 
-version = "1.1.0"
+version = "1.1.0a19"
 #TODO: Change to 2!
 schemaVersion = 1
 
@@ -71,7 +72,7 @@ class XiboLog:
         # Logo + version bottom right
         tmpXML = '<image href="resources/logo.png" id="infoLOGO" opacity="1" width="50" height="18" x="345" y="276" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words x="300" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" fontsize="12" />'
+        tmpXML = '<words x="280" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" fontsize="12" />'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Required Files Traffic Light
@@ -148,16 +149,28 @@ class XiboLog:
         tmpXML = '<words x="135" y="270" opacity="1" text="Stats" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
         self.p.enqueue('add',(tmpXML,'info'))
         
-        # Schedule
-        tmpXML = '<words x="5" y="40" opacity="1" text="Schedule" font="Arial" color="000000" fontsize="14" />'
+        # IP Address
+        tmpXML = '<words x="5" y="5" opacity="1" text="IP Address: " font="Arial" color="000000" fontsize="11" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words id="infoCurrentSchedule" x="5" y="55" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
+        tmpXML = '<words id="infoIP" x="75" y="5" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Disk Space
+        tmpXML = '<words x="5" y="18" opacity="1" text="Disk Space: " font="Arial" color="000000" fontsize="11" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words id="infoDisk" x="75" y="18" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        # Schedule
+        tmpXML = '<words x="5" y="75" opacity="1" text="Schedule" font="Arial" color="000000" fontsize="14" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<words id="infoCurrentSchedule" x="5" y="90" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Now Playing
-        tmpXML = '<words x="5" y="5" opacity="1" text="Now Playing" font="Arial" color="000000" fontsize="14" />'
+        tmpXML = '<words x="5" y="40" opacity="1" text="Now Playing" font="Arial" color="000000" fontsize="14" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words id="infoNowPlaying" x="5" y="20" opacity="1" text="" font="Arial" color="000000" fontsize="11" />'
+        tmpXML = '<words id="infoNowPlaying" x="5" y="55" opacity="1" text="" font="Arial" color="000000" fontsize="11" />'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Media
@@ -190,12 +203,12 @@ class XiboLog:
 
     def updateSchedule(self,schedule):
         self.p.enqueue('del','infoCurrentSchedule')
-        tmpXML = '<words id="infoCurrentSchedule" x="5" y="55" opacity="1" text="' + schedule + '" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
+        tmpXML = '<words id="infoCurrentSchedule" x="5" y="90" opacity="1" text="' + schedule + '" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
         self.p.enqueue('add',(tmpXML,'info'))
 
     def updateNowPlaying(self,now):
         self.p.enqueue('del','infoNowPlaying')
-        tmpXML = '<words id="infoNowPlaying" x="5" y="20" opacity="1" text="' + now + '" font="Arial" color="000000" fontsize="11" />'
+        tmpXML = '<words id="infoNowPlaying" x="5" y="55" opacity="1" text="' + now + '" font="Arial" color="000000" fontsize="11" />'
         self.p.enqueue('add',(tmpXML,'info'))
 
     def updateMedia(self,media):
@@ -207,6 +220,27 @@ class XiboLog:
         self.p.enqueue('del','infoRunningDownloads')
         tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="' + str(num) + '" font="Arial" color="000000" fontsize="10" />'
         self.p.enqueue('add',(tmpXML,'info'))
+    
+    def updateIP(self,serverIP):
+        self.p.enqueue('del','infoIP')
+        tmpXML = '<words id="infoIP" x="75" y="5" opacity="1" text="' + str(serverIP) + '" font="Arial" color="000000" fontsize="10" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+
+    def updateFreeSpace(self,tup):
+        perc = int((tup[1] * 1.0 / tup[0]) * 100)
+        self.p.enqueue('del','infoDisk')
+        tmpXML = '<words id="infoDisk" x="75" y="18" opacity="1" text="' + self.bytestr(tup[1]) + ' (' + str(perc) + '%) free" font="Arial" color="000000" fontsize="10" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+    # Convert a value in bytes to human readable format
+    # Taken from http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+    # By Sridhar Ratnakumar
+    # Assumed Public Domain
+    def bytestr(self,size):
+        for x in ['bytes','KB','MB','GB','TB']:
+            if size < 1024.0:
+                return "%3.1f %s" % (size, x)
+            size /= 1024.0
 
 class XiboScheduler(Thread):
     "Abstract Class - Interface for Schedulers"
@@ -1086,10 +1120,11 @@ class XiboLayoutManager(Thread):
             if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "region":
                 # Create a new Region Manager Thread and kick it running.
                 # Pass in cn since it contains the XML for the whole region
-                tmpRegion = XiboRegionManager(self, self.p, self.layoutNodeName, self.layoutNodeNameExt, cn)
-                log.log(2,"info",_("XiboLayoutManager: run() -> Starting new XiboRegionManager."))
+
                 # TODO: Instead of starting here, we need to sort the regions array by zindex attribute
                 # then start in ascending order to ensure rendering happens in layers correctly.
+                tmpRegion = XiboRegionManager(self, self.p, self.layoutNodeName, self.layoutNodeNameExt, cn)
+                log.log(2,"info",_("XiboLayoutManager: run() -> Starting new XiboRegionManager."))
                 tmpRegion.start()
                 # Store a reference to the region so we can talk to it later
                 self.regions.append(tmpRegion)
@@ -1849,7 +1884,22 @@ class XMDS:
             log.log(0,"error",_("Please check your xmdsUrl configuration option"))
             exit(1)
 
+        # Work out the URL for XMDS and add HTTP URL quoting (ie %xx)
         self.wsdlFile = self.xmdsUrl + '?wsdl'
+        
+        # Work out the host that XMDS is on so we can get an IP address for ourselves
+        tmpParse = urlparse.urlparse(self.xmdsUrl)
+        self.xmdsHost = tmpParse.hostname
+        del tmpParse
+        
+    def getIP(self):
+        tmpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        tmpSocket.connect((self.xmdsHost,0))
+        return str(tmpSocket.getsockname()[0])
+    
+    def getDisk(self):
+        s = os.statvfs(config.get('Main','libraryDir'))
+        return (s.f_bsize * s.f_blocks,s.f_bsize * s.f_bavail)
 
     def getUUID(self):
         return str(self.uuid)
@@ -1894,6 +1944,12 @@ class XMDS:
         log.lights('RF','amber')
         req = None
         if self.check():
+            try:
+                # Update the IP Address shown on the infoScreen
+                log.updateIP(self.getIP())
+            except:
+                pass
+            log.updateFreeSpace(self.getDisk())
             try:
                 # TODO: Change the final arguement to use the globally defined schema version once
                 # there is a server that supports the schema to test against.
