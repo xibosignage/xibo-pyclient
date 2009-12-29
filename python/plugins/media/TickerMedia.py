@@ -25,8 +25,6 @@ from BrowserMediaAnimatedBase import BrowserMediaAnimatedBase
 from threading import Thread
 import urllib
 import sys, os, time
-
-sys.path.append('./FeedParser')
 import feedparser
 
 class TickerMedia(BrowserMediaAnimatedBase):
