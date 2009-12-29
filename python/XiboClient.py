@@ -665,7 +665,11 @@ class XiboFile(object):
             return not self.mtime == tmpMtime
 
     def isValid(self):
-        return (self.md5 == self.targetHash) and (self.mtime == os.path.getmtime(self.__path))
+        try:
+            tmpMtime = os.path.getmtime(self.__path)
+        except:
+            return False
+        return (self.md5 == self.targetHash) and (self.mtime == tmpMtime)
     
     def toTuple(self):
         return (self.__fileName,self.md5,self.targetHash,self.checkTime,self.mtime)
