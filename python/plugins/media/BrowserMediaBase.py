@@ -47,8 +47,17 @@ class BrowserMediaBase(XiboMedia):
         
         # Write the two out to temporary file
         
-        tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",str(self.injectScript()))
-        tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",str(self.injectContent()))
+        # TODO: These two throw exceptions when substituting some unicode characters.
+        # Need to figure out how to handle that correctly.
+        try:
+            tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",str(self.injectScript()))
+        except:
+            self.log.log(0,"error","Unable to substitute HEADCONTENT in %s" % self.mediaNodeName)
+        
+        try:
+            tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",str(self.injectContent()))
+        except:
+            self.log.log(0,"error","Unable to substitute BODYCONTENT in %s" % self.mediaNodeName)
         
         try:
             try:
