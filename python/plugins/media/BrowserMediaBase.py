@@ -23,7 +23,7 @@
 
 from XiboMedia import XiboMedia
 from threading import Thread
-import sys, os
+import sys, os, codecs
 
 class BrowserMediaBase(XiboMedia):
         
@@ -36,7 +36,7 @@ class BrowserMediaBase(XiboMedia):
         # Open the HTML template file and read it in to a string
         try:
             try:
-                f = open("resources/HtmlTemplate.htm","r")
+                f = codecs.open("resources/HtmlTemplate.htm",mode="r",encoding="utf-8")
                 tmpHtml = f.read()
             finally:
                 f.close()
@@ -47,24 +47,22 @@ class BrowserMediaBase(XiboMedia):
         
         # Write the two out to temporary file
         
-        # TODO: These two throw exceptions when substituting some unicode characters.
-        # Need to figure out how to handle that correctly.
         try:
-            tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",str(self.injectScript()))
+            tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",self.injectScript())
         except:
-            tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->","")
+            tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",u"")
             self.log.log(0,"error","Unable to substitute HEADCONTENT in %s" % self.mediaNodeName)
         
         try:
-            tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",str(self.injectContent()))
+            tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",self.injectContent())
         except:
-            tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->","")
+            tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",u"")
             self.log.log(0,"error","Unable to substitute BODYCONTENT in %s" % self.mediaNodeName)
         
         try:
             try:
                 #TODO: Fix hardcoded path
-                f = open(self.tmpPath,'w')
+                f = codecs.open(self.tmpPath,mode='w',encoding="utf-8")
                 f.write(tmpHtml)
                 tmpHtml = None
             finally:
@@ -99,11 +97,11 @@ class BrowserMediaBase(XiboMedia):
         self.parent.tNext()
     
     def injectContent(self):
-        """ Returns a string of content to inject in to the page """
+        """ Returns a utf-8 string of content to inject in to the page """
         return ""
     
     def injectScript(self):
-        """ Returns a string of script to inject in to the page """
+        """ Returns a utf-8 string of script to inject in to the page """
         return ""
     
     def browserOptions(self):

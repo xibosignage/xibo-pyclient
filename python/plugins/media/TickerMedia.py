@@ -24,7 +24,7 @@
 from BrowserMediaAnimatedBase import BrowserMediaAnimatedBase
 from threading import Thread
 import urllib
-import sys, os, time
+import sys, os, time, codecs
 import feedparser
 
 class TickerMedia(BrowserMediaAnimatedBase):
@@ -60,44 +60,43 @@ class TickerMedia(BrowserMediaAnimatedBase):
         self.log.log(5,"audit","Feed parsed")
 
         if self.feed != None:
-            self.log.log(5,"audit","Feed title: " + self.feed['feed']['title'])
             
             # Build some kind of array of items that are feed specific to replace
             feedDetails = []
             try:
                 feedDetails.append(('FeedLastBuildDate',self.feed['feed']['lastbuilddate']))
             except:
-                feedDetails.append(('FeedLastBuildDate',''))
+                feedDetails.append(('FeedLastBuildDate',u''))
             
             try:
                 feedDetails.append(('FeedSubtitle',self.feed['feed']['subtitle']))
             except:
-                feedDetails.append(('FeedSubtitle',''))
+                feedDetails.append(('FeedSubtitle',u''))
             
             try:
                 feedDetails.append(('FeedLanguage',self.feed['feed']['language']))
             except:
-                feedDetails.append(('FeedLanguage',''))
+                feedDetails.append(('FeedLanguage',u''))
             
             try:
                 feedDetails.append(('FeedLink',self.feed['feed']['link']))
             except:
-                feedDetails.append(('FeedLink',''))
+                feedDetails.append(('FeedLink',u''))
             
             try:
                 feedDetails.append(('FeedTitle',self.feed['feed']['title']))
             except:
-                feedDetails.append(('FeedTitle',''))
+                feedDetails.append(('FeedTitle',u''))
             
             try:
                 feedDetails.append(('FeedVersion',self.feed['feed']['version']))
             except:
-                feedDetails.append(('FeedVersion',''))
+                feedDetails.append(('FeedVersion',u''))
             
             try:
                 feedDetails.append(('FeedEncoding',self.feed['feed']['encoding']))
             except:
-                feedDetails.append(('FeedEncoding',''))
+                feedDetails.append(('FeedEncoding',u''))
             
             for item in self.feed['entries']:
                 # Copy the array above and add in item specific items
@@ -106,42 +105,42 @@ class TickerMedia(BrowserMediaAnimatedBase):
                 try:
                     itemDetails.append(('Description',item['description']))
                 except:
-                    itemDetails.append(('Description',''))
+                    itemDetails.append(('Description',u''))
                     
                 try:
                     itemDetails.append(('Title',item['title']))
                 except:
-                    itemDetails.append(('Title',''))
+                    itemDetails.append(('Title',u''))
                 
                 try:
                     itemDetails.append(('Link',item['link']))
                 except:
-                    itemDetails.append(('Link',''))
+                    itemDetails.append(('Link',u''))
                     
                 try:
                     itemDetails.append(('Summary',item['summary']))
                 except:
-                    itemDetails.append(('Summary',''))
+                    itemDetails.append(('Summary',u''))
                     
                 try:
                     itemDetails.append(('Author',item['author']))
                 except:
-                    itemDetails.append(('Author',''))
+                    itemDetails.append(('Author',u''))
                 
                 try:
                     itemDetails.append(('Date',item['updated']))
                 except:
-                    itemDetails.append(('Date',''))
+                    itemDetails.append(('Date',u''))
                 
                 # Get a copy of the item template (from XLF)
                 tmpItem = self.template
                 
                 # Loop over the array and attempt to replace each key in tmpItem
                 for field in itemDetails:
-                    tmpItem = tmpItem.replace("[%s]" % field[0], str(field[1]))
+                    tmpItem = tmpItem.replace("[%s]" % field[0], field[1])
                 
                 for field in feedDetails:
-                    tmpItem = tmpItem.replace("[%s]" % field[0], str(field[1]))
+                    tmpItem = tmpItem.replace("[%s]" % field[0], field[1])
 
                 
                 content.append(tmpItem)
