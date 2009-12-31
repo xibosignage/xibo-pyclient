@@ -66,6 +66,19 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
     
     def injectScript(self):
         """ Returns a string of script to inject in to the page """
+
+        try:
+            if self.options['direction'] == "" or self.options['direction'] == None:
+                self.options['direction'] = 'none'
+        except:
+            self.options['direction'] = 'none'
+        
+        try:
+            if self.options['scrollSpeed'] == "" or self.options['scrollSpeed'] == None:
+                self.options['scrollSpeed'] = "30"
+        except:
+            self.options['scrollSpeed'] = "30"
+            
         js = ""
         if self.options['direction'] == "single":
             js = "<script type='text/javascript'>\n\n"
@@ -78,6 +91,8 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             js += "  $('#text').cycle({fx: 'fade', timeout:itemTime});\n"
             js += "  }\n"
             js += "</script>\n\n"
+        elif self.options['direction'] == "none":
+            pass
         else:
             js = "<script type='text/javascript'>\n\n"
             js += "function init() {\n"

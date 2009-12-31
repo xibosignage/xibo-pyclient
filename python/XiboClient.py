@@ -1047,7 +1047,7 @@ class XiboDownloadThread(Thread):
 
             try:
                 response = self.parent.xmds.GetFile(self.tmpFileName,self.tmpType,0,0)
-                fh.write(response + '\n')
+                fh.write(response)
                 fh.flush()
             except RuntimeError:
                 # TODO: Do something sensible
@@ -1114,7 +1114,7 @@ class XiboLayoutManager(Thread):
         self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
         if self.l.backgroundImage != None:
-            tmpXML = '<image href="%s" width="%d" height="%d" id="bg%s" />' % (os.path.join(config.get('Main','libraryDir'),self.l.backgroundImage),self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt)
+            tmpXML = str('<image href="%s" width="%d" height="%d" id="bg%s" opacity="1.0" />' % (os.path.join(config.get('Main','libraryDir'),self.l.backgroundImage),self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt))
             self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
         # Break layout in to regions
