@@ -1047,7 +1047,7 @@ class XiboDownloadThread(Thread):
 
             try:
                 response = self.parent.xmds.GetFile(self.tmpFileName,self.tmpType,0,0)
-                fh.write(response + '\n')
+                fh.write(response)
                 fh.flush()
             except RuntimeError:
                 # TODO: Do something sensible
