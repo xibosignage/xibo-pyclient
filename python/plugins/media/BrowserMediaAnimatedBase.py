@@ -86,6 +86,8 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             js += "  timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + ");\n"
             js += "}"
             js += "</script>\n\n"
+        
+        js += "<style type='text/css'>body { font-size:%fem; }</style>\n\n" % self.scaleFactor
         return js
     
     def browserOptions(self):

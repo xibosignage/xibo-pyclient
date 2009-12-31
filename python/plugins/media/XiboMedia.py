@@ -54,6 +54,10 @@ class XiboMedia(Thread):
         self.options = {}
         self.rawNode = None
         self.optionsNode = None
+        try:
+            self.scaleFactor = self.parent.parent.l.scaleFactor
+        except:
+            self.scaleFactor = 1.0
 
         if self.p == None:
             self.regionNodeName = 'null'
