@@ -1,3 +1,3 @@
 #!/bin/sh
 
-/usr/bin/python XiboClient.py > run.log
+/usr/bin/python XiboClient.py
