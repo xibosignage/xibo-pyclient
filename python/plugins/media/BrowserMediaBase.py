@@ -98,11 +98,11 @@ class BrowserMediaBase(XiboMedia):
     
     def injectContent(self):
         """ Returns a utf-8 string of content to inject in to the page """
-        return ""
+        return u''
     
     def injectScript(self):
         """ Returns a utf-8 string of script to inject in to the page """
-        return ""
+        return u''
     
     def browserOptions(self):
         """ Return a tuple of options for the Browser component. True/False/None. None makes no change to the
@@ -112,7 +112,8 @@ class BrowserMediaBase(XiboMedia):
         return (False,False)
     
     def finishedRendering(self):
-        optionsTuple = (self.mediaNodeName,True,False)
+        bo = self.browserOptions()
+        optionsTuple = (self.mediaNodeName,bo[0],bo[1])
         self.p.enqueue('browserOptions',optionsTuple)
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
         # TODO: This next line should really callback self.parent.next. See timerElapsed function

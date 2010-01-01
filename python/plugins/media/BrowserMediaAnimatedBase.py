@@ -81,6 +81,11 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
                 self.options['scrollSpeed'] = '30'
         else:
             self.options['scrollSpeed'] = '30'
+        
+        if not self.scaleFactor == 0:
+            s = self.options['scrollSpeed']
+            self.options['scrollSpeed'] = str(int(int(self.options['scrollSpeed']) * (1.0/self.scaleFactor)))
+#            print "*** REFACTORED SCROLL SPEED FROM %s to %s ***" % (s,self.options['scrollSpeed'])
             
         js = ""
         if self.options['direction'] == "single":
