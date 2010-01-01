@@ -33,14 +33,17 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
         content = ""
         
         items = self.getContent()
+        count = 0
         
         for tmpItem in items:
+            count += 1
             if self.options['direction'] == 'left' or self.options['direction'] == 'right':
                 tmpItem = tmpItem.replace('<p>','')
                 tmpItem = tmpItem.replace('</p>','')
                 
                 tmpItem = "<span class='article' style='padding-left:4px;'>%s</span>" % tmpItem
-                tmpItem += "<span style='padding-left:4px;'> - </span>"
+                if count < len(items):
+                    tmpItem += "<span style='padding-left:4px;'> - </span>"
             else:
                 tmpItem = "<div class='XiboRssItem' style='display:block;padding:4px;width:%dpx'>%s</div>" % (self.width - 10,tmpItem)
             
@@ -67,17 +70,17 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
     def injectScript(self):
         """ Returns a string of script to inject in to the page """
 
-        try:
-            if self.options['direction'] == "" or self.options['direction'] == None:
+        if self.options.has_key('direction'):
+            if self.options['direction'] == "":
                 self.options['direction'] = 'none'
-        except:
+        else:
             self.options['direction'] = 'none'
-        
-        try:
-            if self.options['scrollSpeed'] == "" or self.options['scrollSpeed'] == None:
-                self.options['scrollSpeed'] = "30"
-        except:
-            self.options['scrollSpeed'] = "30"
+
+        if self.options.has_key('scrollSpeed'):
+            if self.options['scrollSpeed'] == "":
+                self.options['scrollSpeed'] = '30'
+        else:
+            self.options['scrollSpeed'] = '30'
             
         js = ""
         if self.options['direction'] == "single":
