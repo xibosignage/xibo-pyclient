@@ -329,7 +329,7 @@ class XiboLogScreen(XiboLog):
 
     def log(self, severity, category, message):
         if self.level >= severity:
-            print "LOG: " + str(severity) + " " + category + " " + message
+            print "LOG: " + str(time.time()) + " " + str(severity) + " " + category + " " + message
 
     def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID=""):
         print "STAT: " + statType + " " + tag + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
@@ -1298,12 +1298,12 @@ class XiboRegionManager(Thread):
         while self.disposed == False and self.oneItemOnly == False and self.disposing == False:
             for cn in self.regionNode.childNodes:
                 if cn.nodeType == cn.ELEMENT_NODE and cn.localName == "media":
-                    log.log(3,"info","Encountered media")
+                    log.log(3,"info","%s: Moving to next Media item" % self.regionNodeName)
                     mediaCount = mediaCount + 1
                     if self.disposed == False and self.disposing == False:
                         type = str(cn.attributes['type'].value)
                         type = type[0:1].upper() + type[1:]
-                        log.log(4,"info","Media is of type: " + type)
+                        log.log(4,"info","%s: Media is of type: %s" % (self.regionNodeName,type))
                         try:
                             import plugins.media
                             __import__("plugins.media." + type + "Media",None,None,[''])
@@ -1325,7 +1325,7 @@ class XiboRegionManager(Thread):
 
                             trans = (tmp1,tmp2)
 
-                            log.log(3,"info",_("Beginning transitions: " + str(trans)))
+                            log.log(3,"info",self.regionNodeName + ": " + _("Beginning transitions: " + str(trans)))
                             # The two transitions match. Let one plugin handle both.
                             if (trans[0] == trans[1]) and trans[0] != "":
                                 self.currentMedia.add()
