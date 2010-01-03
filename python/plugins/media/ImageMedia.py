@@ -23,13 +23,17 @@
 
 from XiboMedia import XiboMedia
 from threading import Thread
+import os
+from libavg import avg
 
 class ImageMedia(XiboMedia):
     def add(self):
     	# TODO: Fix the hardcoded path data/
-        tmpXML = '<image href="data/' + str(self.options['uri']) + '" id="' + self.mediaNodeName + '" opacity="0" />'
+        tmpXML = '<image id="' + self.mediaNodeName + '" opacity="0" />'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
-    	self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height,'centre','centre'))
+        bitmap = avg.Bitmap(os.path.join('data',self.options['uri']))
+    	self.p.enqueue('setBitmap',(self.mediaNodeName, bitmap))
+        self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height,'centre','centre'))
 
     def run(self):
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
