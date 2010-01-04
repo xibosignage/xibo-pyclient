@@ -172,8 +172,8 @@ class TickerMedia(BrowserMediaAnimatedBase):
                 finally:
                     f.close()
             except:
-                tries =+ 1
                 self.log.log(1,"error",_("Unable to load from URL %s") %  self.options['uri'])
+            i += 1
         
         if flag:
             try:
