@@ -1134,17 +1134,19 @@ class XiboLayoutManager(Thread):
                 self.regions.append(tmpRegion)
 
     def regionElapsed(self):
-        log.log(2,"info",_("Region elapsed. Checking if layout has elapsed"))
+        log.log(2,"info",_("%s Region elapsed. Checking if layout has elapsed") % self.layoutNodeName)
 
         allExpired = True
         for i in self.regions:
             if i.regionExpired == False:
-                log.log(3,"info",_("Region " + i.regionNodeName + " has not expired. Waiting"))
+                log.log(3,"info",_("%s Region " + i.regionNodeName + " has not expired. Waiting") % self.layoutNodeName)
                 allExpired = False
+                return False
 
         self.__regionLock.acquire()
+
         if allExpired and not self.expiring:
-            log.log(2,"info",_("All regions have expired. Marking layout as expired"))
+            log.log(2,"info",_("%s All regions have expired. Marking layout as expired") % self.layoutNodeName)
             self.layoutExpired = True
             self.expiring = True
 
@@ -1166,17 +1168,17 @@ class XiboLayoutManager(Thread):
             return False
 
     def regionDisposed(self):
-        log.log(2,"info",_("Region disposed. Checking if all regions have disposed"))
+        log.log(2,"info",_("%s Region disposed. Checking if all regions have disposed") % self.layoutNodeName)
 
         allExpired = True
         for i in self.regions:
             if i.disposed == False:
-                log.log(3,"info",_("Region " + i.regionNodeName + " has not disposed. Waiting"))
+                log.log(3,"info",_("%s Region %s has not disposed. Waiting") % (self.layoutNodeName,i.regionNodeName))
                 allExpired = False
 
         self.__regionDisposeLock.acquire()
         if allExpired == True and not self.nextLayoutTriggered:
-            log.log(2,"info",_("All regions have disposed. Marking layout as disposed"))
+            log.log(2,"info",_("%s All regions have disposed. Marking layout as disposed") % self.layoutNodeName)
             self.layoutDisposed = True
 
             if self.hold:
@@ -1391,7 +1393,14 @@ class XiboRegionManager(Thread):
                             # TODO: Do something with this layout? Blacklist?
                             self.lock.release()
 
+            # If there's no items, pause for a while to allow other RegionManagers to get up and running.
+            if mediaCount == 0:
+                self.oneItemOnly = True
+                log.log(3,"info",_("Region has no media: ") + self.regionNodeName)
+                time.sleep(2)
+                
             self.regionExpired = True
+            print str(self.regionNodeName) + " has expired"
             if self.parent.regionElapsed():
                 # If regionElapsed returns True, then the layout is on its way out so stop looping
                 # Acheived by pretending to be a single item region
