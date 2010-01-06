@@ -61,7 +61,7 @@ class XiboMedia(Thread):
         except:
             self.scaleFactor = 1.0
         
-        self.libraryDir = os.path.abspath(config.get('Main','libraryDir'))
+        self.libraryDir = os.path.abspath(self.config.get('Main','libraryDir'))
 
         if self.p == None:
             self.regionNodeName = 'null'
