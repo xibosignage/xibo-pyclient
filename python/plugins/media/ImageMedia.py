@@ -36,7 +36,7 @@ class ImageMedia(XiboMedia):
         w = int(self.width) + 1
         h = int(self.height) + 1
         fName = os.path.join('data',self.options['uri'])
-        thumb = fName + "-%d-%d" % (w,h)
+        thumb = os.path.join('data','scaled',self.options['uri']) + "-%dx%d" % (w,h)
         if not os.path.exists(thumb) or (os.path.getmtime(thumb) < os.path.getmtime(fName)):
             self.log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.mediaNodeName,self.options['uri'],w,h))
             image = Image.open(fName)
