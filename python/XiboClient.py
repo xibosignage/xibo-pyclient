@@ -47,7 +47,7 @@ from threading import Thread, Semaphore
 import threading
 import urlparse
 
-version = "1.1.0a19"
+version = "1.1.0a20"
 #TODO: Change to 2!
 schemaVersion = 1
 
