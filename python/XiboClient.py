@@ -1309,7 +1309,7 @@ class XiboRegionManager(Thread):
                         try:
                             import plugins.media
                             __import__("plugins.media." + type + "Media",None,None,[''])
-                            self.currentMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,self,self.p,cn)
+                            self.currentMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,config,self,self.p,cn)
 
                             # Transition between media here...
                             import plugins.transitions
@@ -1515,6 +1515,17 @@ class XiboLayout:
         self.mediaCheck = False
         self.scheduleCheck = True
         self.pluginCheck = True
+        
+        if self.layoutID == "0":
+            try:
+                if not os.path.isfile(os.path.join(config.get('Main','libraryDir'),'0.xlf')):
+                    import shutil
+                    shutil.copy(os.path.join('resources','0.xlf'),config.get('Main','libraryDir'))
+                if not os.path.isfile(os.path.join(config.get('Main','libraryDir'),'splash.jpg')):
+                    import shutil
+                    shutil.copy(os.path.join('resources','splash.jpg'),config.get('Main','libraryDir'))
+            except IOError:
+                log.log(0,"error",_("Unable to write to libraryDir %s") % config.get('Main','libraryDir'))
 
         # Read XLF from file (if it exists)
         # Set builtWithNoXLF = True if it doesn't
@@ -1605,7 +1616,7 @@ class XiboLayout:
             try:
                 import plugins.media
                 __import__("plugins.media." + type + "Media",None,None,[''])
-                tmpMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,None,None,mn)
+                tmpMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,config,None,None,mn)
             except IOError:
                 self.pluginCheck = False
                 log.log(0,"error",_("Plugin missing for media in layout ") + self.layoutID)
@@ -2194,7 +2205,8 @@ class XiboDisplayManager:
         # Check data directory exists
         try:
             libDir = config.get('Main','libraryDir')
-            os.makedirs(os.path.join(libDir,'scaled'))
+            if not os.path.isdir(os.path.join(libDir,'scaled')):
+                os.makedirs(os.path.join(libDir,'scaled'))
         except os.error:
             log.log(0,"error",_("Unable to create local library directory %s") % libDir)
             exit(1)
