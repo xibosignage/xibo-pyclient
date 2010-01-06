@@ -32,8 +32,7 @@ class ImageMedia(XiboMedia):
     	# TODO: Fix the hardcoded path data/
         tmpXML = '<image id="' + self.mediaNodeName + '" opacity="0" />'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
-
-    def run(self):
+        
         w = int(self.width) + 1
         h = int(self.height) + 1
         fName = os.path.join('data',self.options['uri'])
@@ -48,6 +47,8 @@ class ImageMedia(XiboMedia):
         bitmap = avg.Bitmap(thumb)
       	self.p.enqueue('setBitmap',(self.mediaNodeName, bitmap))
         self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height,'centre','centre'))
+
+    def run(self):
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
         self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
 
