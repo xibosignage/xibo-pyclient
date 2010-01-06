@@ -49,6 +49,12 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             
             content += tmpItem
         
+        # Add in the Copyright Text (if applicable)
+        try:
+            content += self.options['copyright']
+        except:
+            pass
+        
         textWrap = ""
         
         if self.options['direction'] == 'none':

@@ -141,10 +141,7 @@ class TickerMedia(BrowserMediaAnimatedBase):
                 for field in itemDetails:
                     if field[0] == 'Date':
                         try:
-                            print "**** DATE FORMAT IS %s" % self.config.get('TickerMedia','dateFormat')
-                            print "**** DATE INPUT IS %s" % field[1]
                             field = (field[0],time.strftime(self.config.get('TickerMedia','dateFormat'),field[1]))
-                            print "**** DATE OUTPUT IS %s" % field[1]
                         except:
                             pass
                     tmpItem = tmpItem.replace("[%s]" % field[0], field[1])
