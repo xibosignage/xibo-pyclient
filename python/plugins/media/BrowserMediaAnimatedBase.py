@@ -102,7 +102,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             js += "  var itemTime = totalDuration / itemCount;\n"
             js += "  if (itemTime < 2000) itemTime = 2000;\n"
             js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
-            js += "  $('#text').cycle({fx: 'fade', timeout:itemTime});\n"
+            js += "  $('#text').cycle({fx: 'fade', sync: 0, rev: 1, timeout: itemTime});\n"
             js += "  }\n"
             js += "</script>\n\n"
         elif self.options['direction'] == "none":
