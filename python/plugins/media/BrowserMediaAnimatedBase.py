@@ -40,6 +40,12 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             if self.options['direction'] == 'left' or self.options['direction'] == 'right':
                 tmpItem = tmpItem.replace('<p>','')
                 tmpItem = tmpItem.replace('</p>','')
+                tmpItem = tmpItem.replace('<p/>','')
+                tmpItem = tmpItem.replace('<br>','')
+                tmpItem = tmpItem.replace('<br/>','')
+                tmpItem = tmpItem.replace('<div>','')
+                tmpItem = tmpItem.replace('</div>','')
+                tmpItem = tmpItem.replace('<div/>','')
                 
                 tmpItem = "<span class='article' style='padding-left:4px;'>%s</span>" % tmpItem
                 if count < len(items):
@@ -48,6 +54,12 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
                 tmpItem = "<div class='XiboRssItem' style='display:block;padding:4px;width:%dpx'>%s</div>" % (self.width - 10,tmpItem)
             
             content += tmpItem
+        
+        # Add in the Copyright Text (if applicable)
+        try:
+            content += self.options['copyright']
+        except:
+            pass
         
         textWrap = ""
         
@@ -96,7 +108,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             js += "  var itemTime = totalDuration / itemCount;\n"
             js += "  if (itemTime < 2000) itemTime = 2000;\n"
             js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
-            js += "  $('#text').cycle({fx: 'fade', timeout:itemTime});\n"
+            js += "  $('#text').cycle({fx: 'fade', sync: 0, speed: 1, timeout: itemTime});\n"
             js += "  }\n"
             js += "</script>\n\n"
         elif self.options['direction'] == "none":

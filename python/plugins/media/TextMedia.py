@@ -38,7 +38,7 @@ class TextMedia(BrowserMediaAnimatedBase):
         
             for node in self.textNode.childNodes:
                 if node.nodeType == node.CDATA_SECTION_NODE:
-                    self.text = node.data.encode('UTF-8')
+                    self.text = node.data.strip()
                     self.log.log(5,'audit','Text is: ' + self.text)
         except:
             self.log.log(2,'error','%s Error parsing out the text from the xlf' % self.mediaNodeName)

@@ -47,7 +47,7 @@ from threading import Thread, Semaphore
 import threading
 import urlparse
 
-version = "1.1.0a19"
+version = "1.1.0a20"
 #TODO: Change to 2!
 schemaVersion = 1
 
@@ -1134,17 +1134,19 @@ class XiboLayoutManager(Thread):
                 self.regions.append(tmpRegion)
 
     def regionElapsed(self):
-        log.log(2,"info",_("Region elapsed. Checking if layout has elapsed"))
+        log.log(2,"info",_("%s Region elapsed. Checking if layout has elapsed") % self.layoutNodeName)
 
         allExpired = True
         for i in self.regions:
             if i.regionExpired == False:
-                log.log(3,"info",_("Region " + i.regionNodeName + " has not expired. Waiting"))
+                log.log(3,"info",_("%s Region " + i.regionNodeName + " has not expired. Waiting") % self.layoutNodeName)
                 allExpired = False
+                return False
 
         self.__regionLock.acquire()
+
         if allExpired and not self.expiring:
-            log.log(2,"info",_("All regions have expired. Marking layout as expired"))
+            log.log(2,"info",_("%s All regions have expired. Marking layout as expired") % self.layoutNodeName)
             self.layoutExpired = True
             self.expiring = True
 
@@ -1166,17 +1168,17 @@ class XiboLayoutManager(Thread):
             return False
 
     def regionDisposed(self):
-        log.log(2,"info",_("Region disposed. Checking if all regions have disposed"))
+        log.log(2,"info",_("%s Region disposed. Checking if all regions have disposed") % self.layoutNodeName)
 
         allExpired = True
         for i in self.regions:
             if i.disposed == False:
-                log.log(3,"info",_("Region " + i.regionNodeName + " has not disposed. Waiting"))
+                log.log(3,"info",_("%s Region %s has not disposed. Waiting") % (self.layoutNodeName,i.regionNodeName))
                 allExpired = False
 
         self.__regionDisposeLock.acquire()
         if allExpired == True and not self.nextLayoutTriggered:
-            log.log(2,"info",_("All regions have disposed. Marking layout as disposed"))
+            log.log(2,"info",_("%s All regions have disposed. Marking layout as disposed") % self.layoutNodeName)
             self.layoutDisposed = True
 
             if self.hold:
@@ -1307,7 +1309,7 @@ class XiboRegionManager(Thread):
                         try:
                             import plugins.media
                             __import__("plugins.media." + type + "Media",None,None,[''])
-                            self.currentMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,self,self.p,cn)
+                            self.currentMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,config,self,self.p,cn)
 
                             # Transition between media here...
                             import plugins.transitions
@@ -1391,7 +1393,14 @@ class XiboRegionManager(Thread):
                             # TODO: Do something with this layout? Blacklist?
                             self.lock.release()
 
+            # If there's no items, pause for a while to allow other RegionManagers to get up and running.
+            if mediaCount == 0:
+                self.oneItemOnly = True
+                log.log(3,"info",_("Region has no media: ") + self.regionNodeName)
+                time.sleep(2)
+                
             self.regionExpired = True
+            print str(self.regionNodeName) + " has expired"
             if self.parent.regionElapsed():
                 # If regionElapsed returns True, then the layout is on its way out so stop looping
                 # Acheived by pretending to be a single item region
@@ -1506,6 +1515,17 @@ class XiboLayout:
         self.mediaCheck = False
         self.scheduleCheck = True
         self.pluginCheck = True
+        
+        if self.layoutID == "0":
+            try:
+                if not os.path.isfile(os.path.join(config.get('Main','libraryDir'),'0.xlf')):
+                    import shutil
+                    shutil.copy(os.path.join('resources','0.xlf'),config.get('Main','libraryDir'))
+                if not os.path.isfile(os.path.join(config.get('Main','libraryDir'),'splash.jpg')):
+                    import shutil
+                    shutil.copy(os.path.join('resources','splash.jpg'),config.get('Main','libraryDir'))
+            except IOError:
+                log.log(0,"error",_("Unable to write to libraryDir %s") % config.get('Main','libraryDir'))
 
         # Read XLF from file (if it exists)
         # Set builtWithNoXLF = True if it doesn't
@@ -1596,7 +1616,7 @@ class XiboLayout:
             try:
                 import plugins.media
                 __import__("plugins.media." + type + "Media",None,None,[''])
-                tmpMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,None,None,mn)
+                tmpMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,config,None,None,mn)
             except IOError:
                 self.pluginCheck = False
                 log.log(0,"error",_("Plugin missing for media in layout ") + self.layoutID)
@@ -2181,6 +2201,18 @@ class XiboDisplayManager:
         log = XiboLogScreen(logLevel)
         
         self.xmds = XMDS()
+        
+        # Check data directory exists
+        try:
+            libDir = config.get('Main','libraryDir')
+            if not os.path.isdir(os.path.join(libDir,'scaled')):
+                os.makedirs(os.path.join(libDir,'scaled'))
+        except os.error:
+            log.log(0,"error",_("Unable to create local library directory %s") % libDir)
+            exit(1)
+        except ConfigParser.NoOptionError:
+            log.log(0,"error",_("No libraryDir specified in your configuration"))
+            exit(1)            
                 
         print _("Log Level is: ") + logLevel;
         print _("Logging will be handled by: ") + config.get('Logging','logWriter')
@@ -2404,108 +2436,112 @@ class XiboPlayer(Thread):
         "Called on each new libavg frame. Takes queued commands and executes them"
         self.__lock.acquire()
         try:
-            result = self.q.get(False)
-            cmd = result[0]
-            data = result[1]
-            if cmd == "add":
-                newNode = self.player.createNode(data[0])
-                parentNode = self.player.getElementByID(data[1])
-                parentNode.appendChild(newNode)
-                log.log(5,"debug","Added new node to " + str(data[1]))
-            elif cmd == "del":
-                currentNode = self.player.getElementByID(data)
-                parentNode = currentNode.getParent()
-                parentNode.removeChild(currentNode)
-                log.log(5,"debug","Removed node " + str(data))
-            elif cmd == "reset":
-                parentNode = self.player.getElementByID("screen")
-                numChildren = parentNode.getNumChildren()
-                log.log(5,"debug","Reset. Node has " + str(numChildren) + " nodes")
-                for i in range(0,numChildren):
-                    try:
-                        node = parentNode.getChild(i)
-                        parentNode.removeChild(node)
-                        log.log(5,"debug","Removed child node at position " + str(i))
-                    except:
-                        pass
-            elif cmd == "anim":
-                currentNode = self.player.getElementByID(data[1])
-                if data[0] == "fadeIn":
-                    animation = anim.fadeIn(currentNode,data[2])
-                if data[0] == "fadeOut":
-                    animation = anim.fadeOut(currentNode,data[2])
-                if data[0] == "linear":
-                    animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
-            elif cmd == "play":
-                currentNode = self.player.getElementByID(data)
-                currentNode.play()
-            elif cmd == "pause":
-                currentNode = self.player.getElementByID(data)
-                currentNode.pause()
-            elif cmd == "stop":
-                currentNode = self.player.getElementByID(data)
-                currentNode.stop()
-            elif cmd == "resize":
-                currentNode = self.player.getElementByID(data[0])
-                dimension = currentNode.getMediaSize()
-                # log.log(1,'info',"Media dimensions: " + str(dimension))
-                scaleFactor = min((float(data[1]) / dimension[0]),(float(data[2]) / dimension[1]))
-                # log.log(1,'info',"Scale Factor: " + str(scaleFactor))
-                currentNode.width = dimension[0] * scaleFactor
-                currentNode.height = dimension[1] * scaleFactor
-                if data[3] == 'left':
-                    currentNode.x = 0
-                elif data[3] == 'centre':
-                    currentNode.x = (float(data[1]) - currentNode.width) / 2
-                elif data[3] == 'right':
-                    currentNode.x = (float(data[1]) - currentNode.width)
-                if data[4] == 'top':
-                    currentNode.y = 0
-                elif data[4] == 'centre':
-                    currentNode.y = (float(data[2]) - currentNode.height) / 2
-                elif data[4] == 'bottom':
-                    currentNode.y = (float(data[2]) - currentNode.height)
-            elif cmd == "timer":
-                self.player.setTimeout(data[0],data[1])
-            elif cmd == "eofCallback":
-                currentNode = self.player.getElementByID(data[0])
-                currentNode.setEOFCallback(data[1])
-            elif cmd == "setOpacity":
-                currentNode = self.player.getElementByID(data[0])
-                currentNode.opacity = data[1]
-            elif cmd == "browserNavigate":
-                currentNode = self.player.getElementByID(data[0])
-                currentNode.onFinishLoading = data[2]
-                currentNode.loadUrl(data[1])
-            elif cmd == "browserOptions":
-                currentNode = self.player.getElementByID(data[0])
-                if not data[1] == None:
-                    currentNode.transparent = data[1]
-                if not data[2] == None:
-                    if data[2] == False:
-                        currentNode.executeJavascript("document.body.style.overflow='hidden';")
-            elif cmd == "setBitmap":
-                currentNode = self.player.getElementByID(data[0])
-                currentNode.setBitmap(data[1])
-            self.q.task_done()
-            # Call ourselves again to action any remaining queued items
-            # This does not make an infinite loop since when all queued items are processed
-            # A Queue.Empty exception is thrown and this whole block is skipped.
-            self.__lock.release()
-            self.frameHandle()
-        except Queue.Empty:
-            self.player.clearInterval(self.currentFH)
-            self.currentFH = None
-            self.__lock.release()
-        except RuntimeError as detail:
-            log.log(1,"error",_("A runtime error occured: ") + str(detail))
-            self.__lock.release()
-        # TODO: Put this catchall back when finished debugging.
-        except:
-               # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
-               self.__lock.release()
-               log.log(0,"audit",str(cmd) + " : " + str(data))
-
+            try:
+                result = self.q.get(False)
+                cmd = result[0]
+                data = result[1]
+                if cmd == "add":
+                    newNode = self.player.createNode(data[0])
+                    parentNode = self.player.getElementByID(data[1])
+                    parentNode.appendChild(newNode)
+                    log.log(5,"debug","Added new node to " + str(data[1]))
+                elif cmd == "del":
+                    currentNode = self.player.getElementByID(data)
+                    parentNode = currentNode.getParent()
+                    parentNode.removeChild(currentNode)
+                    log.log(5,"debug","Removed node " + str(data))
+                elif cmd == "reset":
+                    parentNode = self.player.getElementByID("screen")
+                    numChildren = parentNode.getNumChildren()
+                    log.log(5,"debug","Reset. Node has " + str(numChildren) + " nodes")
+                    for i in range(0,numChildren):
+                        try:
+                            node = parentNode.getChild(i)
+                            parentNode.removeChild(node)
+                            log.log(5,"debug","Removed child node at position " + str(i))
+                        except:
+                            pass
+                elif cmd == "anim":
+                    currentNode = self.player.getElementByID(data[1])
+                    if data[0] == "fadeIn":
+                        animation = anim.fadeIn(currentNode,data[2])
+                    if data[0] == "fadeOut":
+                        animation = anim.fadeOut(currentNode,data[2])
+                    if data[0] == "linear":
+                        animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
+                elif cmd == "play":
+                    currentNode = self.player.getElementByID(data)
+                    currentNode.play()
+                elif cmd == "pause":
+                    currentNode = self.player.getElementByID(data)
+                    currentNode.pause()
+                elif cmd == "stop":
+                    currentNode = self.player.getElementByID(data)
+                    currentNode.stop()
+                elif cmd == "resize":
+                    currentNode = self.player.getElementByID(data[0])
+                    dimension = currentNode.getMediaSize()
+                    # log.log(1,'info',"Media dimensions: " + str(dimension))
+                    scaleFactor = min((float(data[1]) / dimension[0]),(float(data[2]) / dimension[1]))
+                    # log.log(1,'info',"Scale Factor: " + str(scaleFactor))
+                    currentNode.width = dimension[0] * scaleFactor
+                    currentNode.height = dimension[1] * scaleFactor
+                    if data[3] == 'left':
+                        currentNode.x = 0
+                    elif data[3] == 'centre':
+                        currentNode.x = (float(data[1]) - currentNode.width) / 2
+                    elif data[3] == 'right':
+                        currentNode.x = (float(data[1]) - currentNode.width)
+                    if data[4] == 'top':
+                        currentNode.y = 0
+                    elif data[4] == 'centre':
+                        currentNode.y = (float(data[2]) - currentNode.height) / 2
+                    elif data[4] == 'bottom':
+                        currentNode.y = (float(data[2]) - currentNode.height)
+                elif cmd == "timer":
+                    self.player.setTimeout(data[0],data[1])
+                elif cmd == "eofCallback":
+                    currentNode = self.player.getElementByID(data[0])
+                    currentNode.setEOFCallback(data[1])
+                elif cmd == "setOpacity":
+                    currentNode = self.player.getElementByID(data[0])
+                    currentNode.opacity = data[1]
+                elif cmd == "browserNavigate":
+                    currentNode = self.player.getElementByID(data[0])
+                    currentNode.onFinishLoading = data[2]
+                    currentNode.loadUrl(data[1])
+                elif cmd == "browserOptions":
+                    currentNode = self.player.getElementByID(data[0])
+                    if not data[1] == None:
+                        currentNode.transparent = data[1]
+                    if not data[2] == None:
+                        if data[2] == False:
+                            currentNode.executeJavascript("document.body.style.overflow='hidden';")
+                elif cmd == "setBitmap":
+                    currentNode = self.player.getElementByID(data[0])
+                    currentNode.setBitmap(data[1])
+                self.q.task_done()
+                # Call ourselves again to action any remaining queued items
+                # This does not make an infinite loop since when all queued items are processed
+                # A Queue.Empty exception is thrown and this whole block is skipped.
+                self.__lock.release()
+                self.frameHandle()
+            except Queue.Empty:
+                self.player.clearInterval(self.currentFH)
+                self.currentFH = None
+                self.__lock.release()
+            except RuntimeError as detail:
+                log.log(1,"error",_("A runtime error occured: ") + str(detail))
+                self.__lock.release()
+            # TODO: Put this catchall back when finished debugging.
+            except:
+                   # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
+                   self.__lock.release()
+                   log.log(0,"audit",str(cmd) + " : " + str(data))
+        except AttributeError:
+            log.log(0,"error","Caught that thing that makes the player crash on startup!")
+            
+            
 class XiboClient:
     "Main Xibo DisplayClient Class. May (in time!) host many DisplayManager classes"
 

@@ -55,8 +55,7 @@ class TickerMedia(BrowserMediaAnimatedBase):
             self.log.log(2,'error','%s Error parsing out the template from the xlf' % self.mediaNodeName)
             return
 
-        # TODO: Fix the hardcoded path
-        self.feed = feedparser.parse(os.path.join("data", self.mediaId + '-cache.xml'))
+        self.feed = feedparser.parse(os.path.join(self.libraryDir, self.mediaId) + '-cache.xml')
         self.log.log(5,"audit","Feed parsed")
 
         if self.feed != None:
@@ -128,15 +127,23 @@ class TickerMedia(BrowserMediaAnimatedBase):
                     itemDetails.append(('Author',u''))
                 
                 try:
-                    itemDetails.append(('Date',item['updated']))
+                    itemDetails.append(('Date',item['updated_parsed']))
                 except:
-                    itemDetails.append(('Date',u''))
+                    try:
+                        itemDetails.append(('Date',item['updated']))
+                    except:
+                        itemDetails.append(('Date',u''))
                 
                 # Get a copy of the item template (from XLF)
                 tmpItem = self.template
                 
                 # Loop over the array and attempt to replace each key in tmpItem
                 for field in itemDetails:
+                    if field[0] == 'Date':
+                        try:
+                            field = (field[0],time.strftime(self.config.get('TickerMedia','dateFormat'),field[1]))
+                        except:
+                            pass
                     tmpItem = tmpItem.replace("[%s]" % field[0], field[1])
                 
                 for field in feedDetails:
@@ -144,7 +151,7 @@ class TickerMedia(BrowserMediaAnimatedBase):
 
                 
                 content.append(tmpItem)
-                                
+                
         return content
         
     def download(self):
@@ -153,10 +160,9 @@ class TickerMedia(BrowserMediaAnimatedBase):
         i = 0
         flag = False
         
-        # If data/self.mediaId-cache.xml exists then check if it's too old to use
-        # TODO: This needs to be tested.
+        # If libraryDir/self.mediaId-cache.xml exists then check if it's too old to use
         try:
-    	    mtime = os.path.getmtime(os.path.join('data',self.mediaId + '-cache.xml'))
+    	    mtime = os.path.getmtime(os.path.join(self.libraryDir,self.mediaId + '-cache.xml'))
             if time.time() < (mtime + (int(self.options['updateInterval']) * 60)):
                 return
         except:
@@ -172,18 +178,16 @@ class TickerMedia(BrowserMediaAnimatedBase):
                 finally:
                     f.close()
             except:
-                tries =+ 1
                 self.log.log(1,"error",_("Unable to load from URL %s") %  self.options['uri'])
+            i += 1
         
         if flag:
             try:
                 try:
-                    #TODO: Fix hardcoded path
-                    f = open(os.path.join('data',self.mediaId + '-cache.xml'),'w')
+                    f = open(os.path.join(self.libraryDir,self.mediaId) + '-cache.xml','w')
                     f.write(s)
                 finally:
                     f.close()
             except:
-                # TODO: Fix hardcoded path
-                self.log.log(0,"error",_("Unable to write %s") % os.path.join('data',self.mediaId + '-cache.xml'))
+                self.log.log(0,"error",_("Unable to write %s") % os.path.join(self.libraryDir,self.mediaId) + '-cache.xml')
 

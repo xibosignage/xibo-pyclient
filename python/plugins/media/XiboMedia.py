@@ -22,17 +22,18 @@
 #
 
 from threading import Thread
+import os
 
 class XiboMedia(Thread):
     "Abstract Class - Interface for Media"
 
-    def __init__(self,log,parent,player,mediaNode):
+    def __init__(self,log,config,parent,player,mediaNode):
         """
         Represents a media item. Can be constructed with valid parent (RegionManager) and Player objects - by a real running layout
         or with None types when the Layout object is interegated to find out if all the media nodes are in a state ready to run.
         """
         Thread.__init__(self)
-        self.__setupMedia__(log,parent,player,mediaNode)
+        self.__setupMedia__(log,config,parent,player,mediaNode)
 
     def requiredFiles(self):
         return []
@@ -40,10 +41,11 @@ class XiboMedia(Thread):
     def add(self):
         pass
 
-    def __setupMedia__(self,log,parent,player,mediaNode):
+    def __setupMedia__(self,log,config,parent,player,mediaNode):
         log.log(6,"info",self.__class__.__name__ + " plugin loaded!")
         self.log = log
         self.parent = parent
+        self.config = config
         self.p = player
         self.mediaNode = mediaNode
         self.mediaNodeName = None
@@ -58,6 +60,8 @@ class XiboMedia(Thread):
             self.scaleFactor = self.parent.parent.l.scaleFactor
         except:
             self.scaleFactor = 1.0
+        
+        self.libraryDir = os.path.abspath(self.config.get('Main','libraryDir'))
 
         if self.p == None:
             self.regionNodeName = 'null'

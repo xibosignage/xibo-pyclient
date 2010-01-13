@@ -28,7 +28,7 @@ import sys, os, codecs
 class BrowserMediaBase(XiboMedia):
         
     def add(self):
-        self.tmpPath = "data" + os.sep + self.mediaNodeName + "-tmp.html"
+        self.tmpPath = os.path.join(self.libraryDir,self.mediaNodeName + "-tmp.html")
         tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + '"/>'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
@@ -61,14 +61,12 @@ class BrowserMediaBase(XiboMedia):
         
         try:
             try:
-                #TODO: Fix hardcoded path
                 f = codecs.open(self.tmpPath,mode='w',encoding="utf-8")
                 f.write(tmpHtml)
                 tmpHtml = None
             finally:
                 f.close()
         except:
-            # TODO: Fix hardcoded path
             self.log.log(0,"error","Unable to write " + self.tmpPath)
             self.parent.next()
             return
@@ -85,7 +83,7 @@ class BrowserMediaBase(XiboMedia):
         try:
             os.remove(self.tmpPath)
         except:
-            self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))  
+            self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))
         self.parent.next()
 	
     def dispose(self):

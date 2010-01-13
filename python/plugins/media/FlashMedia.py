@@ -32,8 +32,7 @@ class FlashMedia(BrowserMediaBase):
         """ Returns a string of content to inject in to the page """
         content = ""
         
-        # TODO: Fix hardcoded path
-        swfURI = "file://" + os.path.abspath(os.path.join("data",self.options['uri']))
+        swfURI = "file://" + os.path.abspath(os.path.join(self.libraryDir,self.options['uri']))
         
         content += '<object width="%d" height="%d">\n' % (self.width ,self.height)
         content += '  <param name="movie" value="%s">\n' % swfURI

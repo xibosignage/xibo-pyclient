@@ -23,11 +23,12 @@
 
 from XiboMedia import XiboMedia
 from threading import Thread
+import os
 
 class VideoMedia(XiboMedia):
     def add(self):
-        # TODO: Fix the hardcoded path data/
-        tmpXML = '<video href="data/' + str(self.options['uri']) + '" id="' + self.mediaNodeName + '" opacity="0" />'
+        video = os.path.join(self.libraryDir,self.options['uri'])
+        tmpXML = str('<video href="%s" id="%s" opacity="0" />' % (video,self.mediaNodeName))
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
     def run(self):

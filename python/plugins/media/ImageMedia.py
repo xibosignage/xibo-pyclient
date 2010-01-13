@@ -25,14 +25,27 @@ from XiboMedia import XiboMedia
 from threading import Thread
 import os
 from libavg import avg
+from PIL import Image
 
 class ImageMedia(XiboMedia):
     def add(self):
-    	# TODO: Fix the hardcoded path data/
+
         tmpXML = '<image id="' + self.mediaNodeName + '" opacity="0" />'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
-        bitmap = avg.Bitmap(os.path.join('data',self.options['uri']))
-    	self.p.enqueue('setBitmap',(self.mediaNodeName, bitmap))
+        
+        w = int(self.width) + 1
+        h = int(self.height) + 1
+        fName = os.path.join(self.libraryDir,self.options['uri'])
+        thumb = os.path.join(self.libraryDir,'scaled',self.options['uri']) + "-%dx%d" % (w,h)
+        if not os.path.exists(thumb) or (os.path.getmtime(thumb) < os.path.getmtime(fName)):
+            self.log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.mediaNodeName,self.options['uri'],w,h))
+            image = Image.open(fName)
+            image.thumbnail((w,h),Image.ANTIALIAS)
+            image.save(thumb, image.format)
+            del image
+
+        bitmap = avg.Bitmap(thumb)
+      	self.p.enqueue('setBitmap',(self.mediaNodeName, bitmap))
         self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height,'centre','centre'))
 
     def run(self):
