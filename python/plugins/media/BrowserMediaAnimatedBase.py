@@ -40,6 +40,12 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             if self.options['direction'] == 'left' or self.options['direction'] == 'right':
                 tmpItem = tmpItem.replace('<p>','')
                 tmpItem = tmpItem.replace('</p>','')
+                tmpItem = tmpItem.replace('<p/>','')
+                tmpItem = tmpItem.replace('<br>','')
+                tmpItem = tmpItem.replace('<br/>','')
+                tmpItem = tmpItem.replace('<div>','')
+                tmpItem = tmpItem.replace('</div>','')
+                tmpItem = tmpItem.replace('<div/>','')
                 
                 tmpItem = "<span class='article' style='padding-left:4px;'>%s</span>" % tmpItem
                 if count < len(items):
