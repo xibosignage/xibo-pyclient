@@ -1096,7 +1096,7 @@ class XiboLayoutManager(Thread):
 
     def run(self):
         self.isPlaying = True
-        log.log(6,"info",_("XiboLayoutManager instance running."))
+        log.log(6,"info",_("%s XiboLayoutManager instance running.") % self.l.layoutID)
 
         # Add a DIV to contain the whole layout (for transitioning whole layouts in to one another)
         # TODO: Take account of the zindex parameter for transitions. Should this layout sit on top or underneath?
@@ -2464,9 +2464,9 @@ class XiboPlayer(Thread):
                 elif cmd == "anim":
                     currentNode = self.player.getElementByID(data[1])
                     if data[0] == "fadeIn":
-                        animation = anim.fadeIn(currentNode,data[2])
+                        animation = avg.fadeIn(currentNode,data[2],1,data[3])
                     if data[0] == "fadeOut":
-                        animation = anim.fadeOut(currentNode,data[2])
+                        animation = avg.fadeOut(currentNode,data[2],1,data[3])
                     if data[0] == "linear":
                         animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
                 elif cmd == "play":
