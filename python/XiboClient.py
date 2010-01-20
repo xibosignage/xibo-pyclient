@@ -1134,7 +1134,7 @@ class XiboLayoutManager(Thread):
             self.p.enqueue('add',(tmpXML,self.layoutNodeName))
             
             bitmap = avg.Bitmap(self.l.backgroundImage)
-        	self.p.enqueue('setBitmap',("bg%s" % self.layoutNodeNameExt, bitmap))
+            self.p.enqueue('setBitmap',("bg%s" % self.layoutNodeNameExt, bitmap))
 
         # Break layout in to regions
         # Spawn a region manager for each region and then start them all running
