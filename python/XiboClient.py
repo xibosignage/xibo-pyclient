@@ -1123,12 +1123,13 @@ class XiboLayoutManager(Thread):
             thumb = os.path.join(config.get('Main','libraryDir'),'scaled',self.l.backgroundImage) + "-%dx%d" % (w,h)
             
             if not os.path.exists(thumb) or (os.path.getmtime(thumb) < os.path.getmtime(fName)):
-                log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.layoutNodeName,self.l.backgroundImage,w,h))
+                log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.layoutNodeName,fName,w,h))
                 image = PIL.Image.open(fName)
                 image.resize((w,h),PIL.Image.ANTIALIAS)
                 image.save(thumb, image.format)
                 del image
-                self.l.backgroundImage = thumb
+            
+            self.l.backgroundImage = thumb
                 
             tmpXML = str('<image width="%d" height="%d" id="bg%s" opacity="1.0" />' % (self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt))
             self.p.enqueue('add',(tmpXML,self.layoutNodeName))
