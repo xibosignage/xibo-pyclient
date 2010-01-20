@@ -46,6 +46,7 @@ from collections import defaultdict
 from threading import Thread, Semaphore
 import threading
 import urlparse
+import PIL.Image
 
 version = "1.1.0a20"
 #TODO: Change to 2!
@@ -1114,7 +1115,22 @@ class XiboLayoutManager(Thread):
         self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
         if self.l.backgroundImage != None:
-            tmpXML = str('<image href="%s" width="%d" height="%d" id="bg%s" opacity="1.0" />' % (os.path.join(config.get('Main','libraryDir'),self.l.backgroundImage),self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt))
+            
+            w = self.l.sWidth + 1
+            h = self.l.sHeight + 1
+            
+            fName = os.path.join(config.get('Main','libraryDir'),self.l.backgroundImage)
+            thumb = os.path.join(config.get('Main','libraryDir'),'scaled',self.l.backgroundImage) + "-%dx%d" % (w,h)
+            
+            if not os.path.exists(thumb) or (os.path.getmtime(thumb) < os.path.getmtime(fName)):
+                log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.layoutNodeName,self.l.backgroundImage,w,h))
+                image = PIL.Image.open(fName)
+                image.resize((w,h),PIL.Image.ANTIALIAS)
+                image.save(thumb, image.format)
+                del image
+                self.l.backgroundImage = thumb
+                
+            tmpXML = str('<image href="%s" width="%d" height="%d" id="bg%s" opacity="1.0" />' % (self.l.backgroundImage,self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt))
             self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
         # Break layout in to regions
