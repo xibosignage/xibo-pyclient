@@ -1116,8 +1116,8 @@ class XiboLayoutManager(Thread):
 
         if self.l.backgroundImage != None:
             
-            w = self.l.sWidth + 1
-            h = self.l.sHeight + 1
+            w = (self.l.sWidth + 1) * 1.1
+            h = (self.l.sHeight + 1) * 1.1
             
             fName = os.path.join(config.get('Main','libraryDir'),self.l.backgroundImage)
             thumb = os.path.join(config.get('Main','libraryDir'),'scaled',self.l.backgroundImage) + "-%dx%d" % (w,h)
@@ -1125,7 +1125,7 @@ class XiboLayoutManager(Thread):
             if not os.path.exists(thumb) or (os.path.getmtime(thumb) < os.path.getmtime(fName)):
                 log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.layoutNodeName,fName,w,h))
                 image = PIL.Image.open(fName)
-                image.resize((w,h),PIL.Image.ANTIALIAS)
+                image.thumbnail((w,h),PIL.Image.ANTIALIAS)
                 image.save(thumb, image.format)
                 del image
             
