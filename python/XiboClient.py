@@ -1116,16 +1116,29 @@ class XiboLayoutManager(Thread):
 
         if self.l.backgroundImage != None:
             
-            w = (self.l.sWidth + 1) * 1.1
-            h = (self.l.sHeight + 1) * 1.1
-            
+            # If there's a backgroud image, scale it to preserve texture memory
+            # If lowTextureMemory is true (eg on Intel Graphics Cards), use Thumbnail to
+            # produce much smaller image sizes.
+
+            if config.get('Main','lowTextureMemory') == "true":
+                w = (self.l.sWidth + 1) * 1.1
+                h = (self.l.sHeight + 1) * 1.1
+            else:
+                w = self.l.sWidth + 1
+                h = self.l.sHeight + 1
+                
             fName = os.path.join(config.get('Main','libraryDir'),self.l.backgroundImage)
             thumb = os.path.join(config.get('Main','libraryDir'),'scaled',self.l.backgroundImage) + "-%dx%d" % (w,h)
-            
+
             if not os.path.exists(thumb) or (os.path.getmtime(thumb) < os.path.getmtime(fName)):
                 log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.layoutNodeName,fName,w,h))
                 image = PIL.Image.open(fName)
-                image.thumbnail((w,h),PIL.Image.ANTIALIAS)
+                
+                if config.get('Main','lowTextureMemory') == "true":
+                    image.thumbnail((w,h),PIL.Image.ANTIALIAS)
+                else:
+                    image.resize((w,h),PIL.Image.ANTIALIAS)
+                    
                 image.save(thumb, image.format)
                 del image
             
