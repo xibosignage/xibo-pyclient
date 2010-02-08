@@ -2064,7 +2064,7 @@ class XMDS:
                 log.log(0,"error","KeyError: " + str(err))
                 log.lights('Log','red')
                 raise XMDSException("SubmitLog: Key error connecting to XMDS.")
-           except AttributeError, err:
+            except AttributeError, err:
                 log.lights('Log','red')
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
