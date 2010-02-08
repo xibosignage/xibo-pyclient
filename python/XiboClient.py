@@ -2381,6 +2381,19 @@ class XiboPlayer(Thread):
         else:
             self.player.setResolution(False,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
 
+        try:
+            if int(config.get('Main','fps')) > 0:
+                fps = int(config.get('Main','fps'))
+                self.player.setFramerate(fps)
+        except ValueError:
+            log.log(0,"error",_("Your configuration for fps is incorrect. Main->FPS should be an integer value."))
+            log.log(0,"error",_("Using 60fps as a default."))            
+            fps = 60
+            self.player.setFramerate(fps)
+        except ConfigParser.NoOptionError:
+            pass
+        
+
         # Load the BrowserNode plugin
         self.player.loadPlugin("libbrowsernode")
         
