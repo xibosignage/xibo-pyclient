@@ -2023,6 +2023,11 @@ class XMDS:
                 log.lights('RF','red')
                 log.log(0,"error",str(err))
                 raise XMDSException("RequiredFiles: socket error connecting to XMDS.")
+            except AttributeError, err:
+                log.lights('RF','red')
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("RequiredFiles: webservice not initialised")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('RF','grey')
@@ -2059,6 +2064,11 @@ class XMDS:
                 log.log(0,"error","KeyError: " + str(err))
                 log.lights('Log','red')
                 raise XMDSException("SubmitLog: Key error connecting to XMDS.")
+           except AttributeError, err:
+                log.lights('Log','red')
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("RequiredFiles: webservice not initialised")
             except:
                 print("SubmitLog: An unexpected error occured.")
                 log.lights('Log','red')
@@ -2094,6 +2104,11 @@ class XMDS:
                 log.log(0,"error","KeyError: " + str(err))
                 log.lights('Stat','red')
                 raise XMDSException("SubmitStats: Key error connecting to XMDS.")
+            except AttributeError, err:
+                log.lights('Stat','red')
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("RequiredFiles: webservice not initialised")
             except:
                 print("SubmitStats: An unexpected error occured.")
                 log.lights('Stat','red')
@@ -2127,6 +2142,11 @@ class XMDS:
                 log.log(0,"error",str(err))
                 log.lights('S','red')
                 raise XMDSException("Schedule: socket error connecting to XMDS.")
+            except AttributeError, err:
+                log.lights('S','red')
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("RequiredFiles: webservice not initialised")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('S','grey')
@@ -2156,6 +2176,11 @@ class XMDS:
                 log.log(0,"error",str(err))
                 log.lights('GF','red')
                 raise XMDSException("GetFile: socket error connecting to XMDS.")
+            except AttributeError, err:
+                log.lights('GF','red')
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("RequiredFiles: webservice not initialised")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('GF','grey')
@@ -2196,6 +2221,10 @@ class XMDS:
                     except socket.error, err:
                         log.lights('RD','red')
                         log.log(0,"error",str(err))
+                    except AttributeError, err:
+                        log.lights('RD','red')
+                        log.log(0,"error",str(err))
+                        self.hasInitialised = False
 
                 if regReturn != regOK:
                     # We're not licensed. Sleep 20 * tries seconds and try again.
@@ -2220,6 +2249,10 @@ class XMDS:
                 except socket.error, err:
                     log.lights('RD','red')
                     log.log(0,"error",str(err))
+                except AttributeError, err:
+                    log.lights('RF','red')
+                    log.log(0,"error",str(err))
+                    self.hasInitialised = False
 
 #### Finish Websevrvice
 
