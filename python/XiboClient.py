@@ -1142,12 +1142,10 @@ class XiboLayoutManager(Thread):
                 image.save(thumb, image.format)
                 del image
             
-            self.l.backgroundImage = thumb
-                
             tmpXML = str('<image width="%d" height="%d" id="bg%s" opacity="1.0" />' % (self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt))
             self.p.enqueue('add',(tmpXML,self.layoutNodeName))
             
-            bitmap = avg.Bitmap(self.l.backgroundImage)
+            bitmap = avg.Bitmap(thumb)
             self.p.enqueue('setBitmap',("bg%s" % self.layoutNodeNameExt, bitmap))
 
         # Break layout in to regions
