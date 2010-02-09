@@ -1272,7 +1272,7 @@ class XiboRegionManager(Thread):
 
         # Calculate the region width
         try:
-            self.width = int(self.regionNode.attributes['width'].value) * parent.l.scaleFactor
+            self.width = float(self.regionNode.attributes['width'].value) * parent.l.scaleFactor
         except KeyError:
             log.log(1,"error",_("Region XLF is invalid. Missing required width attribute"))
             self.regionExpired = True
@@ -1281,7 +1281,7 @@ class XiboRegionManager(Thread):
 
         # Calculate the region height
         try:
-            self.height =  int(self.regionNode.attributes['height'].value) * parent.l.scaleFactor
+            self.height =  float(self.regionNode.attributes['height'].value) * parent.l.scaleFactor
         except KeyError:
             log.log(1,"error",_("Region XLF is invalid. Missing required height attribute"))
             self.regionExpired = True
@@ -1290,7 +1290,7 @@ class XiboRegionManager(Thread):
 
         # Calculate the region top
         try:
-            self.top = int(self.regionNode.attributes['top'].value) * parent.l.scaleFactor
+            self.top = float(self.regionNode.attributes['top'].value) * parent.l.scaleFactor
         except KeyError:
             log.log(1,"error",_("Region XLF is invalid. Missing required top attribute"))
             self.regionExpired = True
@@ -1299,7 +1299,7 @@ class XiboRegionManager(Thread):
 
         # Calculate the region left
         try:
-            self.left = int(self.regionNode.attributes['left'].value) * parent.l.scaleFactor
+            self.left = float(self.regionNode.attributes['left'].value) * parent.l.scaleFactor
         except KeyError:
             log.log(1,"error",_("Region XLF is invalid. Missing required left attribute"))
             self.regionExpired = True
@@ -1308,7 +1308,7 @@ class XiboRegionManager(Thread):
 
         # Get region zindex
         try:
-            self.zindex = int(self.regionNode.attributes['zindex'].value)
+            self.zindex = int(float(self.regionNode.attributes['zindex'].value))
         except KeyError:
             self.zindex = 1
         
