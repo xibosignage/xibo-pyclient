@@ -1984,6 +1984,7 @@ class XMDS:
                 try:
                     self.server = WSDL.Proxy(self.wsdlFile)
                     self.hasInitialised = True
+                    log.log(2,"info",_("Connected to XMDS via WSDL at %s") % self.wsdlFile)
                 except xml.parsers.expat.ExpatError:
                     log.log(0,"error",_("Could not connect to XMDS."))
             # End While
