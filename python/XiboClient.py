@@ -48,7 +48,12 @@ import threading
 import urlparse
 import PIL.Image
 
-version = "1.1.0a20"
+
+version = "1.1.0a21"
+
+#TODO: Should this be moved in to the lift scheduler?
+import serial
+
 #TODO: Change to 2!
 schemaVersion = 1
 
@@ -73,7 +78,7 @@ class XiboLog:
         # Logo + version bottom right
         tmpXML = '<image href="resources/logo.png" id="infoLOGO" opacity="1" width="50" height="18" x="345" y="276" />'
         self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<words x="280" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" fontsize="12" />'
+        tmpXML = '<words x="290" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" fontsize="12" />'
         self.p.enqueue('add',(tmpXML,'info'))
         
         # Required Files Traffic Light
@@ -161,6 +166,83 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         tmpXML = '<words id="infoDisk" x="75" y="18" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
         self.p.enqueue('add',(tmpXML,'info'))
+
+        # Lift Traffic Lights
+        tmpXML = '<image href="resources/dotgrey.png" id="infoLift1Grey" opacity="1" width="10" height="10" x="165" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoLift1Red" opacity="0" width="10" height="10" x="165" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoLift1Amber" opacity="0" width="10" height="10" x="165" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoLift1Green" opacity="0" width="10" height="10" x="165" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        tmpXML = '<image href="resources/dotgrey.png" id="infoLift2Grey" opacity="1" width="10" height="10" x="180" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoLift2Red" opacity="0" width="10" height="10" x="180" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoLift2Amber" opacity="0" width="10" height="10" x="180" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoLift2Green" opacity="0" width="10" height="10" x="180" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        tmpXML = '<image href="resources/dotgrey.png" id="infoLift3Grey" opacity="1" width="10" height="10" x="195" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoLift3Red" opacity="0" width="10" height="10" x="195" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.p9ng" id="infoLift3Amber" opacity="0" width="10" height="10" x="195" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoLift3Green" opacity="0" width="10" height="10" x="195" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+
+        tmpXML = '<image href="resources/dotgrey.png" id="infoLift4Grey" opacity="1" width="10" height="10" x="210" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoLift4Red" opacity="0" width="10" height="10" x="210" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoLift4Amber" opacity="0" width="10" height="10" x="210" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoLift4Green" opacity="0" width="10" height="10" x="210" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        tmpXML = '<image href="resources/dotgrey.png" id="infoLift5Grey" opacity="1" width="10" height="10" x="225" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoLift5Red" opacity="0" width="10" height="10" x="225" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoLift5Amber" opacity="0" width="10" height="10" x="225" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoLift5Green" opacity="0" width="10" height="10" x="225" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        tmpXML = '<image href="resources/dotgrey.png" id="infoLift6Grey" opacity="1" width="10" height="10" x="240" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoLift6Red" opacity="0" width="10" height="10" x="240" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoLift6Amber" opacity="0" width="10" height="10" x="240" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoLift6Green" opacity="0" width="10" height="10" x="240" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        tmpXML = '<image href="resources/dotgrey.png" id="infoLift7Grey" opacity="1" width="10" height="10" x="255" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoLift7Red" opacity="0" width="10" height="10" x="255" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoLift7Amber" opacity="0" width="10" height="10" x="255" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoLift7Green" opacity="0" width="10" height="10" x="255" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        
+        tmpXML = '<image href="resources/dotgrey.png" id="infoLift8Grey" opacity="1" width="10" height="10" x="270" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotred.png" id="infoLift8Red" opacity="0" width="10" height="10" x="270" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotamber.png" id="infoLift8Amber" opacity="0" width="10" height="10" x="270" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+        tmpXML = '<image href="resources/dotgreen.png" id="infoLift8Green" opacity="0" width="10" height="10" x="270" y="285" />'
+        self.p.enqueue('add',(tmpXML,'info'))
+
+        # Lift Tag
+        tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: default" font="Arial" color="000000" fontsize="11" />'
+        self.p.enqueue('add',(tmpXML,'info'))
         
         # Schedule
         tmpXML = '<words x="5" y="75" opacity="1" text="Schedule" font="Arial" color="000000" fontsize="14" />'
@@ -242,6 +324,11 @@ class XiboLog:
             if size < 1024.0:
                 return "%3.1f %s" % (size, x)
             size /= 1024.0
+            
+    def updateLift(self,tag):
+        self.p.enqueue('del','infoLiftTag')
+        tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: ' + tag + '" font="Arial" color="000000" size="11" />'
+        self.p.enqueue('add',(tmpXML,'info'))
 
 class XiboScheduler(Thread):
     "Abstract Class - Interface for Schedulers"
@@ -1415,8 +1502,9 @@ class XiboRegionManager(Thread):
                             except AttributeError:
                                 pass
 
-                            # Wait for the new media to finish
-                            self.lock.acquire()
+                            if self.disposing == False and self.disposed == False:
+                                # Wait for the new media to finish
+                                self.lock.acquire()
                             self.previousMedia = self.currentMedia
                             self.currentMedia = None
                         except ImportError as detail:
@@ -1653,6 +1741,15 @@ class XiboLayout:
                 log.log(0,"error",_("Plugin missing for media in layout ") + self.layoutID)
                 return
             self.media = self.media + tmpMedia.requiredFiles()
+        
+        # Find all the tag nodes
+        tagNodes = self.doc.getElementsByTagName('tag')
+        
+        # Iterate over the tag nodes and extract the tags
+        for tag in tagNodes:
+            self.tags.append(str(tag.firstChild.nodeValue))
+        
+        log.log(3,"info","Layout " + str(self.layoutID) + " has tags: " + str(self.tags)) 
 
     def canRun(self):
         # See if we were built with no XLF
@@ -1754,6 +1851,8 @@ class XmdsScheduler(XiboScheduler):
         self.p = player
         self.__collectLock = Semaphore()
         self.__collectLock.acquire()
+        
+        self.validTag = "default"
 
     def run(self):
         while self.running:
@@ -1854,7 +1953,8 @@ class XmdsScheduler(XiboScheduler):
         while count < len(self):
             self.__pointer = (self.__pointer + 1) % len(self)
             tmpLayout = self.__layouts[self.__pointer]
-            if tmpLayout.canRun():
+            
+            if tmpLayout.canRun() and self.validTag in tmpLayout.tags:
                 log.updateNowPlaying(str(tmpLayout.layoutID))
                 self.__lock.release()
                 return tmpLayout
@@ -1870,6 +1970,219 @@ class XmdsScheduler(XiboScheduler):
         log.log(3,"info",_("XmdsScheduler: hasNext() -> true"))
         return True
 #### Finish Scheduler Classes
+
+#### Switch Input Watcher ####
+class SwitchWatcher(Thread):
+    
+    def __init__(self,scheduler,displayManager):
+        Thread.__init__(self)
+        self.scheduler = scheduler
+        self.displayManager = displayManager
+        self.tags = []
+        self.liftStack = Queue.LifoQueue()
+        
+        try:
+            self.defaultTag = config.get('LiftTags','default')
+        except ConfigParser.NoOptionError:
+            self.defaultTag = "default"
+            log.log(0,"error",_("No LiftTags.default specified in your configuration. Defaulting to 'default'."))
+        
+        for i in range(0,7):
+            try:
+                self.tags.append(str(config.get('LiftTags','lift' + str(i))))
+            except ConfigParser.NoOptionError:
+                self.tags.append("lift" + str (i + 1))
+                log.log(0,"error",_("No LiftTags.lift" + str(i) + " specified in your configuration. Defaulting to 'lift" + str(i + 1) + "'."))
+        
+        try:
+            self.serialPort0 = config.get('Lift','serial0')
+        except:
+            self.serialPort0 = '/dev/ttyUSB0'
+        
+        try:
+            self.serialPort1 = config.get('Lift','serial1')
+        except:
+            self.serialPort1 = '/dev/ttyUSB1'
+        
+    def run(self):
+        
+        state = [False,False,False,False,False,False,False,False]
+        stats = ["","","","","","","",""]
+        liftHistory = [0,0,0,0,0,0,0,0]
+
+        ser0 = None
+        ser1 = None
+        
+        trigger = None
+        try:
+            trigger = int(config.get('Lift','trigger'))
+        except:
+            trigger = 3
+        
+        try:
+            ser0 = serial.Serial(self.serialPort0)
+        except serial.SerialException:
+            log.log(0,"error","Unable to open configured serial port. Switch interface disabled: " + self.serialPort0)
+            log.lights('Lift1','red')
+            log.lights('Lift2','red')
+            log.lights('Lift3','red')
+            log.lights('Lift4','red')
+            ser0 = False
+        
+        try:
+            ser1 = serial.Serial(self.serialPort1)
+        except serial.SerialException:
+            log.log(0,"error","Unable to open configured serial port. Switch interface disabled: " + self.serialPort1)
+            log.lights('Lift5','red')
+            log.lights('Lift6','red')
+            log.lights('Lift7','red')
+            log.lights('Lift8','red')
+            ser1 = False
+            if ser0 == False:
+                # No lifts are active. Quit now.
+                return
+        
+        # Figure out which numbers to loop over
+        if ser0 and ser1:
+            # ie 0,4
+            rS=0
+            rF=5
+            rD=4
+        else:
+            if ser0:
+                # ie 0
+                rS=0
+                rF=1
+                rD=4
+            
+            if ser1:
+                # ie 4
+                rS=4
+                rF=5
+                rD=4
+        
+        while True:
+            flag = False
+            offFlag = False
+            activeLift = None
+            
+            for i in range(rS,rF,rD):
+                if i == 0:
+                    ser = ser0
+                else:
+                    ser = ser1
+                    
+                if ser.getCD() == state[i]:
+                    if not state[i]:
+                        if liftHistory[i] < trigger:
+                            liftHistory[i] += 1
+                        if liftHistory[i] == trigger:
+                            activeLift = i
+                            log.lights('Lift' + str(i + 1),'green')
+                            flag = True
+                            state[i] = True
+                            stats[i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                    else:
+                        if liftHistory[i] > 0:
+                            liftHistory[i] -= 1
+                        if liftHistory[i] == 0:
+                            log.lights('Lift' + str(i + 1),'grey')
+                            state[i] = False
+                            log.stat('event', stats[i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i], "", "", "")
+                            offFlag = True                            
+                if ser.getDSR() == state[1 + i]:
+                    if not state[1 + i]:
+                        if liftHistory[1 + i] < trigger:
+                            liftHistory[1 + i] += 1
+                        if liftHistory[1 + i] == trigger:
+                            activeLift = i + 1
+                            log.lights('Lift' + str(i + 2),'green')
+                            flag = True
+                            state[1 + i] = True
+                            stats[1 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                    else:
+                        if liftHistory[1 + i] > 0:
+                            liftHistory[1 + i] -= 1
+                        if liftHistory[1 + i] == 0:
+                            log.lights('Lift' + str(i + 2),'grey')
+                            state[1 + i] = False
+                            log.stat('event', stats[1 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+1], "", "", "")
+                            offFlag = True
+                if ser.getCTS() == state[2 + i]:
+                    if not state[2 + i]:
+                        if liftHistory[2 + i] < trigger:
+                            liftHistory[2 + i] += 1
+                        if liftHistory[2 + i] == trigger:
+                            activeLift = i + 2
+                            flag = True
+                            log.lights('Lift' + str(i + 3),'green')
+                            state[2 + i] = True
+                            stats[2 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                    else:
+                        if liftHistory[2 + i] > 0:
+                            liftHistory[2 + i] -= 1
+                        if liftHistory[2 + i] == 0:
+                            log.lights('Lift' + str(i + 3),'grey')
+                            state[2 + i] = False
+                            log.stat('event', stats[2 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+2], "", "", "")
+                            offFlag = True
+                if ser.getRI() == state[3 + i]:
+                    if not state[3 + i]:
+                        if liftHistory[3 + i] < trigger:
+                            liftHistory[3 + i] += 1
+                        if liftHistory[3 + i] == trigger:
+                            activeLift = i + 3
+                            flag = True
+                            log.lights('Lift' + str(i + 4),'green')
+                            state[3 + i] = True
+                            stats[3 + i] = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+                    else:
+                        if liftHistory[3 + i] > 0:
+                            liftHistory[3 + i] -= 1
+                        if liftHistory[3 + i] == 0:                        
+                            log.lights('Lift' + str(i + 4),'grey')
+                            state[3 + i] = False
+                            log.stat('event', stats[3 + i], str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())), self.tags[i+3], "", "", "")
+                            offFlag = True
+            
+            if flag:
+                log.updateLift(self.tags[activeLift])
+                self.scheduler.validTag = self.tags[activeLift]
+                self.liftStack.put(activeLift)
+                self.displayManager.currentLM.dispose()
+            
+            if offFlag:
+                # Work our way back down the stack of lift events until we reach a matching state
+                if not (state[0] or state[1] or state[2] or state[3] or state[4] or state[5] or state[6] or state[7]):
+                    # All the lifts are off. Reset the liftStack and show the default
+                    self.liftStack = Queue.LifoQueue()
+                    self.scheduler.validTag = self.defaultTag
+                    log.updateLift(self.scheduler.validTag)
+                    self.displayManager.currentLM.dispose()
+                else:
+                    # At least one lift is still up. 
+                    try:
+                        inFlag = True
+                        while inFlag:
+                            lastLift = self.liftStack.get(False)
+                            if state[lastLift] == True:
+                                # The lift is still active
+                                # Replace the item on the stack
+                                self.liftStack.put(lastLift)
+                                inFlag = False
+                                if not self.scheduler.validTag == self.tags[lastLift]:
+                                    self.scheduler.validTag = self.tags[lastLift]
+                                    log.updateLift(self.scheduler.validTag)
+                                    self.displayManager.currentLM.dispose()
+
+                    except Queue.Empty:
+                        # This shouldn't ever happen, but hey ho.
+                        pass
+                    
+            time.sleep(0.25)
+            
+    
+#### End Switch Input Watcher ####
 
 #### Webservice
 class XMDSException(Exception):
@@ -2339,6 +2652,10 @@ class XiboDisplayManager:
             log.log(0,"error",_("Please check your scheduler configuration."))
             exit(1)
         # End of scheduler init
+        
+        # Thread to watch the switch inputs and control the scheduler
+        self.switch = SwitchWatcher(self.scheduler,self)
+        self.switch.start()
 
         # Attempt to register with the webservice.
         # The RegisterDisplay code will block here if
