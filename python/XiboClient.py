@@ -51,9 +51,6 @@ import PIL.Image
 
 version = "1.1.0a21"
 
-#TODO: Should this be moved in to the lift scheduler?
-import serial
-
 #TODO: Change to 2!
 schemaVersion = 1
 
@@ -70,6 +67,19 @@ class XiboLog:
         pass
     def setupInfo(self,p):
         self.p = p
+        
+        try:
+            self.liftEnabled = config.get('Lift','enabled')
+            if self.liftEnabled == "false":
+                self.liftEnabled = False
+                log.log(3,"audit",_("Enabling lift functionality in Logger"))
+            else:
+                self.liftEnabled = True
+                log.log(3,"audit",_("Enabling lift functionality in Logger"))
+        except:
+            self.liftEnabled = False
+            log.log(3,"error",_("Lift->enabled not defined in configuration. Disabling lift functionality in Logger"))
+        
         # Populate the info screen
         # Background.
         tmpXML = '<rect fillcolor="ffffff" id="infoBG" fillopacity="0.75" size="(400,300)" />'
@@ -168,81 +178,82 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
 
         # Lift Traffic Lights
-        tmpXML = '<image href="resources/dotgrey.png" id="infoLift1Grey" opacity="1" width="10" height="10" x="165" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotred.png" id="infoLift1Red" opacity="0" width="10" height="10" x="165" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotamber.png" id="infoLift1Amber" opacity="0" width="10" height="10" x="165" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotgreen.png" id="infoLift1Green" opacity="0" width="10" height="10" x="165" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        
-        tmpXML = '<image href="resources/dotgrey.png" id="infoLift2Grey" opacity="1" width="10" height="10" x="180" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotred.png" id="infoLift2Red" opacity="0" width="10" height="10" x="180" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotamber.png" id="infoLift2Amber" opacity="0" width="10" height="10" x="180" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotgreen.png" id="infoLift2Green" opacity="0" width="10" height="10" x="180" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        
-        tmpXML = '<image href="resources/dotgrey.png" id="infoLift3Grey" opacity="1" width="10" height="10" x="195" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotred.png" id="infoLift3Red" opacity="0" width="10" height="10" x="195" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotamber.p9ng" id="infoLift3Amber" opacity="0" width="10" height="10" x="195" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotgreen.png" id="infoLift3Green" opacity="0" width="10" height="10" x="195" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        if self.liftEnabled:
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift1Grey" opacity="1" width="10" height="10" x="165" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift1Red" opacity="0" width="10" height="10" x="165" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift1Amber" opacity="0" width="10" height="10" x="165" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift1Green" opacity="0" width="10" height="10" x="165" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift2Grey" opacity="1" width="10" height="10" x="180" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift2Red" opacity="0" width="10" height="10" x="180" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift2Amber" opacity="0" width="10" height="10" x="180" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift2Green" opacity="0" width="10" height="10" x="180" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift3Grey" opacity="1" width="10" height="10" x="195" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift3Red" opacity="0" width="10" height="10" x="195" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift3Amber" opacity="0" width="10" height="10" x="195" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift3Green" opacity="0" width="10" height="10" x="195" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
 
-        tmpXML = '<image href="resources/dotgrey.png" id="infoLift4Grey" opacity="1" width="10" height="10" x="210" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotred.png" id="infoLift4Red" opacity="0" width="10" height="10" x="210" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotamber.png" id="infoLift4Amber" opacity="0" width="10" height="10" x="210" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotgreen.png" id="infoLift4Green" opacity="0" width="10" height="10" x="210" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        
-        tmpXML = '<image href="resources/dotgrey.png" id="infoLift5Grey" opacity="1" width="10" height="10" x="225" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotred.png" id="infoLift5Red" opacity="0" width="10" height="10" x="225" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotamber.png" id="infoLift5Amber" opacity="0" width="10" height="10" x="225" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotgreen.png" id="infoLift5Green" opacity="0" width="10" height="10" x="225" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        
-        tmpXML = '<image href="resources/dotgrey.png" id="infoLift6Grey" opacity="1" width="10" height="10" x="240" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotred.png" id="infoLift6Red" opacity="0" width="10" height="10" x="240" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotamber.png" id="infoLift6Amber" opacity="0" width="10" height="10" x="240" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotgreen.png" id="infoLift6Green" opacity="0" width="10" height="10" x="240" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        
-        tmpXML = '<image href="resources/dotgrey.png" id="infoLift7Grey" opacity="1" width="10" height="10" x="255" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotred.png" id="infoLift7Red" opacity="0" width="10" height="10" x="255" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotamber.png" id="infoLift7Amber" opacity="0" width="10" height="10" x="255" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotgreen.png" id="infoLift7Green" opacity="0" width="10" height="10" x="255" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        
-        tmpXML = '<image href="resources/dotgrey.png" id="infoLift8Grey" opacity="1" width="10" height="10" x="270" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotred.png" id="infoLift8Red" opacity="0" width="10" height="10" x="270" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotamber.png" id="infoLift8Amber" opacity="0" width="10" height="10" x="270" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
-        tmpXML = '<image href="resources/dotgreen.png" id="infoLift8Green" opacity="0" width="10" height="10" x="270" y="285" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift4Grey" opacity="1" width="10" height="10" x="210" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift4Red" opacity="0" width="10" height="10" x="210" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift4Amber" opacity="0" width="10" height="10" x="210" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift4Green" opacity="0" width="10" height="10" x="210" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift5Grey" opacity="1" width="10" height="10" x="225" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift5Red" opacity="0" width="10" height="10" x="225" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift5Amber" opacity="0" width="10" height="10" x="225" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift5Green" opacity="0" width="10" height="10" x="225" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift6Grey" opacity="1" width="10" height="10" x="240" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift6Red" opacity="0" width="10" height="10" x="240" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift6Amber" opacity="0" width="10" height="10" x="240" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift6Green" opacity="0" width="10" height="10" x="240" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift7Grey" opacity="1" width="10" height="10" x="255" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift7Red" opacity="0" width="10" height="10" x="255" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift7Amber" opacity="0" width="10" height="10" x="255" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift7Green" opacity="0" width="10" height="10" x="255" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift8Grey" opacity="1" width="10" height="10" x="270" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift8Red" opacity="0" width="10" height="10" x="270" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift8Amber" opacity="0" width="10" height="10" x="270" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift8Green" opacity="0" width="10" height="10" x="270" y="285" />'
+            self.p.enqueue('add',(tmpXML,'info'))
 
-        # Lift Tag
-        tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: default" font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+            # Lift Tag
+            tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: default" font="Arial" color="000000" fontsize="11" />'
+            self.p.enqueue('add',(tmpXML,'info'))
         
         # Schedule
         tmpXML = '<words x="5" y="75" opacity="1" text="Schedule" font="Arial" color="000000" fontsize="14" />'
@@ -326,8 +337,12 @@ class XiboLog:
             size /= 1024.0
             
     def updateLift(self,tag):
+        # Break out if lift is disabled
+        if not self.liftEnabled:
+            return
+        
         self.p.enqueue('del','infoLiftTag')
-        tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: ' + tag + '" font="Arial" color="000000" size="11" />'
+        tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: ' + tag + '" font="Arial" color="000000" fontsize="11" />'
         self.p.enqueue('add',(tmpXML,'info'))
 
 class XiboScheduler(Thread):
@@ -1747,7 +1762,10 @@ class XiboLayout:
         
         # Iterate over the tag nodes and extract the tags
         for tag in tagNodes:
-            self.tags.append(str(tag.firstChild.nodeValue))
+            try:
+                self.tags.append(str(tag.firstChild.nodeValue))
+            except AttributeError:
+                pass
         
         log.log(3,"info","Layout " + str(self.layoutID) + " has tags: " + str(self.tags)) 
 
@@ -1854,6 +1872,19 @@ class XmdsScheduler(XiboScheduler):
         
         self.validTag = "default"
 
+        try:
+            self.liftEnabled = config.get('Lift','enabled')
+            if self.liftEnabled == "false":
+                self.liftEnabled = False
+                log.log(3,"audit",_("Enabling lift functionality in XMDSScheduler"))
+            else:
+                self.liftEnabled = True
+                log.log(3,"audit",_("Enabling lift functionality in XMDSScheduler"))
+        except:
+            self.liftEnabled = False
+            log.log(3,"error",_("Lift->enabled not defined in configuration. Disabling lift functionality in XMDSScheduler"))
+        
+
     def run(self):
         while self.running:
             self.interval = 300
@@ -1954,12 +1985,20 @@ class XmdsScheduler(XiboScheduler):
             self.__pointer = (self.__pointer + 1) % len(self)
             tmpLayout = self.__layouts[self.__pointer]
             
-            if tmpLayout.canRun() and self.validTag in tmpLayout.tags:
-                log.updateNowPlaying(str(tmpLayout.layoutID))
-                self.__lock.release()
-                return tmpLayout
+            if self.liftEnabled:
+                if tmpLayout.canRun() and self.validTag in tmpLayout.tags:
+                    log.updateNowPlaying(str(tmpLayout.layoutID))
+                    self.__lock.release()
+                    return tmpLayout
+                else:
+                    count = count + 1
             else:
-                count = count + 1
+                if tmpLayout.canRun():
+                    log.updateNowPlaying(str(tmpLayout.layoutID))
+                    self.__lock.release()
+                    return tmpLayout
+                else:
+                    count = count + 1
         
         self.__lock.release()
         log.updateNowPlaying(str(tmpLayout.layoutID))
@@ -2005,6 +2044,7 @@ class SwitchWatcher(Thread):
             self.serialPort1 = '/dev/ttyUSB1'
         
     def run(self):
+        import serial
         
         state = [False,False,False,False,False,False,False,False]
         stats = ["","","","","","","",""]
@@ -2653,9 +2693,23 @@ class XiboDisplayManager:
             exit(1)
         # End of scheduler init
         
+        try:
+            self.liftEnabled = config.get('Lift','enabled')
+            if self.liftEnabled == "false":
+                self.liftEnabled = False
+                log.log(3,"audit",_("Enabling lift functionality in Logger"))
+            else:
+                self.liftEnabled = True
+                log.log(3,"audit",_("Enabling lift functionality in Logger"))
+        except:
+            self.liftEnabled = False
+            log.log(3,"error",_("Lift->enabled not defined in configuration. Disabling lift functionality in Logger"))
+
+        
         # Thread to watch the switch inputs and control the scheduler
-        self.switch = SwitchWatcher(self.scheduler,self)
-        self.switch.start()
+        if self.liftEnabled:
+            self.switch = SwitchWatcher(self.scheduler,self)
+            self.switch.start()
 
         # Attempt to register with the webservice.
         # The RegisterDisplay code will block here if
