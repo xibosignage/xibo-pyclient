@@ -18,7 +18,7 @@ xmdsUpdateInterval=900
 # Require a valid connection to the server for the client to start
 # If the server is unavailable or the client is unlicensed, sit
 # at the splash screen.
-requireXmds=False
+requireXmds=false
 
 # Width of the Xibo Client window to use (or screen width if fullscreen)
 width=960
