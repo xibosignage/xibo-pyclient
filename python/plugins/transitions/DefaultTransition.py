@@ -10,7 +10,7 @@
 # Xibo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
-# any later version. 
+# any later version.
 #
 # Xibo is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,7 +25,8 @@ from XiboTransition import XiboTransition
 from threading import Thread, Semaphore
 
 class DefaultTransition(XiboTransition):
-    "Abstract Class - Interface for Transitions"
+    "A non-transition to provide backwards compatibility with older layouts."
 
     def run(self):
-	self.callback()
+        self.callback()
+

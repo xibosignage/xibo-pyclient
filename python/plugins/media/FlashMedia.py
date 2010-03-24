@@ -34,11 +34,13 @@ class FlashMedia(BrowserMediaBase):
         
         swfURI = "file://" + os.path.abspath(os.path.join(self.libraryDir,self.options['uri']))
         
+        content += '<centre>\n'
         content += '<object width="%d" height="%d">\n' % (self.width ,self.height)
         content += '  <param name="movie" value="%s">\n' % swfURI
         content += '  <embed wmode="transparent" type="application/x-shockwave-flash" src="%s" width="%d" height="%d">\n' % (swfURI,self.width,self.height)
         content += '  </embed>\n'
         content += '</object>\n'
+        content += '</centre>\n'
         
         return content
     
