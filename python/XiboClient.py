@@ -1057,6 +1057,18 @@ class XiboDownloadThread(Thread):
         self.parent = parent
         self.offset = 0
         self.chunk = 512000
+        
+        # Server versions prior to 1.0.5 send an invalid md5sum for layouts that require
+        # the client to add a newline character to the returned layout to make it validate
+        # Should the client assume the server is pre-1.0.5?
+        try:
+            self.backCompat = config.get('Main','backCompatLayoutChecksums')
+            if self.backCompat == "false":
+                self.backCompat = False
+            else:
+                self.backCompat = True
+        except:
+            self.backCompat = False
 
     def run(self):
         # Manage downloading the appropriate type of file:
@@ -1150,7 +1162,10 @@ class XiboDownloadThread(Thread):
 
             try:
                 response = self.parent.xmds.GetFile(self.tmpFileName,self.tmpType,0,0)
-                fh.write(response)
+                if self.backCompat:
+                    fh.write(response + '\n')
+                else:
+                    fh.write(response)
                 fh.flush()
             except RuntimeError:
                 # TODO: Do something sensible
