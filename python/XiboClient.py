@@ -49,7 +49,7 @@ import urlparse
 import PIL.Image
 
 
-version = "1.1.0a21"
+version = "1.1.0a22"
 
 #TODO: Change to 2!
 schemaVersion = 1
