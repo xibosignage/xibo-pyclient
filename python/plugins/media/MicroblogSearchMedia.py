@@ -116,7 +116,8 @@ class MicroblogSearchMedia(XiboMedia):
             tmpPost = self.__posts[self.__pointer]
         self.__lock.release()
         
-        tmpHtml = "<html><body><font color=\"white\">%s</font></body></html>" % tmpPost[2]
+        # TODO: Get the template we get from the server and insert appropriate fields
+        tmpHtml = "<html><body><blockquote><font color=\"white\" face=\"Arial\" size=\"6\">%s</font></blockquote></body></html>" % tmpPost[2]
         
         try:
             try:
