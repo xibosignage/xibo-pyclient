@@ -26,9 +26,15 @@ from threading import Thread, Semaphore
 import sys, os, time, codecs
 import twython
 
+# Define costants to represent each service
+TWITTER = 0
+IDENTICA = 1
+
 class MicroblogSearchMedia(XiboMedia):
     def add(self):
         self.running = True
+        self.seq = 0
+        self.tmpPath = os.path.join(self.libraryDir,self.mediaNodeName + "-tmp.html")
         
         # Semaphore to lock reading/updating the global posts array
         self.__lock = Semaphore()
@@ -43,6 +49,8 @@ class MicroblogSearchMedia(XiboMedia):
         self.options['twitter'] = bool("True")
         self.options['identica'] = bool("True")
         self.options['term'] = "#oggcamp"
+        self.options['speed'] = 5
+        self.options['fadeTime'] = 1
         
         # TODO: Add a container to hold the posts
         
@@ -54,9 +62,8 @@ class MicroblogSearchMedia(XiboMedia):
         self.__posts = []
         
     def run(self):
-        # Define costants to represent each service
-        TWITTER = 0
-        IDENTICA = 1
+        # Start the region timer so the media dies at the right time.
+        self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
         
         # Pointer to the currently displayed post:
         self.__pointer = -1
@@ -75,7 +82,7 @@ class MicroblogSearchMedia(XiboMedia):
         try:
             self.options['updateInterval'] = int(self.options['updateInterval'])
         except:
-            self.options['updateInterval'] = 60
+            self.options['updateInterval'] = 5
         
         while self.running:
             # TODO: Download new posts and add them to the rotation
@@ -101,31 +108,61 @@ class MicroblogSearchMedia(XiboMedia):
         if not self.running:
             return
         
-        # Take the next post from the posts array and display it
-        
         # Move the pointer on one. If we hit the end then start back at 0
+        # Take the next post from the posts array and display it
         self.__lock.acquire()
         if len(self.__posts) > 0:
             self.__pointer = (self.__pointer + 1) % len(self.__posts)
             tmpPost = self.__posts[self.__pointer]
         self.__lock.release()
         
-        print tmpPost
+        tmpHtml = "<html><body><font color=\"white\">%s</font></body></html>" % tmpPost[2]
+        
+        try:
+            try:
+                f = codecs.open(self.tmpPath,mode='w',encoding="utf-8")
+                f.write(tmpHtml)
+                tmpHtml = None
+            finally:
+                f.close()
+        except:
+            self.log.log(0,"error","Unable to write " + self.tmpPath)
+            self.parent.next()
+            return
+        
+        # Increment the unique identifier for the browsernodes - but within a sensible limit.
+        if self.seq < 1000:
+            self.seq += 1
+        else:
+            self.seq = 1
+        tmpXML = '<browser id="' + self.mediaNodeName + '-' + str(self.seq) + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + '"/>'
+        self.p.enqueue('add',(tmpXML,self.regionNodeName))
+        self.p.enqueue('browserNavigate',(self.mediaNodeName + '-' + str(self.seq),"file://" + os.path.abspath(self.tmpPath),self.fadeIn))
+    
+    def fadeIn(self):
+        # Once the next post has finished rendering, fade it in
+        self.p.enqueue('browserOptions',(self.mediaNodeName + '-' + str(self.seq), True, False))
+        self.p.enqueue('anim',('fadeIn',self.mediaNodeName + '-' + str(self.seq), self.options['fadeTime'] * 1000, None))
         
         # Set a timer to force the post to change
-        # TODO: Should the animation trigger this itself?
-        self.p.enqueue('timer',(5 * 1000,self.nextPost))
+        self.p.enqueue('timer',((self.options['speed'] + self.options['fadeTime']) * 1000,self.fadeOut))
+    
+    def fadeOut(self):
+        # After the current post times out it calls this function which fades out the current node and then starts the next node
+        # fading in.
+        self.p.enqueue('anim',('fadeOut',self.mediaNodeName + '-' + str(self.seq), self.options['fadeTime'] * 1000, self.nextPost))
         
     def dispose(self):
         self.running = False
+        try:
+            os.remove(self.tmpPath)
+        except:
+            self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))
         self.parent.tNext()
         
     def updateTwitter(self):
-        # Pull new posts from Twitter and return new posts in a list
+        """ Pull new posts from Twitter and return new posts in a list """
         
-        # Define TWITTER
-        TWITTER = 0
-
         # Find the highest number twitter post we have already
         # No need to lock the Semaphore as we're the only thread that will
         # be doing any writing.

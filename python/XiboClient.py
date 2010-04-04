@@ -2930,7 +2930,7 @@ class XiboPlayer(Thread):
                     if data[0] == "fadeIn":
                         animation = avg.fadeIn(currentNode,data[2],1,data[3])
                     if data[0] == "fadeOut":
-                        animation = avg.fadeOut(currentNode,data[2],1,data[3])
+                        animation = avg.fadeOut(currentNode,data[2],data[3])
                     if data[0] == "linear":
                         animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
                 elif cmd == "play":
