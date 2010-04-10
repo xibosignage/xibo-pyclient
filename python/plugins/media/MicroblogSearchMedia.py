@@ -24,7 +24,9 @@
 from XiboMedia import XiboMedia
 from threading import Thread, Semaphore
 import sys, os, time, codecs
-import twython
+import simplejson
+import urllib2
+import urllib
 
 # Define costants to represent each service
 TWITTER = 0
@@ -36,12 +38,14 @@ class MicroblogSearchMedia(XiboMedia):
         self.seq = 0
         self.tmpPath = os.path.join(self.libraryDir,self.mediaNodeName + "-tmp.html")
         
+        self.opener =  urllib2.build_opener()
+        
         # Semaphore to lock reading/updating the global posts array
         self.__lock = Semaphore()
 
         # Handles to the twitter and identica APIs
-        self.twitter = None
-        self.identica = None
+        # self.twitter = None
+        # self.identica = None
         
         # Options that should come from the server
         # Added here for testing purposes
@@ -56,9 +60,9 @@ class MicroblogSearchMedia(XiboMedia):
         
         
         # Create an empty array for the posts to sit in
-        # Each element will be a tuple in the following format:
-        #    (service, iso_language_code, text, created_at, profile_image_url, source, from_user, from_user_id, to_user_id, geo, id)
-        # eg (IDENTICA, u"en", u"Welcome to #oggcamp", u"Thu, 01 April 2010 17:00:00 +0000", u"http://domain.com/image.jpg", u"&lt;a href=&quot;http://www.twitter.com/web&quot;&gt;web&lt;/a&gt;", u"alexharrington", 9494929, None, None, 392000100011L)
+        # Each element will be a dictionary in the following format:
+        # {'xibo_src': 0, u'iso_language_code': u'en_GB', u'text': u"@bobobex @corenominal If you have an android device, give c:geo a look for !geocaching, or nudge me at oggcamp and I'll show you. 'sgood", u'created_at': u'Thu, 08 Apr 2010 08:03:38 +0000', u'profile_image_url': u'http://avatar.identi.ca/13737-48-20080711132350.png', u'to_user': None, u'source': u'web', u'from_user': u'jontheniceguy', u'from_user_id': u'13737', u'to_user_id': None, u'id': u'27725072'}
+        
         self.__posts = []
         
     def run(self):
@@ -71,7 +75,7 @@ class MicroblogSearchMedia(XiboMedia):
         # Test data
         # TODO: Remove this whole section.
         self.__lock.acquire()
-        self.__posts = [(IDENTICA,u'en', u'Welcome to #oggcamp', u'Thu, 01 April 2010 17:00:00 +0000', u'http://domain.com/image.jpg', '', u'alexharrington', 939002, None, None, 499900L)]
+        self.__posts = [{'xibo_src': 1, u'iso_language_code': u'en_GB', u'text': u"Welcome to #oggcamp", u'created_at': u'Thu, 08 Apr 2010 08:03:38 +0000', u'profile_image_url': u'http://avatar.identi.ca/1102-96-20081013131713.png', u'to_user': None, u'source': u'web', u'from_user': u'alexharrington', u'from_user_id': u'13737', u'to_user_id': None, u'id': u'27725072'}]
         self.__lock.release()
 
         # TODO: Open previous cache file (if exists) and begin playing out posts
@@ -96,7 +100,9 @@ class MicroblogSearchMedia(XiboMedia):
             self.__lock.acquire()
             # THIS IS WRONG!!
             for post in tmpTwitter:
-                self.__posts.append(post)            
+                self.__posts.append(post)   
+            for post in tmpIdentica:
+                self.__posts.append(post)         
             self.__lock.release()
             
             # Sleep for suitable duration
@@ -117,7 +123,13 @@ class MicroblogSearchMedia(XiboMedia):
         self.__lock.release()
         
         # TODO: Get the template we get from the server and insert appropriate fields
-        tmpHtml = "<html><body><blockquote><font color=\"white\" face=\"Arial\" size=\"6\">%s</font></blockquote></body></html>" % tmpPost[2]
+        service = ''
+        if tmpPost['xibo_src'] == TWITTER:
+            service = "via Twitter"
+        elif tmpPost['xibo_src'] == IDENTICA:
+            service = "via Identi.ca"
+            
+        tmpHtml = "<html><body><blockquote><img src=\"%s\" align=\"left\"><font color=\"white\" face=\"Arial\" size=\"6\"><u><b>%s:</b></u><br>%s</font><br><font color=\"white\" face=\"Arial\" size=\"3\">%s</font></blockquote></body></html>" % (tmpPost['profile_image_url'], tmpPost['from_user'], tmpPost['text'], service)
         
         try:
             try:
@@ -169,20 +181,86 @@ class MicroblogSearchMedia(XiboMedia):
         # be doing any writing.
         last_id = None
         for post in self.__posts:
-            if post[0] == TWITTER and post[10] > last_id:
-                last_id = post[10]
+            if post['xibo_src'] == TWITTER and long(post['id']) > last_id:
+                last_id = long(post['id'])
         
         # Call twitter API and get new matches
-        if self.twitter == None:
-            self.twitter = twython.core.setup()
-        
-        results = self.twitter.searchTwitter(self.options['term'], since_id=last_id)
+
+        results = self.searchMicroblog("http://search.twitter.com/search.json", self.options['term'], since_id=last_id)
         
         tmpTwitter = []
         for post in results["results"]:
-            tmpTwitter.append((TWITTER,post['iso_language_code'],post['text'],post['created_at'],post['profile_image_url'],post['source'],post['from_user'],post['from_user_id'],post['to_user_id'],post['geo'],post['id']))
+            post['xibo_src'] = TWITTER
+            tmpTwitter.append(post)
         
         return tmpTwitter
             
     def updateIdentica(self):
-        pass
+        """ Pull new posts from Identi.ca and return new posts in a list """
+        
+        # Find the highest number identi.ca post we have already
+        # No need to lock the Semaphore as we're the only thread that will
+        # be doing any writing.
+        last_id = None
+        for post in self.__posts:
+            if post['xibo_src'] == IDENTICA and long(post['id']) > last_id:
+                last_id = long(post['id'])
+        
+        # Call identica API and get new matches
+        
+        results = self.searchMicroblog("http://identi.ca/api/search.json", self.options['term'], since_id=last_id)
+        
+        tmpIdentica = []
+        for post in results["results"]:
+            post['xibo_src'] = IDENTICA
+            tmpIdentica.append(post)
+        
+        return tmpIdentica
+    
+    # This method taken from Twython as it does not support connecting to identi.ca yet
+    def constructApiURL(self, base_url, params):
+        return base_url + "?" + "&".join(["%s=%s" %(key, value) for (key, value) in params.iteritems()])
+    
+    # This method taken from Twython as it does not support connecting to identi.ca yet
+    # Modified from "searchTwitter" to take an api_base to allow switching between services.
+    def searchMicroblog(self, api_base, search_query, **kwargs):
+        """searchTwitter(search_query, **kwargs)
+
+        Returns tweets that match a specified query.
+
+        Parameters:
+        callback - Optional. Only available for JSON format. If supplied, the response will use the JSONP format with a callback of the given name.
+        lang - Optional. Restricts tweets to the given language, given by an ISO 639-1 code.
+        locale - Optional. Language of the query you're sending (only ja is currently effective). Intended for language-specific clients; default should work in most cases.
+        rpp - Optional. The number of tweets to return per page, up to a max of 100.
+        page - Optional. The page number (starting at 1) to return, up to a max of roughly 1500 results (based on rpp * page. Note: there are pagination limits.)
+        since_id - Optional. Returns tweets with status ids greater than the given id.
+        geocode - Optional. Returns tweets by users located within a given radius of the given latitude/longitude, where the user's location is taken from their Twitter profile. The parameter value is specified by "latitide,longitude,radius", where radius units must be specified as either "mi" (miles) or "km" (kilometers). Note that you cannot use the near operator via the API to geocode arbitrary locations; however you can use this geocode parameter to search near geocodes directly.
+        show_user - Optional. When true, prepends "<user>:" to the beginning of the tweet. This is useful for readers that do not display Atom's author field. The default is false.
+
+        Usage Notes:
+        Queries are limited 140 URL encoded characters.
+        Some users may be absent from search results.
+        The since_id parameter will be removed from the next_page element as it is not supported for pagination. If since_id is removed a warning will be added to alert you.
+        This method will return an HTTP 404 error if since_id is used and is too old to be in the search index.
+        Applications must have a meaningful and unique User Agent when using this method.
+        An HTTP Referrer is expected but not required. Search traffic that does not include a User Agent will be rate limited to fewer API calls per hour than
+        applications including a User Agent string. You can set your custom UA headers by passing it as a respective argument to the setup() method.
+        """
+
+        searchURL = self.constructApiURL(api_base, kwargs) + "&" + urllib.urlencode({"q": self.unicode2utf8(search_query)})
+
+        try:
+            return simplejson.load(self.opener.open(searchURL))
+        except HTTPError, e:
+            raise TwythonError("getSearchTimeline() failed with a %s error code." % `e.code`, e.code)
+    
+    # This method taken from twython
+    def unicode2utf8(self, text):
+        try:
+            if isinstance(text, unicode):
+                text = text.encode('utf-8')
+        except:
+            pass
+        
+        return text
