@@ -27,6 +27,7 @@ import sys, os, time, codecs
 import simplejson
 import urllib2
 import urllib
+import cPickle
 
 # Define costants to represent each service
 TWITTER = 0
@@ -52,12 +53,9 @@ class MicroblogSearchMedia(XiboMedia):
         self.options['length'] = 10
         self.options['twitter'] = bool("True")
         self.options['identica'] = bool("True")
-        self.options['term'] = "#oggcamp"
+        self.options['term'] = "#debill"
         self.options['speed'] = 5
         self.options['fadeTime'] = 1
-        
-        # TODO: Add a container to hold the posts
-        
         
         # Create an empty array for the posts to sit in
         # Each element will be a dictionary in the following format:
@@ -67,19 +65,28 @@ class MicroblogSearchMedia(XiboMedia):
         
     def run(self):
         # Start the region timer so the media dies at the right time.
-        self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
+        self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
         
         # Pointer to the currently displayed post:
         self.__pointer = -1
         
-        # Test data
-        # TODO: Remove this whole section.
-        self.__lock.acquire()
-        self.__posts = [{'xibo_src': 1, u'iso_language_code': u'en_GB', u'text': u"Welcome to #oggcamp", u'created_at': u'Thu, 08 Apr 2010 08:03:38 +0000', u'profile_image_url': u'http://avatar.identi.ca/1102-96-20081013131713.png', u'to_user': None, u'source': u'web', u'from_user': u'alexharrington', u'from_user_id': u'13737', u'to_user_id': None, u'id': u'27725072'}]
-        self.__lock.release()
-
-        # TODO: Open previous cache file (if exists) and begin playing out posts
+        # Open previous cache file (if exists) and begin playing out posts
         # Lock the semaphore as we write to __posts to avoid changing the array as the display thread reads it.
+        # Serialize self.__posts for next time
+        try:
+            try:
+                self.__lock.acquire()
+                self.__posts = cPickle.load(file(os.path.join(self.libraryDir,self.mediaId + ".pickled")))
+            finally:
+                self.__lock.release()
+        except:
+            # Load in some data to get us going
+            self.__lock.acquire()
+            self.__posts = [{'xibo_src': 1, u'iso_language_code': u'en_GB', u'text': u"Welcome to xibo Microblog Search Media", u'created_at': u'Thu, 08 Apr 2010 08:03:38 +0000', u'profile_image_url': u'http://avatar.identi.ca/1102-96-20081013131713.png', u'to_user': None, u'source': u'web', u'from_user': u'alexharrington', u'from_user_id': u'13737', u'to_user_id': None, u'id': u'27725072'}]
+            self.__lock.release()
+
+            self.log.log(4,"audit","Unable to read serialised representation of the posts array or this media has never run before.")
+        
         self.nextPost()
                 
         # Check that the updateInterval we've been given is sane
@@ -89,24 +96,101 @@ class MicroblogSearchMedia(XiboMedia):
             self.options['updateInterval'] = 5
         
         while self.running:
-            # TODO: Download new posts and add them to the rotation
+            # Download new posts and add them to the rotation
             tmpTwitter = self.updateTwitter()
             tmpIdentica = self.updateIdentica()
+            tmpPosts = []
             
-            # TODO: Deduplicate the posts we've pulled in from the Microblogs
-            
-            # Update self.__posts with the new content as required
-            # Lock the semaphore as we write to __posts to avoid changing the array as the display thread reads it.
-            self.__lock.acquire()
-            # THIS IS WRONG!!
+            # Deduplicate the posts we've pulled in from Twitter against Identica and __posts
             for post in tmpTwitter:
-                self.__posts.append(post)   
+                inIdentica = False
+                inPosts = False
+                
+                # See if the post is in the tmpIdentica array
+                for cmpPost in tmpIdentica:
+                    if post['text'] == cmpPost['text'] and post['from_user'] == cmpPost['from_user']:
+                        inIdentica = True
+                        
+                # See if the post is in the __posts array
+                for cmpPost in self.__posts:
+                    if post['text'] == cmpPost['text'] and post['from_user'] == cmpPost['from_user']:
+                        inPosts = True
+            
+                # Update self.__posts with the new content as required
+                # Lock the semaphore as we write to __posts to avoid changing the array as the display thread reads it.
+                if inIdentica or inPosts:
+                    # The post already exists or is in Identica too
+                    # Ignore the twitter version
+                    pass
+                else:
+                    tmpPosts.append(post)
+            
+            # Deduplicate the posts we've pulled in from Identica against __posts
+            # (They're already deduplicated against Twitter
             for post in tmpIdentica:
-                self.__posts.append(post)         
+                inPosts = False
+                
+                for cmpPost in self.__posts:
+                    if post['text'] == cmpPost['text'] and post['from_user'] == cmpPost['from_user']:
+                        inPosts = True
+                
+                if inPosts:
+                    # The post already exists in __posts.
+                    # Ignore the identica version
+                    pass
+                else:
+                    tmpPosts.append(post)    
+            
+            # Remove enough old posts to ensure we maintain at least self.options['length'] posts
+            # but allow an overflow if there are more new posts than we can handle
+            # Lock the __posts list while we work on it.
+            self.__lock.acquire()
+            
+            if len(tmpPosts) >= self.options['length']:
+                # There are more new posts than length.
+                # Wipe the whole existing __posts array out
+                self.__posts = []
+            else:
+                # If there are more items in __posts than we're allowed to show
+                # trim it down to max now
+                if len(self.__posts) > self.options['length']:
+                    self.__posts = self.__posts[0:self.options['length'] - 1]
+                
+                # Now remove len(tmpPosts) items from __posts
+                self.__posts = self.__posts[0:(self.options['length'] - len(tmpPosts) - 1)]
+            
+            # Reverse the __posts array as we can't prepend to an array
+            self.__posts.reverse()
+            
+            # Reverse the tmpPosts array so we get newest items first
+            tmpPosts.reverse()
+            
+            # Finally add the new items to the list
+            for post in tmpPosts:
+                self.__posts.append(post)
+            
+            # And finally switch the array back around again to compensate for reversing it earlier
+            self.__posts.reverse()
+            
+            # Unlock the list now we've finished writing to it
             self.__lock.release()
             
+            # Serialize self.__posts for next time
+            try:
+                try:
+                    self.__lock.acquire()
+                    f = codecs.open(os.path.join(self.libraryDir,self.mediaId + ".pickled"),mode='w',encoding="utf-8")
+                    cPickle.dump(self.__posts, f)
+                finally:
+                    f.close()
+                    self.__lock.release()
+            except IOError:
+                self.log.log(0,"error","Unable to write serialised representation of the posts array")
+            except:
+                self.log.log(0,"error","Unexpected exception trying to write serialised representation of the posts array")
+            
             # Sleep for suitable duration
-            time.sleep(self.options['updateInterval'])
+            time.sleep(self.options['updateInterval'] * 60)
     
     def nextPost(self):
         tmpPost = ()
@@ -166,15 +250,38 @@ class MicroblogSearchMedia(XiboMedia):
         self.p.enqueue('anim',('fadeOut',self.mediaNodeName + '-' + str(self.seq), self.options['fadeTime'] * 1000, self.nextPost))
         
     def dispose(self):
+        # Remember that we've finished running
         self.running = False
+        
+        # Clean up any temporary files left
         try:
             os.remove(self.tmpPath)
         except:
             self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))
+            
         self.parent.tNext()
+    
+    def timerElapsed(self):
+        # TODO: This function should not be necessary.
+        # As soon as dispose() is properly called this can be removed
+        
+        # Remember that we've finished running
+        self.running = False
+        
+        # Clean up any temporary files left
+        try:
+            os.remove(self.tmpPath)
+        except:
+            self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))
+        
+        # Tell our parent we're finished
+        self.parent.next()
         
     def updateTwitter(self):
         """ Pull new posts from Twitter and return new posts in a list """
+        
+        if not self.options['twitter']:
+            return []
         
         # Find the highest number twitter post we have already
         # No need to lock the Semaphore as we're the only thread that will
@@ -197,6 +304,9 @@ class MicroblogSearchMedia(XiboMedia):
             
     def updateIdentica(self):
         """ Pull new posts from Identi.ca and return new posts in a list """
+
+        if not self.options['identica']:
+            return []
         
         # Find the highest number identi.ca post we have already
         # No need to lock the Semaphore as we're the only thread that will

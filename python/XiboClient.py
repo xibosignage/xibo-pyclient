@@ -72,7 +72,7 @@ class XiboLog:
             self.liftEnabled = config.get('Lift','enabled')
             if self.liftEnabled == "false":
                 self.liftEnabled = False
-                log.log(3,"audit",_("Enabling lift functionality in Logger"))
+                log.log(3,"audit",_("Disabling lift functionality in Logger"))
             else:
                 self.liftEnabled = True
                 log.log(3,"audit",_("Enabling lift functionality in Logger"))
@@ -1891,7 +1891,7 @@ class XmdsScheduler(XiboScheduler):
             self.liftEnabled = config.get('Lift','enabled')
             if self.liftEnabled == "false":
                 self.liftEnabled = False
-                log.log(3,"audit",_("Enabling lift functionality in XMDSScheduler"))
+                log.log(3,"audit",_("Disabling lift functionality in XMDSScheduler"))
             else:
                 self.liftEnabled = True
                 log.log(3,"audit",_("Enabling lift functionality in XMDSScheduler"))
@@ -2712,7 +2712,7 @@ class XiboDisplayManager:
             self.liftEnabled = config.get('Lift','enabled')
             if self.liftEnabled == "false":
                 self.liftEnabled = False
-                log.log(3,"audit",_("Enabling lift functionality in Logger"))
+                log.log(3,"audit",_("Disabling lift functionality in Logger"))
             else:
                 self.liftEnabled = True
                 log.log(3,"audit",_("Enabling lift functionality in Logger"))
