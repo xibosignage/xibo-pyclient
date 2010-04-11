@@ -72,7 +72,6 @@ class MicroblogSearchMedia(XiboMedia):
         
         # Open previous cache file (if exists) and begin playing out posts
         # Lock the semaphore as we write to __posts to avoid changing the array as the display thread reads it.
-        # Serialize self.__posts for next time
         try:
             try:
                 self.__lock.acquire()
@@ -96,101 +95,120 @@ class MicroblogSearchMedia(XiboMedia):
             self.options['updateInterval'] = 5
         
         while self.running:
-            # Download new posts and add them to the rotation
-            tmpTwitter = self.updateTwitter()
-            tmpIdentica = self.updateIdentica()
-            tmpPosts = []
-            
-            # Deduplicate the posts we've pulled in from Twitter against Identica and __posts
-            for post in tmpTwitter:
-                inIdentica = False
-                inPosts = False
-                
-                # See if the post is in the tmpIdentica array
-                for cmpPost in tmpIdentica:
-                    if post['text'] == cmpPost['text'] and post['from_user'] == cmpPost['from_user']:
-                        inIdentica = True
-                        
-                # See if the post is in the __posts array
-                for cmpPost in self.__posts:
-                    if post['text'] == cmpPost['text'] and post['from_user'] == cmpPost['from_user']:
-                        inPosts = True
-            
-                # Update self.__posts with the new content as required
-                # Lock the semaphore as we write to __posts to avoid changing the array as the display thread reads it.
-                if inIdentica or inPosts:
-                    # The post already exists or is in Identica too
-                    # Ignore the twitter version
-                    pass
-                else:
-                    tmpPosts.append(post)
-            
-            # Deduplicate the posts we've pulled in from Identica against __posts
-            # (They're already deduplicated against Twitter
-            for post in tmpIdentica:
-                inPosts = False
-                
-                for cmpPost in self.__posts:
-                    if post['text'] == cmpPost['text'] and post['from_user'] == cmpPost['from_user']:
-                        inPosts = True
-                
-                if inPosts:
-                    # The post already exists in __posts.
-                    # Ignore the identica version
-                    pass
-                else:
-                    tmpPosts.append(post)    
-            
-            # Remove enough old posts to ensure we maintain at least self.options['length'] posts
-            # but allow an overflow if there are more new posts than we can handle
-            # Lock the __posts list while we work on it.
-            self.__lock.acquire()
-            
-            if len(tmpPosts) >= self.options['length']:
-                # There are more new posts than length.
-                # Wipe the whole existing __posts array out
-                self.__posts = []
-            else:
-                # If there are more items in __posts than we're allowed to show
-                # trim it down to max now
-                if len(self.__posts) > self.options['length']:
-                    self.__posts = self.__posts[0:self.options['length'] - 1]
-                
-                # Now remove len(tmpPosts) items from __posts
-                self.__posts = self.__posts[0:(self.options['length'] - len(tmpPosts) - 1)]
-            
-            # Reverse the __posts array as we can't prepend to an array
-            self.__posts.reverse()
-            
-            # Reverse the tmpPosts array so we get newest items first
-            tmpPosts.reverse()
-            
-            # Finally add the new items to the list
-            for post in tmpPosts:
-                self.__posts.append(post)
-            
-            # And finally switch the array back around again to compensate for reversing it earlier
-            self.__posts.reverse()
-            
-            # Unlock the list now we've finished writing to it
-            self.__lock.release()
-            
-            # Serialize self.__posts for next time
+            self.log.log(0,"audit","%s: Waking up" % self.mediaId)
             try:
-                try:
-                    self.__lock.acquire()
-                    f = codecs.open(os.path.join(self.libraryDir,self.mediaId + ".pickled"),mode='w',encoding="utf-8")
-                    cPickle.dump(self.__posts, f)
-                finally:
-                    f.close()
-                    self.__lock.release()
-            except IOError:
-                self.log.log(0,"error","Unable to write serialised representation of the posts array")
+    	        mtime = os.path.getmtime(os.path.join(self.libraryDir,self.mediaId + '.pickled'))
             except:
-                self.log.log(0,"error","Unexpected exception trying to write serialised representation of the posts array")
+                # File probably doesn't exist.
+                # Pretend the file was last updated more than updateInterval ago
+                self.log.log(0,"audit","%s: Post cache does not exist.")
+                mtime = time.time() - (self.options['updateInterval'] * 60) - 10
             
-            # Sleep for suitable duration
-            time.sleep(self.options['updateInterval'] * 60)
+            if time.time() > (mtime + (self.options['updateInterval'] * 60)):
+                # Download new posts and add them to the rotation
+                self.log.log(0,"audit","%s: Getting new posts from Microblogs" % self.mediaId)
+                tmpTwitter = self.updateTwitter()
+                tmpIdentica = self.updateIdentica()
+                tmpPosts = []
+                
+                # Deduplicate the posts we've pulled in from Twitter against Identica and __posts
+                for post in tmpTwitter:
+                    inIdentica = False
+                    inPosts = False
+                    
+                    # See if the post is in the tmpIdentica array
+                    for cmpPost in tmpIdentica:
+                        if post['text'] == cmpPost['text'] and post['from_user'] == cmpPost['from_user']:
+                            inIdentica = True
+                            
+                    # See if the post is in the __posts array
+                    for cmpPost in self.__posts:
+                        if post['text'] == cmpPost['text'] and post['from_user'] == cmpPost['from_user']:
+                            inPosts = True
+                
+                    # Update self.__posts with the new content as required
+                    # Lock the semaphore as we write to __posts to avoid changing the array as the display thread reads it.
+                    if inIdentica or inPosts:
+                        # The post already exists or is in Identica too
+                        # Ignore the twitter version
+                        pass
+                    else:
+                        tmpPosts.append(post)
+                
+                # Deduplicate the posts we've pulled in from Identica against __posts
+                # (They're already deduplicated against Twitter
+                for post in tmpIdentica:
+                    inPosts = False
+                    
+                    for cmpPost in self.__posts:
+                        if post['text'] == cmpPost['text'] and post['from_user'] == cmpPost['from_user']:
+                            inPosts = True
+                    
+                    if inPosts:
+                        # The post already exists in __posts.
+                        # Ignore the identica version
+                        pass
+                    else:
+                        tmpPosts.append(post)    
+                
+                # Remove enough old posts to ensure we maintain at least self.options['length'] posts
+                # but allow an overflow if there are more new posts than we can handle
+                # Lock the __posts list while we work on it.
+                self.log.log(0,"audit","%s: Got %s new posts" % (self.mediaId,len(tmpPosts)))
+                self.__lock.acquire()
+                
+                if len(tmpPosts) >= self.options['length']:
+                    # There are more new posts than length.
+                    # Wipe the whole existing __posts array out
+                    self.__posts = []
+                else:
+                    # If there are more items in __posts than we're allowed to show
+                    # trim it down to max now
+                    if len(self.__posts) > self.options['length']:
+                        self.__posts = self.__posts[0:self.options['length'] - 1]
+                    
+                    # Now remove len(tmpPosts) items from __posts
+                    self.__posts = self.__posts[0:(self.options['length'] - len(tmpPosts) - 1)]
+                
+                # Reverse the __posts array as we can't prepend to an array
+                self.__posts.reverse()
+                
+                # Reverse the tmpPosts array so we get newest items first
+                tmpPosts.reverse()
+                
+                # Finally add the new items to the list
+                for post in tmpPosts:
+                    self.__posts.append(post)
+                
+                # And finally switch the array back around again to compensate for reversing it earlier
+                self.__posts.reverse()
+                
+                # Unlock the list now we've finished writing to it
+                self.__lock.release()
+                
+                # Serialize self.__posts for next time
+                try:
+                    try:
+                        self.__lock.acquire()
+                        f = codecs.open(os.path.join(self.libraryDir,self.mediaId + ".pickled"),mode='w',encoding="utf-8")
+                        cPickle.dump(self.__posts, f)
+                    finally:
+                        f.close()
+                        self.__lock.release()
+                except IOError:
+                    self.log.log(0,"error","Unable to write serialised representation of the posts array")
+                except:
+                    self.log.log(0,"error","Unexpected exception trying to write serialised representation of the posts array")
+            # End If (If we should update on this run
+            else:
+                self.log.log(0,"audit","%s: Posts are still fresh." % self.mediaId)
+            
+            self.log.log(0,"audit","%s: Sleeping 60 seconds" % self.mediaId)
+            # Sleep for 1 minute
+            time.sleep(60)
+            
+        # End While loop
+        self.log.log(0,"audit","%s: Media has completed. Stopping updating." % self.mediaId)
     
     def nextPost(self):
         tmpPost = ()
@@ -213,7 +231,7 @@ class MicroblogSearchMedia(XiboMedia):
         elif tmpPost['xibo_src'] == IDENTICA:
             service = "via Identi.ca"
             
-        tmpHtml = "<html><body><blockquote><img src=\"%s\" align=\"left\"><font color=\"white\" face=\"Arial\" size=\"6\"><u><b>%s:</b></u><br>%s</font><br><font color=\"white\" face=\"Arial\" size=\"3\">%s</font></blockquote></body></html>" % (tmpPost['profile_image_url'], tmpPost['from_user'], tmpPost['text'], service)
+        tmpHtml = "<html><meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"><body><blockquote><img width=\"100\" height=\"100\" src=\"%s\" align=\"left\"><font color=\"white\" face=\"Arial\" size=\"6\"><u><b>%s:</b></u><br>%s</font><br><font color=\"white\" face=\"Arial\" size=\"3\">%s</font></blockquote></body></html>" % (tmpPost['profile_image_url'], tmpPost['from_user'], tmpPost['text'], service)
         
         try:
             try:
