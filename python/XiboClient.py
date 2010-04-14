@@ -47,9 +47,10 @@ from threading import Thread, Semaphore
 import threading
 import urlparse
 import PIL.Image
+import math
 
 
-version = "1.1.0a22"
+version = "1.1.0a21+"
 
 #TODO: Change to 2!
 schemaVersion = 1
@@ -1639,8 +1640,12 @@ class XiboLayout:
         self.layoutNode = None
         self.iter = None
 
-        self.playerWidth = int(config.get('Main','width'))
-        self.playerHeight = int(config.get('Main','height'))
+        if not int(config.get('Main','vwidth')) == 0:
+            self.playerWidth = int(config.get('Main','vwidth'))
+            self.playerHeight = int(config.get('Main','vheight'))
+        else:
+            self.playerWidth = int(config.get('Main','width'))
+            self.playerHeight = int(config.get('Main','height'))
 
         # Attributes
         self.width = None
@@ -2775,6 +2780,7 @@ class XiboPlayer(Thread):
         self.__lock.acquire()
 
     def getDimensions(self):
+        # TODO: I don't think this is ever used.
         return self.dim
 
     def getElementByID(self,id):
@@ -2818,9 +2824,15 @@ class XiboPlayer(Thread):
         self.player.showCursor(0)
         self.player.volume = 1
         
+        useRotation = bool(not int(config.get('Main','vwidth')) == 0)
+        
         # Calculate the information window
-        infoX = (int(config.get('Main','width')) - 400) / 2
-        infoY = (int(config.get('Main','height')) - 300) / 2
+        if useRotation:
+            infoX = (int(config.get('Main','vwidth')) - 400) / 2
+            infoY = (int(config.get('Main','vheight')) - 300) / 2
+        else:
+            infoX = (int(config.get('Main','width')) - 400) / 2
+            infoY = (int(config.get('Main','height')) - 300) / 2
         
         # If the info window is bigger than the client, stick it in the top left corner.
         if infoX < 0:
@@ -2828,18 +2840,29 @@ class XiboPlayer(Thread):
         if infoY < 0:
             infoY = 0
         
+        if useRotation:
+            # The layout rotates around the centre so figure out how far we need to move it up/down or left/right to get it centred
+            # before it's rotated.
+            oX = (int(config.get('Main','width')) / 2.0) - (int(config.get('Main','vwidth')) / 2.0)
+            oY = (int(config.get('Main','height')) / 2.0) - (int(config.get('Main','vheight')) / 2.0)
+            
+            # Convert degrees in the config to Radians
+            oR = math.radians(float(config.get('Main','vrotation')))
+        
         # Build the XML that defines the avg node and divs for screen and information
-        avgContent = '<avg id="main" width="'
-        avgContent += config.get('Main','width')
-        avgContent += '" height="'
-        avgContent += config.get('Main','height')
-        avgContent += '"><div id="screen"/>'
+        avgContent = '<avg id="main" width="%s" height="%s">' % (config.get('Main','width'), config.get('Main','height'))
+        if useRotation:
+            avgContent += '<div pos="(%s,%s)" id="rotation" width="%s" height="%s" angle="%s">' % (oX,oY,config.get('Main','vwidth'), config.get('Main','vheight'), oR)
+        avgContent += '<div id="screen" pos="(0,0)" />'
         avgContent += '<div id="info" width="400" height="300" x="'
         avgContent += str(infoX)
         avgContent += '" y="'
         avgContent += str(infoY)
         avgContent += '" opacity="0" />'
+        if useRotation:
+            avgContent += '</div>'
         avgContent += '</avg>'
+        
         self.player.loadString(avgContent)
         avgNode = self.player.getElementByID("main")
         avgNode.setEventHandler(avg.KEYDOWN,avg.NONE,self.keyDown)

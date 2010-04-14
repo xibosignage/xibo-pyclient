@@ -53,7 +53,7 @@ class MicroblogSearchMedia(XiboMedia):
         self.options['length'] = 10
         self.options['twitter'] = bool("True")
         self.options['identica'] = bool("True")
-        self.options['term'] = "#debill"
+        self.options['term'] = "#oggcamp"
         self.options['speed'] = 5
         self.options['fadeTime'] = 1
         
@@ -229,7 +229,7 @@ class MicroblogSearchMedia(XiboMedia):
         if tmpPost['xibo_src'] == TWITTER:
             service = "via Twitter"
         elif tmpPost['xibo_src'] == IDENTICA:
-            service = "via Identi.ca"
+            service = "via Identica"
             
         tmpHtml = "<html><meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"><body><blockquote><img width=\"100\" height=\"100\" src=\"%s\" align=\"left\"><font color=\"white\" face=\"Arial\" size=\"6\"><u><b>%s:</b></u><br>%s</font><br><font color=\"white\" face=\"Arial\" size=\"3\">%s</font></blockquote></body></html>" % (tmpPost['profile_image_url'], tmpPost['from_user'], tmpPost['text'], service)
         
