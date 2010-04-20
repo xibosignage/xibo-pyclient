@@ -809,6 +809,8 @@ class XiboDownloadManager(Thread):
                     md5Cache[tmpFileName] = tmpFile
             except IOError:
                 log.log(0,"warning",_("Could not open cache.xml. Starting with an empty cache"))
+            except:
+                log.log(0,"warning",_("md5Cache file is corrupted. Ignoring."))
 
     def run(self):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
@@ -2688,10 +2690,12 @@ class XiboDisplayManager:
             self.downloader.start()
             log.log(2,"info",_("Loaded Download Manager ") + downloaderName)
         except ConfigParser.NoOptionError:
+            log.log(0,"error","NoOptionError")
             log.log(0,"error",_("No DownloadManager specified in your configuration."))
             log.log(0,"error",_("Please check your Download Manager configuration."))
             exit(1)
         except:
+            log.log(0,"error","Unexpected Exception")
             log.log(0,"error",downloaderName + _(" does not implement the methods required to be a Xibo DownloadManager or does not exist."))
             log.log(0,"error",_("Please check your Download Manager configuration."))
             exit(1)

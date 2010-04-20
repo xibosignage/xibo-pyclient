@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009 Alex Harrington
+# Copyright (C) 2010 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -43,10 +43,6 @@ class MicroblogSearchMedia(XiboMedia):
         
         # Semaphore to lock reading/updating the global posts array
         self.__lock = Semaphore()
-
-        # Handles to the twitter and identica APIs
-        # self.twitter = None
-        # self.identica = None
         
         # Options that should come from the server
         # Added here for testing purposes
@@ -231,7 +227,7 @@ class MicroblogSearchMedia(XiboMedia):
         elif tmpPost['xibo_src'] == IDENTICA:
             service = "via Identica"
             
-        tmpHtml = "<html><meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"><body><blockquote><img width=\"100\" height=\"100\" src=\"%s\" align=\"left\"><font color=\"white\" face=\"Arial\" size=\"6\"><u><b>%s:</b></u><br>%s</font><br><font color=\"white\" face=\"Arial\" size=\"3\">%s</font></blockquote></body></html>" % (tmpPost['profile_image_url'], tmpPost['from_user'], tmpPost['text'], service)
+        tmpHtml = "<html><meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"><body><img width=\"100\" height=\"100\" src=\"%s\" align=\"left\"><font color=\"black\" face=\"Arial\" size=\"3\"><u><b>%s:</b></u><br>%s</font><br><font color=\"black\" face=\"Arial\" size=\"2\">%s</font></body></html>" % (tmpPost['profile_image_url'], tmpPost['from_user'], tmpPost['text'], service)
         
         try:
             try:
@@ -346,13 +342,57 @@ class MicroblogSearchMedia(XiboMedia):
         return tmpIdentica
     
     # This method taken from Twython as it does not support connecting to identi.ca yet
+    # The MIT License
+    #
+    # Copyright (c) 2009 Ryan McGrath
+    #
+    # Permission is hereby granted, free of charge, to any person obtaining a copy
+    # of this software and associated documentation files (the "Software"), to deal
+    # in the Software without restriction, including without limitation the rights
+    # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    # copies of the Software, and to permit persons to whom the Software is
+    # furnished to do so, subject to the following conditions:
+    #
+    # The above copyright notice and this permission notice shall be included in
+    # all copies or substantial portions of the Software.
+    #
+    # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    # THE SOFTWARE.
     def constructApiURL(self, base_url, params):
         return base_url + "?" + "&".join(["%s=%s" %(key, value) for (key, value) in params.iteritems()])
     
     # This method taken from Twython as it does not support connecting to identi.ca yet
     # Modified from "searchTwitter" to take an api_base to allow switching between services.
+    # The MIT License
+    #
+    # Copyright (c) 2009 Ryan McGrath
+    # Portions (c) 2010 Alex Harrington
+    #
+    # Permission is hereby granted, free of charge, to any person obtaining a copy
+    # of this software and associated documentation files (the "Software"), to deal
+    # in the Software without restriction, including without limitation the rights
+    # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    # copies of the Software, and to permit persons to whom the Software is
+    # furnished to do so, subject to the following conditions:
+    #
+    # The above copyright notice and this permission notice shall be included in
+    # all copies or substantial portions of the Software.
+    #
+    # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    # THE SOFTWARE.
+
     def searchMicroblog(self, api_base, search_query, **kwargs):
-        """searchTwitter(search_query, **kwargs)
+        """searchMicroblog(search_query, **kwargs)
 
         Returns tweets that match a specified query.
 
@@ -384,6 +424,28 @@ class MicroblogSearchMedia(XiboMedia):
             raise TwythonError("getSearchTimeline() failed with a %s error code." % `e.code`, e.code)
     
     # This method taken from twython
+    # The MIT License
+    #
+    # Copyright (c) 2009 Ryan McGrath
+    #
+    # Permission is hereby granted, free of charge, to any person obtaining a copy
+    # of this software and associated documentation files (the "Software"), to deal
+    # in the Software without restriction, including without limitation the rights
+    # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    # copies of the Software, and to permit persons to whom the Software is
+    # furnished to do so, subject to the following conditions:
+    #
+    # The above copyright notice and this permission notice shall be included in
+    # all copies or substantial portions of the Software.
+    #
+    # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    # THE SOFTWARE.
+
     def unicode2utf8(self, text):
         try:
             if isinstance(text, unicode):
