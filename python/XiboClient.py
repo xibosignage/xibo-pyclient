@@ -2501,26 +2501,35 @@ class XMDS:
         req = None
         if self.check():
             try:
-                # TODO: Change the final arguement to use the globally defined schema version once
-                # there is a server that supports the schema to test against.
-                req = self.server.Schedule(self.getKey(),self.getUUID(),"1")
-            except SOAPpy.Types.faultType, err:
-                log.log(0,"error",str(err))
-                log.lights('S','red')
-                raise XMDSException("Schedule: Incorrect arguments passed to XMDS.")
-            except SOAPpy.Errors.HTTPError, err:
-                log.log(0,"error",str(err))
-                log.lights('S','red')
-                raise XMDSException("Schedule: HTTP error connecting to XMDS.")
-            except socket.error, err:
-                log.log(0,"error",str(err))
-                log.lights('S','red')
-                raise XMDSException("Schedule: socket error connecting to XMDS.")
+                try:
+                    # TODO: Change the final arguement to use the globally defined schema version once
+                    # there is a server that supports the schema to test against.
+                    req = self.server.Schedule(self.getKey(),self.getUUID(),"1")
+                except SOAPpy.Types.faultType, err:
+                    log.log(0,"error",str(err))
+                    log.lights('S','red')
+                    raise XMDSException("Schedule: Incorrect arguments passed to XMDS.")
+                except SOAPpy.Errors.HTTPError, err:
+                    log.log(0,"error",str(err))
+                    log.lights('S','red')
+                    raise XMDSException("Schedule: HTTP error connecting to XMDS.")
+                except socket.error, err:
+                    log.log(0,"error",str(err))
+                    log.lights('S','red')
+                    raise XMDSException("Schedule: socket error connecting to XMDS.")
+                except AttributeError, err:
+                    log.lights('S','red')
+                    log.log(0,"error",str(err))
+                    self.hasInitialised = False
+                    raise XMDSException("RequiredFiles: webservice not initialised")
             except AttributeError, err:
+                # For some reason the except SOAPpy.Types line above occasionally throws an
+                # exception when the client first starts saying SOAPpy doesn't have a Types attribute
+                # Catch that here I guess!
                 log.lights('S','red')
                 log.log(0,"error",str(err))
-                self.hasInitialised = False
-                raise XMDSException("RequiredFiles: webservice not initialised")
+                self.hasInitiated = False
+                raise XMDSException("RequiredFiles: webservice not initalised")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('S','grey')
@@ -3008,6 +3017,14 @@ class XiboPlayer(Thread):
                     if not data[2] == None:
                         if data[2] == False:
                             currentNode.executeJavascript("document.body.style.overflow='hidden';")
+                elif cmd == "zoomIn":
+                    # BrowserNode Zoom In
+                    currentNode = self.player.getElementByID(data)
+                    currentNode.zoomIn()
+                elif cmd == "zoomOut":
+                    # BrowserNode Zoom Out
+                    currentNode = self.player.getElementByID(data)
+                    currentNode.zoomOut()
                 elif cmd == "setBitmap":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.setBitmap(data[1])

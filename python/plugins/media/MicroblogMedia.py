@@ -33,7 +33,7 @@ import cPickle
 TWITTER = 0
 IDENTICA = 1
 
-class MicroblogSearchMedia(XiboMedia):
+class MicroblogMedia(XiboMedia):
     def add(self):
         self.running = True
         self.seq = 0

@@ -24,6 +24,7 @@
 from XiboMedia import XiboMedia
 from threading import Thread
 import urllib
+import math
 
 class WebpageMedia(XiboMedia):
     def add(self):
@@ -42,5 +43,45 @@ class WebpageMedia(XiboMedia):
         self.parent.tNext()
     
     def finishedRendering(self):
-        self.p.enqueue('browserOptions',(self.mediaNodeName,False,False))
+        bo = self.browserOptions()
+        optionsTuple = (self.mediaNodeName,bo[0],bo[1])
+        self.p.enqueue('browserOptions',optionsTuple)
+        
+        # Calling the zoomIn/zoomOut methods of a browser causes a 20% zoom in/out
+        # Calculate how many calls to make
+        n = 100
+        scaleCalls = 0
+        try:
+            n = int(self.options['scaling'])
+        except:
+            pass
+        
+        if n == 100:
+            pass
+        else:
+            if n < 100:
+                # Zoom Out
+                count = int(math.ceil((100 - n) / 20.0))
+                for i in range(0,count):
+                    self.p.enqueue('zoomOut',self.mediaNodeName)
+            else:
+                # Zoom In
+                count = int(math.ceil((n - 100) / 20.0))
+                for i in range(0,count):
+                    self.p.enqueue('zoomIn',self.mediaNodeName)
+                
+        # Make the browser visible
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+    
+    def browserOptions(self):
+        scroll = False
+        trans = False
+        
+        # Decide if the browser background should be transparent
+        try:
+            if self.options['transparency'] == "1":
+                trans = True
+        except:
+            pass
+        
+        return (trans,scroll)
