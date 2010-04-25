@@ -44,20 +44,32 @@ class MicroblogMedia(XiboMedia):
         # Semaphore to lock reading/updating the global posts array
         self.__lock = Semaphore()
         
-        # Options that should come from the server
-        # Added here for testing purposes
-        self.options['length'] = 10
-        self.options['twitter'] = bool("True")
-        self.options['identica'] = bool("True")
-        self.options['term'] = "#oggcamp"
-        self.options['speed'] = 5
-        self.options['fadeTime'] = 1
+        # Options:
+        # <searchTerm>oggcamp</searchTerm><fadeInterval>1</fadeInterval><speedInterval>5</speedInterval><updateInterval>10</updateInterval><historySize>15</historySize><twitter>1</twitter><identica>1</identica></options>
+
+        self.options['historySize'] = int(self.options['historySize'])
+        self.options['twitter'] = bool(int(self.options['twitter']))
+        self.options['identica'] = bool(int(self.options['identica']))
+        self.options['speedInterval'] = int(self.options['speedInterval'])
+        self.options['fadeInterval'] = int(self.options['fadeInterval'])
         
         # Create an empty array for the posts to sit in
         # Each element will be a dictionary in the following format:
-        # {'xibo_src': 0, u'iso_language_code': u'en_GB', u'text': u"@bobobex @corenominal If you have an android device, give c:geo a look for !geocaching, or nudge me at oggcamp and I'll show you. 'sgood", u'created_at': u'Thu, 08 Apr 2010 08:03:38 +0000', u'profile_image_url': u'http://avatar.identi.ca/13737-48-20080711132350.png', u'to_user': None, u'source': u'web', u'from_user': u'jontheniceguy', u'from_user_id': u'13737', u'to_user_id': None, u'id': u'27725072'}
-        
+        # {'xibo_src': 0, u'iso_language_code': u'en_GB', u'text': u"@bobobex @corenominal If you have an android device, give c:geo a look for !geocaching, or nudge me at oggcamp and I'll show you. 'sgood", u'created_at': u'Thu, 08 Apr 2010 08:03:38 +0000', u'profile_image_url': u'http://avatar.identi.ca/13737-48-20080711132350.png', u'to_user': None, u'source': u'web', u'from_user': u'jontheniceguy', u'from_user_id': u'13737', u'to_user_id': None, u'id': u'27725072'}        
         self.__posts = []
+        
+        # Parse out the template element from the raw tag.
+        try:
+            for t in self.rawNode.getElementsByTagName('template'):
+                self.templateNode = t
+        
+            for node in self.templateNode.childNodes:
+                if node.nodeType == node.CDATA_SECTION_NODE:
+                    self.template = node.data.encode('UTF-8')
+                    self.log.log(5,'audit','Template is: ' + self.template)
+        except:
+            self.log.log(2,'error','%s Error parsing out the template from the xlf' % self.mediaNodeName)
+            self.template = ""
         
     def run(self):
         # Start the region timer so the media dies at the right time.
@@ -79,8 +91,13 @@ class MicroblogMedia(XiboMedia):
             self.__lock.acquire()
             self.__posts = [{'xibo_src': 1, u'iso_language_code': u'en_GB', u'text': u"Welcome to xibo Microblog Search Media", u'created_at': u'Thu, 08 Apr 2010 08:03:38 +0000', u'profile_image_url': u'http://avatar.identi.ca/1102-96-20081013131713.png', u'to_user': None, u'source': u'web', u'from_user': u'alexharrington', u'from_user_id': u'13737', u'to_user_id': None, u'id': u'27725072'}]
             self.__lock.release()
+            
+            try:
+                os.remove(os.path.join(self.libraryDir,self.mediaId + ".pickled"))
+            except:
+                pass
 
-            self.log.log(4,"audit","Unable to read serialised representation of the posts array or this media has never run before.")
+            self.log.log(0,"audit","Unable to read serialised representation of the posts array or this media has never run before.")
         
         self.nextPost()
                 
@@ -147,24 +164,24 @@ class MicroblogMedia(XiboMedia):
                     else:
                         tmpPosts.append(post)    
                 
-                # Remove enough old posts to ensure we maintain at least self.options['length'] posts
+                # Remove enough old posts to ensure we maintain at least self.options['historySize'] posts
                 # but allow an overflow if there are more new posts than we can handle
                 # Lock the __posts list while we work on it.
                 self.log.log(0,"audit","%s: Got %s new posts" % (self.mediaId,len(tmpPosts)))
                 self.__lock.acquire()
                 
-                if len(tmpPosts) >= self.options['length']:
+                if len(tmpPosts) >= self.options['historySize']:
                     # There are more new posts than length.
                     # Wipe the whole existing __posts array out
                     self.__posts = []
                 else:
                     # If there are more items in __posts than we're allowed to show
                     # trim it down to max now
-                    if len(self.__posts) > self.options['length']:
-                        self.__posts = self.__posts[0:self.options['length'] - 1]
+                    if len(self.__posts) > self.options['historySize']:
+                        self.__posts = self.__posts[0:self.options['historySize'] - 1]
                     
                     # Now remove len(tmpPosts) items from __posts
-                    self.__posts = self.__posts[0:(self.options['length'] - len(tmpPosts) - 1)]
+                    self.__posts = self.__posts[0:(self.options['historySize'] - len(tmpPosts) - 1)]
                 
                 # Reverse the __posts array as we can't prepend to an array
                 self.__posts.reverse()
@@ -223,11 +240,15 @@ class MicroblogMedia(XiboMedia):
         # TODO: Get the template we get from the server and insert appropriate fields
         service = ''
         if tmpPost['xibo_src'] == TWITTER:
-            service = "via Twitter"
+            tmpPost['service'] = "Twitter"
         elif tmpPost['xibo_src'] == IDENTICA:
-            service = "via Identica"
-            
-        tmpHtml = "<html><meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"><body><img width=\"100\" height=\"100\" src=\"%s\" align=\"left\"><font color=\"black\" face=\"Arial\" size=\"3\"><u><b>%s:</b></u><br>%s</font><br><font color=\"black\" face=\"Arial\" size=\"2\">%s</font></body></html>" % (tmpPost['profile_image_url'], tmpPost['from_user'], tmpPost['text'], service)
+            tmpPost['service'] = "Identica"
+        
+        tmpHtml = self.template
+        
+        # Replace [tag] values with data
+        for key, value in tmpPost.items():
+            tmpHtml = tmpHtml.replace("[%s]" % key, "%s" % value)
         
         try:
             try:
@@ -253,15 +274,15 @@ class MicroblogMedia(XiboMedia):
     def fadeIn(self):
         # Once the next post has finished rendering, fade it in
         self.p.enqueue('browserOptions',(self.mediaNodeName + '-' + str(self.seq), True, False))
-        self.p.enqueue('anim',('fadeIn',self.mediaNodeName + '-' + str(self.seq), self.options['fadeTime'] * 1000, None))
+        self.p.enqueue('anim',('fadeIn',self.mediaNodeName + '-' + str(self.seq), self.options['fadeInterval'] * 1000, None))
         
         # Set a timer to force the post to change
-        self.p.enqueue('timer',((self.options['speed'] + self.options['fadeTime']) * 1000,self.fadeOut))
+        self.p.enqueue('timer',((self.options['speedInterval'] + self.options['fadeInterval']) * 1000,self.fadeOut))
     
     def fadeOut(self):
         # After the current post times out it calls this function which fades out the current node and then starts the next node
         # fading in.
-        self.p.enqueue('anim',('fadeOut',self.mediaNodeName + '-' + str(self.seq), self.options['fadeTime'] * 1000, self.nextPost))
+        self.p.enqueue('anim',('fadeOut',self.mediaNodeName + '-' + str(self.seq), self.options['fadeInterval'] * 1000, self.nextPost))
         
     def dispose(self):
         # Remember that we've finished running
@@ -307,7 +328,7 @@ class MicroblogMedia(XiboMedia):
         
         # Call twitter API and get new matches
 
-        results = self.searchMicroblog("http://search.twitter.com/search.json", self.options['term'], since_id=last_id)
+        results = self.searchMicroblog("http://search.twitter.com/search.json", self.options['searchTerm'], since_id=last_id)
         
         tmpTwitter = []
         for post in results["results"]:
@@ -332,7 +353,7 @@ class MicroblogMedia(XiboMedia):
         
         # Call identica API and get new matches
         
-        results = self.searchMicroblog("http://identi.ca/api/search.json", self.options['term'], since_id=last_id)
+        results = self.searchMicroblog("http://identi.ca/api/search.json", self.options['searchTerm'], since_id=last_id)
         
         tmpIdentica = []
         for post in results["results"]:
