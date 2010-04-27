@@ -441,7 +441,7 @@ class MicroblogMedia(XiboMedia):
 
         try:
             return simplejson.load(self.opener.open(searchURL))
-        except HTTPError, e:
+        except urllib2.HTTPError, e:
             raise TwythonError("getSearchTimeline() failed with a %s error code." % `e.code`, e.code)
     
     # This method taken from twython
