@@ -47,9 +47,10 @@ from threading import Thread, Semaphore
 import threading
 import urlparse
 import PIL.Image
+import math
 
 
-version = "1.1.0a21"
+version = "1.1.0a22"
 
 #TODO: Change to 2!
 schemaVersion = 1
@@ -72,7 +73,7 @@ class XiboLog:
             self.liftEnabled = config.get('Lift','enabled')
             if self.liftEnabled == "false":
                 self.liftEnabled = False
-                log.log(3,"audit",_("Enabling lift functionality in Logger"))
+                log.log(3,"audit",_("Disabling lift functionality in Logger"))
             else:
                 self.liftEnabled = True
                 log.log(3,"audit",_("Enabling lift functionality in Logger"))
@@ -808,6 +809,8 @@ class XiboDownloadManager(Thread):
                     md5Cache[tmpFileName] = tmpFile
             except IOError:
                 log.log(0,"warning",_("Could not open cache.xml. Starting with an empty cache"))
+            except:
+                log.log(0,"warning",_("md5Cache file is corrupted. Ignoring."))
 
     def run(self):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
@@ -1639,8 +1642,12 @@ class XiboLayout:
         self.layoutNode = None
         self.iter = None
 
-        self.playerWidth = int(config.get('Main','width'))
-        self.playerHeight = int(config.get('Main','height'))
+        if not int(config.get('Main','vwidth')) == 0:
+            self.playerWidth = int(config.get('Main','vwidth'))
+            self.playerHeight = int(config.get('Main','vheight'))
+        else:
+            self.playerWidth = int(config.get('Main','width'))
+            self.playerHeight = int(config.get('Main','height'))
 
         # Attributes
         self.width = None
@@ -1891,7 +1898,7 @@ class XmdsScheduler(XiboScheduler):
             self.liftEnabled = config.get('Lift','enabled')
             if self.liftEnabled == "false":
                 self.liftEnabled = False
-                log.log(3,"audit",_("Enabling lift functionality in XMDSScheduler"))
+                log.log(3,"audit",_("Disabling lift functionality in XMDSScheduler"))
             else:
                 self.liftEnabled = True
                 log.log(3,"audit",_("Enabling lift functionality in XMDSScheduler"))
@@ -2494,26 +2501,35 @@ class XMDS:
         req = None
         if self.check():
             try:
-                # TODO: Change the final arguement to use the globally defined schema version once
-                # there is a server that supports the schema to test against.
-                req = self.server.Schedule(self.getKey(),self.getUUID(),"1")
-            except SOAPpy.Types.faultType, err:
-                log.log(0,"error",str(err))
-                log.lights('S','red')
-                raise XMDSException("Schedule: Incorrect arguments passed to XMDS.")
-            except SOAPpy.Errors.HTTPError, err:
-                log.log(0,"error",str(err))
-                log.lights('S','red')
-                raise XMDSException("Schedule: HTTP error connecting to XMDS.")
-            except socket.error, err:
-                log.log(0,"error",str(err))
-                log.lights('S','red')
-                raise XMDSException("Schedule: socket error connecting to XMDS.")
+                try:
+                    # TODO: Change the final arguement to use the globally defined schema version once
+                    # there is a server that supports the schema to test against.
+                    req = self.server.Schedule(self.getKey(),self.getUUID(),"1")
+                except SOAPpy.Types.faultType, err:
+                    log.log(0,"error",str(err))
+                    log.lights('S','red')
+                    raise XMDSException("Schedule: Incorrect arguments passed to XMDS.")
+                except SOAPpy.Errors.HTTPError, err:
+                    log.log(0,"error",str(err))
+                    log.lights('S','red')
+                    raise XMDSException("Schedule: HTTP error connecting to XMDS.")
+                except socket.error, err:
+                    log.log(0,"error",str(err))
+                    log.lights('S','red')
+                    raise XMDSException("Schedule: socket error connecting to XMDS.")
+                except AttributeError, err:
+                    log.lights('S','red')
+                    log.log(0,"error",str(err))
+                    self.hasInitialised = False
+                    raise XMDSException("RequiredFiles: webservice not initialised")
             except AttributeError, err:
+                # For some reason the except SOAPpy.Types line above occasionally throws an
+                # exception when the client first starts saying SOAPpy doesn't have a Types attribute
+                # Catch that here I guess!
                 log.lights('S','red')
                 log.log(0,"error",str(err))
-                self.hasInitialised = False
-                raise XMDSException("RequiredFiles: webservice not initialised")
+                self.hasInitiated = False
+                raise XMDSException("RequiredFiles: webservice not initalised")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('S','grey')
@@ -2683,10 +2699,12 @@ class XiboDisplayManager:
             self.downloader.start()
             log.log(2,"info",_("Loaded Download Manager ") + downloaderName)
         except ConfigParser.NoOptionError:
+            log.log(0,"error","NoOptionError")
             log.log(0,"error",_("No DownloadManager specified in your configuration."))
             log.log(0,"error",_("Please check your Download Manager configuration."))
             exit(1)
         except:
+            log.log(0,"error","Unexpected Exception")
             log.log(0,"error",downloaderName + _(" does not implement the methods required to be a Xibo DownloadManager or does not exist."))
             log.log(0,"error",_("Please check your Download Manager configuration."))
             exit(1)
@@ -2712,7 +2730,7 @@ class XiboDisplayManager:
             self.liftEnabled = config.get('Lift','enabled')
             if self.liftEnabled == "false":
                 self.liftEnabled = False
-                log.log(3,"audit",_("Enabling lift functionality in Logger"))
+                log.log(3,"audit",_("Disabling lift functionality in Logger"))
             else:
                 self.liftEnabled = True
                 log.log(3,"audit",_("Enabling lift functionality in Logger"))
@@ -2775,6 +2793,7 @@ class XiboPlayer(Thread):
         self.__lock.acquire()
 
     def getDimensions(self):
+        # TODO: I don't think this is ever used.
         return self.dim
 
     def getElementByID(self,id):
@@ -2818,9 +2837,15 @@ class XiboPlayer(Thread):
         self.player.showCursor(0)
         self.player.volume = 1
         
+        useRotation = bool(not int(config.get('Main','vwidth')) == 0)
+        
         # Calculate the information window
-        infoX = (int(config.get('Main','width')) - 400) / 2
-        infoY = (int(config.get('Main','height')) - 300) / 2
+        if useRotation:
+            infoX = (int(config.get('Main','vwidth')) - 400) / 2
+            infoY = (int(config.get('Main','vheight')) - 300) / 2
+        else:
+            infoX = (int(config.get('Main','width')) - 400) / 2
+            infoY = (int(config.get('Main','height')) - 300) / 2
         
         # If the info window is bigger than the client, stick it in the top left corner.
         if infoX < 0:
@@ -2828,18 +2853,29 @@ class XiboPlayer(Thread):
         if infoY < 0:
             infoY = 0
         
+        if useRotation:
+            # The layout rotates around the centre so figure out how far we need to move it up/down or left/right to get it centred
+            # before it's rotated.
+            oX = (int(config.get('Main','width')) / 2.0) - (int(config.get('Main','vwidth')) / 2.0)
+            oY = (int(config.get('Main','height')) / 2.0) - (int(config.get('Main','vheight')) / 2.0)
+            
+            # Convert degrees in the config to Radians
+            oR = math.radians(float(config.get('Main','vrotation')))
+        
         # Build the XML that defines the avg node and divs for screen and information
-        avgContent = '<avg id="main" width="'
-        avgContent += config.get('Main','width')
-        avgContent += '" height="'
-        avgContent += config.get('Main','height')
-        avgContent += '"><div id="screen"/>'
+        avgContent = '<avg id="main" width="%s" height="%s">' % (config.get('Main','width'), config.get('Main','height'))
+        if useRotation:
+            avgContent += '<div pos="(%s,%s)" id="rotation" width="%s" height="%s" angle="%s">' % (oX,oY,config.get('Main','vwidth'), config.get('Main','vheight'), oR)
+        avgContent += '<div id="screen" pos="(0,0)" />'
         avgContent += '<div id="info" width="400" height="300" x="'
         avgContent += str(infoX)
         avgContent += '" y="'
         avgContent += str(infoY)
         avgContent += '" opacity="0" />'
+        if useRotation:
+            avgContent += '</div>'
         avgContent += '</avg>'
+        
         self.player.loadString(avgContent)
         avgNode = self.player.getElementByID("main")
         avgNode.setEventHandler(avg.KEYDOWN,avg.NONE,self.keyDown)
@@ -2930,7 +2966,7 @@ class XiboPlayer(Thread):
                     if data[0] == "fadeIn":
                         animation = avg.fadeIn(currentNode,data[2],1,data[3])
                     if data[0] == "fadeOut":
-                        animation = avg.fadeOut(currentNode,data[2],1,data[3])
+                        animation = avg.fadeOut(currentNode,data[2],data[3])
                     if data[0] == "linear":
                         animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
                 elif cmd == "play":
@@ -2981,6 +3017,14 @@ class XiboPlayer(Thread):
                     if not data[2] == None:
                         if data[2] == False:
                             currentNode.executeJavascript("document.body.style.overflow='hidden';")
+                elif cmd == "zoomIn":
+                    # BrowserNode Zoom In
+                    currentNode = self.player.getElementByID(data)
+                    currentNode.zoomIn()
+                elif cmd == "zoomOut":
+                    # BrowserNode Zoom Out
+                    currentNode = self.player.getElementByID(data)
+                    currentNode.zoomOut()
                 elif cmd == "setBitmap":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.setBitmap(data[1])
