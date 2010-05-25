@@ -2402,6 +2402,11 @@ class XMDS:
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("RequiredFiles: webservice not initialised")
+            except KeyError, err:
+                log.lights('RF', 'red')
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("RequiredFiles: Webservice returned non XML content")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('RF','grey')
@@ -2442,7 +2447,12 @@ class XMDS:
                 log.lights('Log','red')
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
-                raise XMDSException("RequiredFiles: webservice not initialised")
+                raise XMDSException("SubmitLog: webservice not initialised")
+            except KeyError, err:
+                log.lights('Log', 'red')
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("SubmitLog: Webservice returned non XML content")
             except:
                 print("SubmitLog: An unexpected error occured.")
                 log.lights('Log','red')
@@ -2482,7 +2492,12 @@ class XMDS:
                 log.lights('Stat','red')
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
-                raise XMDSException("RequiredFiles: webservice not initialised")
+                raise XMDSException("SubmitStats: webservice not initialised")
+            except KeyError, err:
+                log.lights('Stat', 'red')
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("SubmitStats: Webservice returned non XML content")
             except:
                 print("SubmitStats: An unexpected error occured.")
                 log.lights('Stat','red')
@@ -2521,7 +2536,12 @@ class XMDS:
                     log.lights('S','red')
                     log.log(0,"error",str(err))
                     self.hasInitialised = False
-                    raise XMDSException("RequiredFiles: webservice not initialised")
+                    raise XMDSException("Schedule: webservice not initialised")
+                except KeyError, err:
+                    log.lights('S', 'red')
+                    log.log(0,"error",str(err))
+                    self.hasInitialised = False
+                    raise XMDSException("Schedule: Webservice returned non XML content")
             except AttributeError, err:
                 # For some reason the except SOAPpy.Types line above occasionally throws an
                 # exception when the client first starts saying SOAPpy doesn't have a Types attribute
@@ -2563,7 +2583,12 @@ class XMDS:
                 log.lights('GF','red')
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
-                raise XMDSException("RequiredFiles: webservice not initialised")
+                raise XMDSException("GetFile: webservice not initialised")
+            except KeyError, err:
+                log.lights('GF', 'red')
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("GetFile: Webservice returned non XML content")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('GF','grey')
@@ -2608,6 +2633,10 @@ class XMDS:
                         log.lights('RD','red')
                         log.log(0,"error",str(err))
                         self.hasInitialised = False
+                    except KeyError, err:
+                        log.lights('RD', 'red')
+                        log.log(0,"error",str(err))
+                        self.hasInitialised = False
 
                 if regReturn != regOK:
                     # We're not licensed. Sleep 20 * tries seconds and try again.
@@ -2633,7 +2662,11 @@ class XMDS:
                     log.lights('RD','red')
                     log.log(0,"error",str(err))
                 except AttributeError, err:
-                    log.lights('RF','red')
+                    log.lights('RD','red')
+                    log.log(0,"error",str(err))
+                    self.hasInitialised = False
+                except KeyError, err:
+                    log.lights('RD', 'red')
                     log.log(0,"error",str(err))
                     self.hasInitialised = False
 
