@@ -96,7 +96,9 @@ class MicroblogMedia(XiboMedia):
         try:
             try:
                 self.__lock.acquire()
-                self.__posts = cPickle.load(file(os.path.join(self.libraryDir,self.mediaId + ".pickled")))
+                tmpFile = open(os.path.join(self.libraryDir,self.mediaId + ".pickled"), 'rb')
+                self.__posts = cPickle.load(tmpFile)
+                tmpFile.close()
             finally:
                 self.__lock.release()
         except:
@@ -212,8 +214,8 @@ class MicroblogMedia(XiboMedia):
                 try:
                     try:
                         self.__lock.acquire()
-                        f = codecs.open(os.path.join(self.libraryDir,self.mediaId + ".pickled"),mode='w',encoding="utf-8")
-                        cPickle.dump(self.__posts, f)
+                        f = open(os.path.join(self.libraryDir,self.mediaId + ".pickled"),mode='wb')
+                        cPickle.dump(self.__posts, f, True)
                     finally:
                         f.close()
                         self.__lock.release()
@@ -343,7 +345,10 @@ class MicroblogMedia(XiboMedia):
         
         # Call twitter API and get new matches
 
-        results = self.searchMicroblog("http://search.twitter.com/search.json", self.options['searchTerm'], since_id=last_id)
+        try:
+            results = self.searchMicroblog("http://search.twitter.com/search.json", self.options['searchTerm'], since_id=last_id)
+        except:
+            results = []
         
         tmpTwitter = []
         for post in results["results"]:
@@ -367,8 +372,11 @@ class MicroblogMedia(XiboMedia):
                 last_id = long(post['id'])
         
         # Call identica API and get new matches
-        
-        results = self.searchMicroblog("http://identi.ca/api/search.json", self.options['searchTerm'], since_id=last_id)
+
+        try:        
+            results = self.searchMicroblog("http://identi.ca/api/search.json", self.options['searchTerm'], since_id=last_id)
+        except:
+            results = []
         
         tmpIdentica = []
         for post in results["results"]:
@@ -454,10 +462,7 @@ class MicroblogMedia(XiboMedia):
 
         searchURL = self.constructApiURL(api_base, kwargs) + "&" + urllib.urlencode({"q": self.unicode2utf8(search_query)})
 
-        try:
-            return simplejson.load(self.opener.open(searchURL))
-        except urllib2.HTTPError, e:
-            raise TwythonError("getSearchTimeline() failed with a %s error code." % `e.code`, e.code)
+        return simplejson.load(self.opener.open(searchURL))
     
     # This method taken from twython
     # The MIT License
