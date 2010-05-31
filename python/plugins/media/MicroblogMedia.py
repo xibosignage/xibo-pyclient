@@ -70,6 +70,19 @@ class MicroblogMedia(XiboMedia):
         except:
             self.log.log(2,'error','%s Error parsing out the template from the xlf' % self.mediaNodeName)
             self.template = ""
+
+        # Parse out the nocontent element from the raw tag
+        try:
+            for t in self.rawNode.getElementsByTagName('nocontent'):
+                self.nocontentNode = t
+        
+            for node in self.nocontentNode.childNodes:
+                if node.nodeType == node.CDATA_SECTION_NODE:
+                    self.nocontent = node.data.encode('UTF-8')
+                    self.log.log(5,'audit','No Content is: ' + self.nocontent)
+        except:
+            self.log.log(2,'error','%s Error parsing out the nocontent from the xlf' % self.mediaNodeName)
+            self.nocontent = ""
         
     def run(self):
         # Start the region timer so the media dies at the right time.
@@ -83,21 +96,19 @@ class MicroblogMedia(XiboMedia):
         try:
             try:
                 self.__lock.acquire()
-                self.__posts = cPickle.load(file(os.path.join(self.libraryDir,self.mediaId + ".pickled")))
+                tmpFile = open(os.path.join(self.libraryDir,self.mediaId + ".pickled"), 'rb')
+                self.__posts = cPickle.load(tmpFile)
+                tmpFile.close()
             finally:
                 self.__lock.release()
         except:
-            # Load in some data to get us going
-            self.__lock.acquire()
-            self.__posts = [{'xibo_src': 1, u'iso_language_code': u'en_GB', u'text': u"Welcome to xibo Microblog Search Media", u'created_at': u'Thu, 08 Apr 2010 08:03:38 +0000', u'profile_image_url': u'http://avatar.identi.ca/1102-96-20081013131713.png', u'to_user': None, u'source': u'web', u'from_user': u'alexharrington', u'from_user_id': u'13737', u'to_user_id': None, u'id': u'27725072'}]
-            self.__lock.release()
-            
+            # Erase any pickle file that may be existing but corrupted  
             try:
                 os.remove(os.path.join(self.libraryDir,self.mediaId + ".pickled"))
             except:
                 pass
 
-            self.log.log(0,"audit","Unable to read serialised representation of the posts array or this media has never run before.")
+            self.log.log(5,"audit","Unable to read serialised representation of the posts array or this media has never run before.")
         
         self.nextPost()
                 
@@ -203,8 +214,8 @@ class MicroblogMedia(XiboMedia):
                 try:
                     try:
                         self.__lock.acquire()
-                        f = codecs.open(os.path.join(self.libraryDir,self.mediaId + ".pickled"),mode='w',encoding="utf-8")
-                        cPickle.dump(self.__posts, f)
+                        f = open(os.path.join(self.libraryDir,self.mediaId + ".pickled"),mode='wb')
+                        cPickle.dump(self.__posts, f, True)
                     finally:
                         f.close()
                         self.__lock.release()
@@ -224,7 +235,7 @@ class MicroblogMedia(XiboMedia):
         self.log.log(0,"audit","%s: Media has completed. Stopping updating." % self.mediaId)
     
     def nextPost(self):
-        tmpPost = ()
+        tmpPost = None
         # If the media has been disposed, do nothing.
         if not self.running:
             return
@@ -237,18 +248,23 @@ class MicroblogMedia(XiboMedia):
             tmpPost = self.__posts[self.__pointer]
         self.__lock.release()
         
-        # TODO: Get the template we get from the server and insert appropriate fields
-        service = ''
-        if tmpPost['xibo_src'] == TWITTER:
-            tmpPost['service'] = "Twitter"
-        elif tmpPost['xibo_src'] == IDENTICA:
-            tmpPost['service'] = "Identica"
+        # Get the template we get from the server and insert appropriate fields
+        # If there's no posts then show the no content template, otherwise show the content template
+        if tmpPost == None:
+            # TODO: Get no content template
+            tmpHtml = self.nocontent
+        else:
+            service = ''
+            if tmpPost['xibo_src'] == TWITTER:
+                tmpPost['service'] = "Twitter"
+            elif tmpPost['xibo_src'] == IDENTICA:
+                tmpPost['service'] = "Identica"
+
+            tmpHtml = self.template
         
-        tmpHtml = self.template
-        
-        # Replace [tag] values with data
-        for key, value in tmpPost.items():
-            tmpHtml = tmpHtml.replace("[%s]" % key, "%s" % value)
+            # Replace [tag] values with data
+            for key, value in tmpPost.items():
+                tmpHtml = tmpHtml.replace("[%s]" % key, "%s" % value)
         
         try:
             try:
@@ -267,6 +283,7 @@ class MicroblogMedia(XiboMedia):
             self.seq += 1
         else:
             self.seq = 1
+
         tmpXML = '<browser id="' + self.mediaNodeName + '-' + str(self.seq) + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + '"/>'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
         self.p.enqueue('browserNavigate',(self.mediaNodeName + '-' + str(self.seq),"file://" + os.path.abspath(self.tmpPath),self.fadeIn))
@@ -328,7 +345,10 @@ class MicroblogMedia(XiboMedia):
         
         # Call twitter API and get new matches
 
-        results = self.searchMicroblog("http://search.twitter.com/search.json", self.options['searchTerm'], since_id=last_id)
+        try:
+            results = self.searchMicroblog("http://search.twitter.com/search.json", self.options['searchTerm'], since_id=last_id)
+        except:
+            results = []
         
         tmpTwitter = []
         for post in results["results"]:
@@ -352,8 +372,11 @@ class MicroblogMedia(XiboMedia):
                 last_id = long(post['id'])
         
         # Call identica API and get new matches
-        
-        results = self.searchMicroblog("http://identi.ca/api/search.json", self.options['searchTerm'], since_id=last_id)
+
+        try:        
+            results = self.searchMicroblog("http://identi.ca/api/search.json", self.options['searchTerm'], since_id=last_id)
+        except:
+            results = []
         
         tmpIdentica = []
         for post in results["results"]:
@@ -439,10 +462,7 @@ class MicroblogMedia(XiboMedia):
 
         searchURL = self.constructApiURL(api_base, kwargs) + "&" + urllib.urlencode({"q": self.unicode2utf8(search_query)})
 
-        try:
-            return simplejson.load(self.opener.open(searchURL))
-        except urllib2.HTTPError, e:
-            raise TwythonError("getSearchTimeline() failed with a %s error code." % `e.code`, e.code)
+        return simplejson.load(self.opener.open(searchURL))
     
     # This method taken from twython
     # The MIT License
