@@ -50,7 +50,7 @@ import PIL.Image
 import math
 
 
-version = "1.1.0a22"
+version = "1.1.1a1"
 
 #TODO: Change to 2!
 schemaVersion = 1
