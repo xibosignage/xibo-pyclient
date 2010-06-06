@@ -49,10 +49,9 @@ import urlparse
 import PIL.Image
 import math
 
-
 version = "1.1.1a2"
 
-#TODO: Change to 2!
+# What layout schema version is supported
 schemaVersion = 1
 
 #### Abstract Classes
@@ -2255,6 +2254,8 @@ class XMDSException(Exception):
 
 class XMDS:
     def __init__(self):
+        self.__schemaVersion__ = "1";
+
         # Semaphore to allow only one XMDS call to run check simultaneously
         self.checkLock = Semaphore()
 
@@ -2382,9 +2383,7 @@ class XMDS:
                 pass
             log.updateFreeSpace(self.getDisk())
             try:
-                # TODO: Change the final arguement to use the globally defined schema version once
-                # there is a server that supports the schema to test against.
-                req = self.server.RequiredFiles(self.getKey(),self.getUUID(),"1")
+                req = self.server.RequiredFiles(self.getKey(),self.getUUID(),self.__schemaVersion__)
             except SOAPpy.Types.faultType, err:
                 log.lights('RF','red')
                 log.lights('RF','red')
@@ -2422,7 +2421,7 @@ class XMDS:
         if self.check():
             try:
                 # response = self.server.SubmitLog(serverKey=self.getKey(),hardwareKey=self.getUUID(),logXml=logXml,version="1")
-                response = self.server.SubmitLog("1",self.getKey(),self.getUUID(),logXml)
+                response = self.server.SubmitLog(self.__schemaVersion__,self.getKey(),self.getUUID(),logXml)
             except SOAPpy.Types.faultType, err:
                 print(str(err))
                 log.log(0,"error",str(err))
@@ -2471,7 +2470,7 @@ class XMDS:
         
         if self.check():
             try:
-                response = self.server.SubmitStats("1",self.getKey(),self.getUUID(),statXml)
+                response = self.server.SubmitStats(self.__schemaVersion__,self.getKey(),self.getUUID(),statXml)
             except SOAPpy.Types.faultType, err:
                 log.log(0,"error",str(err))
                 log.lights('Stat','red')
@@ -2517,9 +2516,7 @@ class XMDS:
         if self.check():
             try:
                 try:
-                    # TODO: Change the final arguement to use the globally defined schema version once
-                    # there is a server that supports the schema to test against.
-                    req = self.server.Schedule(self.getKey(),self.getUUID(),"1")
+                    req = self.server.Schedule(self.getKey(),self.getUUID(),self.__schemaVersion__)
                 except SOAPpy.Types.faultType, err:
                     log.log(0,"error",str(err))
                     log.lights('S','red')
@@ -2564,9 +2561,7 @@ class XMDS:
         log.lights('GF','amber')
         if self.check():
             try:
-                # TODO: Change the final arguement to use the globally defined schema version once
-                # there is a server that supports the schema to test against.
-                response = self.server.GetFile(self.getKey(),self.getUUID(),tmpPath,tmpType,tmpOffset,tmpChunk,"1")
+                response = self.server.GetFile(self.getKey(),self.getUUID(),tmpPath,tmpType,tmpOffset,tmpChunk,self.__schemaVersion__)
             except SOAPpy.Types.faultType, err:
                 log.log(0,"error",str(err))
                 log.lights('GF','red')
@@ -2615,10 +2610,8 @@ class XMDS:
             while regReturn != regOK:
                 tries = tries + 1
                 if self.check():
-                    #TODO: Change the final arguement to use the globally defined schema version once
-                    # there is a server that supports the schema to test against.
                     try:
-                        regReturn = self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),"1")
+                        regReturn = self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),self.__schemaVersion__)
                         log.log(0,"info",regReturn)
                     except SOAPpy.Types.faultType, err:
                         log.lights('RD','red')
@@ -2647,10 +2640,8 @@ class XMDS:
             log.lights('RD','green')
         else:
             if self.check():
-                #TODO: Change the final arguement to use the globally defined schema version once
-                # there  is a server that supports the schema to test against.
                 try:
-                    log.log(0,"info",self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),"1"))
+                    log.log(0,"info",self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),self.__schemaVersion__))
                     log.lights('RD','green')
                 except SOAPpy.Types.faultType, err:
                     log.lights('RD','red')
