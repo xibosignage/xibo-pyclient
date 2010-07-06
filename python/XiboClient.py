@@ -1224,7 +1224,7 @@ class XiboLayoutManager(Thread):
         self.layoutNodeName = 'L' + str(self.l.layoutID) + self.layoutNodeNameExt
 
         # Create the XML that will render the layoutNode.
-        tmpXML = '<div id="' + self.layoutNodeName + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" opacity="' + str(self.opacity) + '" />'
+        tmpXML = '<div id="' + self.layoutNodeName + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" opacity="' + str(self.opacity) + '" crop="False" />'
         self.p.enqueue('add',(tmpXML,'screen'))
 
         # Add a ColorNode and maybe ImageNode to the layout div to draw the background
@@ -1432,7 +1432,7 @@ class XiboRegionManager(Thread):
             self.zindex = 1
         
         # Create a div for the region and add it
-        tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
+        tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" crop="False" />'
         self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
     def run(self):
@@ -2889,13 +2889,13 @@ class XiboPlayer(Thread):
         # Build the XML that defines the avg node and divs for screen and information
         avgContent = '<avg id="main" width="%s" height="%s">' % (config.get('Main','width'), config.get('Main','height'))
         if useRotation:
-            avgContent += '<div pos="(%s,%s)" id="rotation" width="%s" height="%s" angle="%s">' % (oX,oY,config.get('Main','vwidth'), config.get('Main','vheight'), oR)
-        avgContent += '<div id="screen" pos="(0,0)" />'
+            avgContent += '<div pos="(%s,%s)" id="rotation" width="%s" height="%s" angle="%s" crop="False">' % (oX,oY,config.get('Main','vwidth'), config.get('Main','vheight'), oR)
+        avgContent += '<div id="screen" pos="(0,0)" crop="False" />'
         avgContent += '<div id="info" width="400" height="300" x="'
         avgContent += str(infoX)
         avgContent += '" y="'
         avgContent += str(infoY)
-        avgContent += '" opacity="0" />'
+        avgContent += '" opacity="0" crop="False" />'
         if useRotation:
             avgContent += '</div>'
         avgContent += '</avg>'
@@ -3141,7 +3141,7 @@ class XiboOptions:
         
         # Build the XML that defines the avg node and divs for screen and information
         avgContent = '<avg id="main" width="400" height="300">'
-        avgContent += '<div id="options_screen">'
+        avgContent += '<div id="options_screen" crop="False">'
         avgContent += '<words id="exitButton">Exit</words>'
         avgContent += '</div>'
         avgContent += '</avg>'
