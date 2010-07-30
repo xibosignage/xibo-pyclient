@@ -2860,6 +2860,7 @@ class XiboPlayer(Thread):
         
         self.player.showCursor(0)
         self.player.volume = 1
+        self.player.stopOnEscape(False)
         
         useRotation = bool(not int(config.get('Main','vwidth')) == 0)
         
