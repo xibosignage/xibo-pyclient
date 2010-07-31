@@ -49,10 +49,9 @@ import urlparse
 import PIL.Image
 import math
 
+version = "1.2.0a1"
 
-version = "1.1.1a1"
-
-#TODO: Change to 2!
+# What layout schema version is supported
 schemaVersion = 1
 
 #### Abstract Classes
@@ -1225,7 +1224,7 @@ class XiboLayoutManager(Thread):
         self.layoutNodeName = 'L' + str(self.l.layoutID) + self.layoutNodeNameExt
 
         # Create the XML that will render the layoutNode.
-        tmpXML = '<div id="' + self.layoutNodeName + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" opacity="' + str(self.opacity) + '" />'
+        tmpXML = '<div id="' + self.layoutNodeName + '" width="' + str(self.l.sWidth) + '" height="' + str(self.l.sHeight) + '" x="' + str(self.l.offsetX) + '" y="' + str(self.l.offsetY) + '" opacity="' + str(self.opacity) + '" crop="False" />'
         self.p.enqueue('add',(tmpXML,'screen'))
 
         # Add a ColorNode and maybe ImageNode to the layout div to draw the background
@@ -1433,7 +1432,7 @@ class XiboRegionManager(Thread):
             self.zindex = 1
         
         # Create a div for the region and add it
-        tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" />'
+        tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" crop="False" />'
         self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
     def run(self):
@@ -2255,6 +2254,8 @@ class XMDSException(Exception):
 
 class XMDS:
     def __init__(self):
+        self.__schemaVersion__ = "2";
+
         # Semaphore to allow only one XMDS call to run check simultaneously
         self.checkLock = Semaphore()
 
@@ -2382,9 +2383,7 @@ class XMDS:
                 pass
             log.updateFreeSpace(self.getDisk())
             try:
-                # TODO: Change the final arguement to use the globally defined schema version once
-                # there is a server that supports the schema to test against.
-                req = self.server.RequiredFiles(self.getKey(),self.getUUID(),"1")
+                req = self.server.RequiredFiles(self.getKey(),self.getUUID(),self.__schemaVersion__)
             except SOAPpy.Types.faultType, err:
                 log.lights('RF','red')
                 log.lights('RF','red')
@@ -2422,7 +2421,7 @@ class XMDS:
         if self.check():
             try:
                 # response = self.server.SubmitLog(serverKey=self.getKey(),hardwareKey=self.getUUID(),logXml=logXml,version="1")
-                response = self.server.SubmitLog("1",self.getKey(),self.getUUID(),logXml)
+                response = self.server.SubmitLog(self.__schemaVersion__,self.getKey(),self.getUUID(),logXml)
             except SOAPpy.Types.faultType, err:
                 print(str(err))
                 log.log(0,"error",str(err))
@@ -2471,7 +2470,7 @@ class XMDS:
         
         if self.check():
             try:
-                response = self.server.SubmitStats("1",self.getKey(),self.getUUID(),statXml)
+                response = self.server.SubmitStats(self.__schemaVersion__,self.getKey(),self.getUUID(),statXml)
             except SOAPpy.Types.faultType, err:
                 log.log(0,"error",str(err))
                 log.lights('Stat','red')
@@ -2517,9 +2516,7 @@ class XMDS:
         if self.check():
             try:
                 try:
-                    # TODO: Change the final arguement to use the globally defined schema version once
-                    # there is a server that supports the schema to test against.
-                    req = self.server.Schedule(self.getKey(),self.getUUID(),"1")
+                    req = self.server.Schedule(self.getKey(),self.getUUID(),self.__schemaVersion__)
                 except SOAPpy.Types.faultType, err:
                     log.log(0,"error",str(err))
                     log.lights('S','red')
@@ -2564,9 +2561,7 @@ class XMDS:
         log.lights('GF','amber')
         if self.check():
             try:
-                # TODO: Change the final arguement to use the globally defined schema version once
-                # there is a server that supports the schema to test against.
-                response = self.server.GetFile(self.getKey(),self.getUUID(),tmpPath,tmpType,tmpOffset,tmpChunk,"1")
+                response = self.server.GetFile(self.getKey(),self.getUUID(),tmpPath,tmpType,tmpOffset,tmpChunk,self.__schemaVersion__)
             except SOAPpy.Types.faultType, err:
                 log.log(0,"error",str(err))
                 log.lights('GF','red')
@@ -2615,10 +2610,8 @@ class XMDS:
             while regReturn != regOK:
                 tries = tries + 1
                 if self.check():
-                    #TODO: Change the final arguement to use the globally defined schema version once
-                    # there is a server that supports the schema to test against.
                     try:
-                        regReturn = self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),"1")
+                        regReturn = self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),self.__schemaVersion__)
                         log.log(0,"info",regReturn)
                     except SOAPpy.Types.faultType, err:
                         log.lights('RD','red')
@@ -2647,10 +2640,8 @@ class XMDS:
             log.lights('RD','green')
         else:
             if self.check():
-                #TODO: Change the final arguement to use the globally defined schema version once
-                # there  is a server that supports the schema to test against.
                 try:
-                    log.log(0,"info",self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),"1"))
+                    log.log(0,"info",self.server.RegisterDisplay(self.getKey(),self.getUUID(),self.getName(),self.__schemaVersion__))
                     log.lights('RD','green')
                 except SOAPpy.Types.faultType, err:
                     log.lights('RD','red')
@@ -2869,6 +2860,7 @@ class XiboPlayer(Thread):
         
         self.player.showCursor(0)
         self.player.volume = 1
+        self.player.stopOnEscape(False)
         
         useRotation = bool(not int(config.get('Main','vwidth')) == 0)
         
@@ -2898,13 +2890,13 @@ class XiboPlayer(Thread):
         # Build the XML that defines the avg node and divs for screen and information
         avgContent = '<avg id="main" width="%s" height="%s">' % (config.get('Main','width'), config.get('Main','height'))
         if useRotation:
-            avgContent += '<div pos="(%s,%s)" id="rotation" width="%s" height="%s" angle="%s">' % (oX,oY,config.get('Main','vwidth'), config.get('Main','vheight'), oR)
-        avgContent += '<div id="screen" pos="(0,0)" />'
+            avgContent += '<div pos="(%s,%s)" id="rotation" width="%s" height="%s" angle="%s" crop="False">' % (oX,oY,config.get('Main','vwidth'), config.get('Main','vheight'), oR)
+        avgContent += '<div id="screen" pos="(0,0)" crop="False" />'
         avgContent += '<div id="info" width="400" height="300" x="'
         avgContent += str(infoX)
         avgContent += '" y="'
         avgContent += str(infoY)
-        avgContent += '" opacity="0" />'
+        avgContent += '" opacity="0" crop="False" />'
         if useRotation:
             avgContent += '</div>'
         avgContent += '</avg>'
@@ -3150,7 +3142,7 @@ class XiboOptions:
         
         # Build the XML that defines the avg node and divs for screen and information
         avgContent = '<avg id="main" width="400" height="300">'
-        avgContent += '<div id="options_screen">'
+        avgContent += '<div id="options_screen" crop="False">'
         avgContent += '<words id="exitButton">Exit</words>'
         avgContent += '</div>'
         avgContent += '</avg>'
