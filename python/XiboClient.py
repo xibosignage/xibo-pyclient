@@ -49,7 +49,7 @@ import urlparse
 import PIL.Image
 import math
 
-version = "1.1.1a2"
+version = "1.2.0a1"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -2254,7 +2254,7 @@ class XMDSException(Exception):
 
 class XMDS:
     def __init__(self):
-        self.__schemaVersion__ = "1";
+        self.__schemaVersion__ = "2";
 
         # Semaphore to allow only one XMDS call to run check simultaneously
         self.checkLock = Semaphore()
