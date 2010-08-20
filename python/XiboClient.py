@@ -1828,12 +1828,9 @@ class XiboLayout:
                 log.log(3,"info",_("Layout ") + self.layoutID + _(" cannot run because file is missing from the md5Cache: ") + tmpFileName)
 
         # See if the item is in a scheduled window to run
-        # If it's default, then it's always able to run
-        if self.isDefault:
-            self.scheduleCheck = True
-
-        log.log(3,"info",_("Layout ") + self.layoutID + " canRun(): schema-" + str(self.schemaCheck) + " media-" + str(self.mediaCheck) + " schedule-" + str(self.scheduleCheck) + " plugin-" + str(self.pluginCheck))
-        return self.schemaCheck and self.mediaCheck and self.scheduleCheck and self.pluginCheck
+       
+        log.log(3,"info",_("Layout ") + self.layoutID + " canRun(): schema-" + str(self.schemaCheck) + " media-" + str(self.mediaCheck) + " schedule-" + str(self.scheduleCheck) + " plugin-" + str(self.pluginCheck) + " default-" + str(self.isDefault))
+        return self.schemaCheck and self.mediaCheck and (self.scheduleCheck or self.isDefault) and self.pluginCheck
 
     def resetSchedule(self):
         pass
@@ -2007,9 +2004,15 @@ class XmdsScheduler(XiboScheduler):
     def nextLayout(self):
         "Return the next valid layout"
         
-        # If there are no possible layouts then return the splash screen straight away.
+        # If there are no possible layouts then return the default or splash screen straight away.
         if len(self) == 0:
-            return XiboLayout('0',False)
+            try:
+                if self.__defaultLayout.canRun():
+                    return self.__defaultLayout
+                else:
+                    return XiboLayout('0',False)
+            except:
+                return XiboLayout('0',False)
         
         # Consider each possible layout and see if it can run
         # Lock out the scheduler while we do this so that the
