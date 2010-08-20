@@ -1631,8 +1631,9 @@ class XiboRegionManager(Thread):
 
 #### Scheduler Classes
 class XiboLayout:
-    def __init__(self,layoutID):
+    def __init__(self,layoutID,isDefault):
         self.layoutID = layoutID
+        self.isDefault = isDefault
         self.__setup()
         
     def __setup(self):
@@ -1827,6 +1828,9 @@ class XiboLayout:
                 log.log(3,"info",_("Layout ") + self.layoutID + _(" cannot run because file is missing from the md5Cache: ") + tmpFileName)
 
         # See if the item is in a scheduled window to run
+        # If it's default, then it's always able to run
+        if self.isDefault:
+            self.scheduleCheck = True
 
         log.log(3,"info",_("Layout ") + self.layoutID + " canRun(): schema-" + str(self.schemaCheck) + " media-" + str(self.mediaCheck) + " schedule-" + str(self.scheduleCheck) + " plugin-" + str(self.pluginCheck))
         return self.schemaCheck and self.mediaCheck and self.scheduleCheck and self.pluginCheck
@@ -1834,7 +1838,7 @@ class XiboLayout:
     def resetSchedule(self):
         pass
 
-    def addSchedule(self,fromDt,toDt):
+    def addSchedule(self,fromDt,toDt,priority):
         pass
 
     def children(self):
@@ -1855,7 +1859,7 @@ class DummyScheduler(XiboScheduler):
     def nextLayout(self):
         "Return the next valid layout"
 
-        layout = XiboLayout(self.layoutList[self.layoutIndex])
+        layout = XiboLayout(self.layoutList[self.layoutIndex],False)
         self.layoutIndex = self.layoutIndex + 1
 
         if self.layoutIndex == len(self.layoutList):
@@ -1866,7 +1870,7 @@ class DummyScheduler(XiboScheduler):
             if len(self.layoutList) > 1:
                 return self.nextLayout()
             else:
-                return XiboLayout("0")
+                return XiboLayout("0",False)
         else:
             log.log(3,"info",_("DummyScheduler: nextLayout() -> ") + str(layout.layoutID))
             return layout
@@ -1890,6 +1894,7 @@ class XmdsScheduler(XiboScheduler):
         self.p = player
         self.__collectLock = Semaphore()
         self.__collectLock.acquire()
+        self.__defaultLayout = None
         
         self.validTag = "default"
 
@@ -1943,30 +1948,39 @@ class XmdsScheduler(XiboScheduler):
             
             scheduleText = ""
             
-            # TODO: Process the received schedule
+            # Process the received schedule
             # If the schedule hasn't changed, do nothing.
             if self.previousSchedule != schedule:
                 doc = minidom.parseString(schedule)
                 tmpLayouts = doc.getElementsByTagName('layout')
+                defaultLayout = doc.getElementsByTagName('default')
+
+                # Parse out the default layout and update if appropriate
+                for l in defaultLayout:
+                    layoutID = str(l.attributes['file'].value)
+
+                    if self.__defaultLayout.layoutID != layoutID:
+                        self.__defaultLayout = XiboLayout(layoutID,True)
             
                 newLayouts = []
                 for l in tmpLayouts:
                     layoutID = str(l.attributes['file'].value)
                     layoutFromDT = str(l.attributes['fromdt'].value)
                     layoutToDT = str(l.attributes['todt'].value)
+                    layoutPriority = int(l.attributes['priority'].value)
                     flag = True
                     
                     # If the layout already exists, add this schedule to it
                     for g in newLayouts:
                         if g.layoutID == layoutID:
                             # Append Schedule
-                            g.addSchedule(layoutFromDT,layoutToDT)
+                            g.addSchedule(layoutFromDT,layoutToDT,priority)
                             scheduleText += str(layoutID) + ', '
                             flag = False
                     
                     # The layout doesn't exist, add it and add a schedule for it
                     if flag:
-                        tmpLayout = XiboLayout(layoutID)
+                        tmpLayout = XiboLayout(layoutID,False)
                         tmpLayout.addSchedule(layoutFromDT,layoutToDT)
                         newLayouts.append(tmpLayout)
                         scheduleText += str(layoutID) + ', '
@@ -1995,7 +2009,7 @@ class XmdsScheduler(XiboScheduler):
         
         # If there are no possible layouts then return the splash screen straight away.
         if len(self) == 0:
-            return XiboLayout('0')
+            return XiboLayout('0',False)
         
         # Consider each possible layout and see if it can run
         # Lock out the scheduler while we do this so that the
@@ -2023,7 +2037,7 @@ class XmdsScheduler(XiboScheduler):
         
         self.__lock.release()
         log.updateNowPlaying(str(tmpLayout.layoutID))
-        return XiboLayout('0')
+        return XiboLayout('0',False)
 
     def hasNext(self):
         "Return true if there are more layouts, otherwise false"
@@ -2708,7 +2722,7 @@ class XiboDisplayManager:
         self.Player.start()
 
         # TODO: Display the splash screen
-        self.currentLM = XiboLayoutManager(self, self.Player, XiboLayout('0'), 0, 1.0, True)
+        self.currentLM = XiboLayoutManager(self, self.Player, XiboLayout('0',False), 0, 1.0, True)
         self.currentLM.start()
 
         # Let the log object see the player so it can update the hidden info screen
