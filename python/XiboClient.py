@@ -355,6 +355,7 @@ class XiboScheduler(Thread):
 #### Log Classes
 class XiboLogSplit(XiboLog):
     "Xibo Log Splitter - so log output can go to two log objects"
+    # Currently non-functional
     def __init__(self,level):
         self.level = int(level)
         
@@ -1638,7 +1639,7 @@ class XiboLayout:
         
     def __setup(self):
         self.builtWithNoXLF = False
-        self.schedule = ""
+        self.schedule = []
         self.layoutNode = None
         self.iter = None
 
@@ -1669,7 +1670,7 @@ class XiboLayout:
         # Checks
         self.schemaCheck = False
         self.mediaCheck = False
-        self.scheduleCheck = True
+        self.scheduleCheck = False
         self.pluginCheck = True
         
         if self.layoutID == "0":
@@ -1801,6 +1802,7 @@ class XiboLayout:
                 return False
         
         self.mediaCheck = True
+        self.scheduleCheck = False
         
         if len(self.mediaNodes) < 1:
             log.log(3,"warn",_("Layout ") + self.layoutID + _(" cannot run because layout has no media nodes."))
@@ -1827,16 +1829,28 @@ class XiboLayout:
                 self.mediaCheck = False
                 log.log(3,"info",_("Layout ") + self.layoutID + _(" cannot run because file is missing from the md5Cache: ") + tmpFileName)
 
-        # See if the item is in a scheduled window to run
+        # TODO: See if the item is in a scheduled window to run
+        for sc in self.schedule:
+            fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
+            toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
+            priority = sc[2]
+            now = time.time()
+            
+            # Check if we're in the window. If fromDt > toDt then we've got the
+            # default layout (which is essentially an invalid schedule).
+            if ((now > fromDt) and (now < toDt)) or fromDt > toDt:
+                self.scheduleCheck = True
        
         log.log(3,"info",_("Layout ") + self.layoutID + " canRun(): schema-" + str(self.schemaCheck) + " media-" + str(self.mediaCheck) + " schedule-" + str(self.scheduleCheck) + " plugin-" + str(self.pluginCheck) + " default-" + str(self.isDefault))
         return self.schemaCheck and self.mediaCheck and (self.scheduleCheck or self.isDefault) and self.pluginCheck
 
     def resetSchedule(self):
-        pass
+        log.log(3, "info", _("Reset schedule information for layout %s") % self.layoutID)
+        self.schedule=[]
 
     def addSchedule(self,fromDt,toDt,priority):
-        pass
+        log.log(3,"info",_("Added schdule information for layout %s: f:%s t:%s p:%d") % (self.layoutID,fromDt,toDt,priority))
+        self.schedule.append((fromDt,toDt,priority))
 
     def children(self):
         return self.iter
@@ -1956,7 +1970,10 @@ class XmdsScheduler(XiboScheduler):
                 for l in defaultLayout:
                     layoutID = str(l.attributes['file'].value)
 
-                    if self.__defaultLayout.layoutID != layoutID:
+                    try:
+                        if self.__defaultLayout.layoutID != layoutID:
+                           self.__defaultLayout = XiboLayout(layoutID,True)
+                    except:
                         self.__defaultLayout = XiboLayout(layoutID,True)
             
                 newLayouts = []
@@ -1971,14 +1988,14 @@ class XmdsScheduler(XiboScheduler):
                     for g in newLayouts:
                         if g.layoutID == layoutID:
                             # Append Schedule
-                            g.addSchedule(layoutFromDT,layoutToDT,priority)
+                            g.addSchedule(layoutFromDT,layoutToDT,layoutPriority)
                             scheduleText += str(layoutID) + ', '
                             flag = False
                     
                     # The layout doesn't exist, add it and add a schedule for it
                     if flag:
                         tmpLayout = XiboLayout(layoutID,False)
-                        tmpLayout.addSchedule(layoutFromDT,layoutToDT)
+                        tmpLayout.addSchedule(layoutFromDT,layoutToDT,layoutPriority)
                         newLayouts.append(tmpLayout)
                         scheduleText += str(layoutID) + ', '
                         
@@ -2008,10 +2025,13 @@ class XmdsScheduler(XiboScheduler):
         if len(self) == 0:
             try:
                 if self.__defaultLayout.canRun():
+                    log.updateNowPlaying(str(self.__defaultLayout.layoutID) + " (Default)")
                     return self.__defaultLayout
                 else:
+                    log.updateNowPlaying("Splash Screen")
                     return XiboLayout('0',False)
             except:
+                log.updateNowPlaying("Splash Screen")
                 return XiboLayout('0',False)
         
         # Consider each possible layout and see if it can run
@@ -2038,9 +2058,19 @@ class XmdsScheduler(XiboScheduler):
                 else:
                     count = count + 1
         
-        self.__lock.release()
-        log.updateNowPlaying(str(tmpLayout.layoutID))
-        return XiboLayout('0',False)
+        try:
+            if self.__defaultLayout.canRun():
+                log.updateNowPlaying(str(self.__defaultLayout.layoutID) + " (Default)")
+                self.__lock.release()
+                return self.__defaultLayout
+            else:
+                log.updateNowPlaying("Splash Screen")
+                self.__lock.release()
+                return XiboLayout('0',False)
+        except:
+            log.updateNowPlaying("Splash Screen")
+            self.__lock.release()
+            return XiboLayout('0',False)
 
     def hasNext(self):
         "Return true if there are more layouts, otherwise false"
