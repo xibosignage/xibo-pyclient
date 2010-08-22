@@ -1829,7 +1829,7 @@ class XiboLayout:
                 self.mediaCheck = False
                 log.log(3,"info",_("Layout ") + self.layoutID + _(" cannot run because file is missing from the md5Cache: ") + tmpFileName)
 
-        # TODO: See if the item is in a scheduled window to run
+        # See if the item is in a scheduled window to run
         for sc in self.schedule:
             fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
             toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
@@ -1851,6 +1851,22 @@ class XiboLayout:
     def addSchedule(self,fromDt,toDt,priority):
         log.log(3,"info",_("Added schdule information for layout %s: f:%s t:%s p:%d") % (self.layoutID,fromDt,toDt,priority))
         self.schedule.append((fromDt,toDt,priority))
+
+    def isPriority(self):
+        # Check through the schedule and see if we're priority at the moment.
+        for sc in self.schedule:
+            fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
+            toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
+            priority = sc[2]
+            now = time.time()
+            
+            # Check if we're in the window. If fromDt > toDt then we've got the
+            # default layout (which is essentially an invalid schedule).
+            if (now > fromDt) and (now < toDt):
+                if priority == 1:
+                    return True
+
+        return False
 
     def children(self):
         return self.iter
@@ -2038,25 +2054,48 @@ class XmdsScheduler(XiboScheduler):
         # Lock out the scheduler while we do this so that the
         # maths doesn't go horribly wrong!
         self.__lock.acquire()
+
+        # Check if any layout is a priorty.
+        thereIsPriority = False
+        for l in self.__layouts:
+            if l.isPriority():
+                thereIsPriority = True
+
         count = 0
         while count < len(self):
             self.__pointer = (self.__pointer + 1) % len(self)
             tmpLayout = self.__layouts[self.__pointer]
             
             if self.liftEnabled:
-                if tmpLayout.canRun() and self.validTag in tmpLayout.tags:
-                    log.updateNowPlaying(str(tmpLayout.layoutID))
-                    self.__lock.release()
-                    return tmpLayout
+                if thereIsPriority:
+                    if tmpLayout.canRun() and tmpLayout.isPriority() and self.validTag in tmpLayout.tags:
+                        log.updateNowPlaying(str(tmpLayout.layoutID) + " (P)")
+                        self.__lock.release()
+                        return tmpLayout
+                    else:
+                        count = count + 1
                 else:
-                    count = count + 1
+                    if tmpLayout.canRun() and self.validTag in tmpLayout.tags:
+                        log.updateNowPlaying(str(tmpLayout.layoutID))
+                        self.__lock.release()
+                        return tmpLayout
+                    else:
+                        count = count + 1
             else:
-                if tmpLayout.canRun():
-                    log.updateNowPlaying(str(tmpLayout.layoutID))
-                    self.__lock.release()
-                    return tmpLayout
+                if thereIsPriority:
+                    if tmpLayout.canRun() and tmpLayout.isPriority():
+                        log.updateNowPlaying(str(tmpLayout.layoutID) + " (P)")
+                        self.__lock.release()
+                        return tmpLayout
+                    else:
+                        count = count + 1
                 else:
-                    count = count + 1
+                    if tmpLayout.canRun():
+                        log.updateNowPlaying(str(tmpLayout.layoutID))
+                        self.__lock.release()
+                        return tmpLayout
+                    else:
+                        count = count + 1
         
         try:
             if self.__defaultLayout.canRun():
