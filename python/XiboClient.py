@@ -59,7 +59,7 @@ class XiboLog:
     "Abstract Class - Interface for Loggers"
     level=0
     def __init__(self,level): abstract
-    def log(self,level,category,message): abstract
+    def log(self,level,category,message,osd=False): abstract
     def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID): abstract
     def setXmds(self,xmds):
         pass
@@ -272,6 +272,12 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" text="" font="Arial" color="000000" fontsize="11" />'
         self.p.enqueue('add',(tmpXML,'info'))
+
+        # On Screen Logging
+        tmpXML = '<rect fillcolor="ffffff" id="osLogBG" fillopacity="0.75" size="(%d,%d)" />' % (self.p.osLogX, 20)
+        self.p.enqueue('add',(tmpXML,'osLog'))
+        tmpXML = '<words id="osLogText" x="5" y="3" opacity="1" text="Xibo Client v%s" font="Arial" color="000000" fontsize="11" />' % version
+        self.p.enqueue('add',(tmpXML,'osLog'))
     
     def lights(self,field,value):
         if value == "green":
@@ -345,6 +351,11 @@ class XiboLog:
         tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: ' + tag + '" font="Arial" color="000000" fontsize="11" />'
         self.p.enqueue('add',(tmpXML,'info'))
 
+    def osLog(self,message):
+        self.p.enqueue('del','osLogText')
+        tmpXML = '<words id="osLogText" x="5" y="3" opacity="1" text="%s" font="Arial" color="000000" fontsize="11" />' % message
+        self.p.enqueue('add',(tmpXML,'osLog'))
+
 class XiboScheduler(Thread):
     "Abstract Class - Interface for Schedulers"
     def run(self): abstract
@@ -367,9 +378,9 @@ class XiboLogSplit(XiboLog):
         
         self.log(2,"info",_("XiboLogSplit logger started at level ") + str(level))
         
-    def log(self, severity, category, message):
-        self.log1.log(severity, category, message)
-        self.log2.log(severity, category, message)
+    def log(self, severity, category, message, osd=False):
+        self.log1.log(severity, category, message, osd)
+        self.log2.log(severity, category, message, osd)
         
     def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID=""):
         self.log1.stat(statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID)
@@ -394,7 +405,7 @@ class XiboLogFile(XiboLog):
 
         self.log(2,"info",_("XiboLogFile logger started at level ") + str(level))
 
-    def log(self, severity, category, message):
+    def log(self, severity, category, message, osd=False):
         if self.level >= severity:
             
             # Define these two here incase an exception is thrown below.
@@ -417,6 +428,10 @@ class XiboLogFile(XiboLog):
             self.fh.write("LOG: " + str(date) + " (" + str(function) + ":" + str(callingLineNumber) + ") " + str(severity) + " " + category + " " + message + "\n")
             self.fh.flush()
 
+        # If osLog is enabled, update the status
+        if osd and self.p.osLog:
+            self.osLog(message)
+
     def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID):
         pass
   
@@ -431,9 +446,13 @@ class XiboLogScreen(XiboLog):
 
         self.log(2,"info",_("XiboLogScreen logger started at level ") + str(level))
 
-    def log(self, severity, category, message):
+    def log(self, severity, category, message, osd=False):
         if self.level >= severity:
             print "LOG: " + str(time.time()) + " " + str(severity) + " " + category + " " + message
+
+        # If osLog is enabled, update the status
+        if osd and self.p.osLog:
+            self.osLog(message)
 
     def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID=""):
         print "STAT: " + statType + " " + tag + " " + str(layoutID) + " " + str(scheduleID) + " " + str(mediaID)
@@ -470,7 +489,7 @@ class XiboLogXmds(XiboLog):
     # A worker thread will then format the messages in to XML
     # ready for transmission to the server.
     
-    def log(self, severity, category, message):
+    def log(self, severity, category, message, osd=False):
         
         if self.level >= severity:
             try:
@@ -487,6 +506,10 @@ class XiboLogXmds(XiboLog):
             
             date = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
             self.logs.put((date,severity,category,function,callingLineNumber,message),False)
+
+        # If osLog is enabled, update the status
+        if osd and self.p.osLog:
+            self.osLog(message)
 
     def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID):
         if self.statsOn:
@@ -808,9 +831,9 @@ class XiboDownloadManager(Thread):
                     tmpFile = XiboFile(tmpFileName,tmpHash,tmpMtime)
                     md5Cache[tmpFileName] = tmpFile
             except IOError:
-                log.log(0,"warning",_("Could not open cache.xml. Starting with an empty cache"))
+                log.log(0,"warning",_("Could not open cache.xml. Starting with an empty cache"),True)
             except:
-                log.log(0,"warning",_("md5Cache file is corrupted. Ignoring."))
+                log.log(0,"warning",_("md5Cache file is corrupted. Ignoring."),True)
 
     def run(self):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
@@ -822,7 +845,7 @@ class XiboDownloadManager(Thread):
                 self.interval = int(config.get('Main','xmdsUpdateInterval'))
             except:
                 # self.interval has been set to a sensible default in this case.
-                log.log(0,"warning",_("No XMDS Update Interval specified in your configuration"))
+                log.log(0,"warning",_("No XMDS Update Interval specified in your configuration"),True)
                 log.log(0,"warning",_("Please check your xmdsUpdateInterval configuration option"))
                 log.log(0,"warning",_("A default value has been used:") + " " + str(self.interval) + " " + _("seconds"))
 
@@ -836,7 +859,7 @@ class XiboDownloadManager(Thread):
                 f.write(reqFiles)
                 f.close()
             except IOError:
-                log.log(0,"error",_("Error trying to cache RequiredFiles to disk"))
+                log.log(0,"error",_("Error trying to cache RequiredFiles to disk"),True)
             except XMDSException:
                 log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
                 try:
@@ -854,7 +877,7 @@ class XiboDownloadManager(Thread):
             try:
                 self.doc = minidom.parseString(reqFiles)
             except:
-                log.log(0,"warning",_("XMDS RequiredFiles returned invalid XML"))
+                log.log(0,"warning",_("XMDS RequiredFiles returned invalid XML"),True)
 
             # Find the layout node and store it
             if self.doc != None:
@@ -882,7 +905,7 @@ class XiboDownloadManager(Thread):
                                     if not md5Cache[tmpFileName].isValid():
                                         # The hashes don't match.
                                         # Queue for download.
-                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName)
+                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName,True)
                                         self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
                                 else:
 #                                    print "*** It's 735 and %s isn't in md5Cache" % tmpFileName
@@ -891,15 +914,15 @@ class XiboDownloadManager(Thread):
                                     if not tmpFile.isValid():
                                         # The hashes don't match.
                                         # Queue for download.
-                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName)
+                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName,True)
                                         self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
                             else:
                                 # Queue the file for download later.
-                                log.log(3,"info",_("File does not exist or is not the correct size. Queueing for download. ") + tmpFileName)
+                                log.log(3,"info",_("File does not exist or is not the correct size. Queueing for download. ") + tmpFileName,True)
                                 self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
                         except:
                             # TODO: Blacklist the media item.
-                            log.log(0,"error",_("RequiredFiles XML error: File type=media has no path attribute or no size attribute. Blacklisting."))
+                            log.log(0,"error",_("RequiredFiles XML error: File type=media has no path attribute or no size attribute. Blacklisting."),True)
                         log.log(5,"audit",_("File " + tmpFileName + " is valid."))
                         
                     elif str(f.attributes['type'].value) == 'layout':
@@ -927,7 +950,7 @@ class XiboDownloadManager(Thread):
                                     if md5Cache[tmpFileName].md5 != tmpHash:
                                         # The hashes don't match.
                                         # Queue for download.
-                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName)
+                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName,True)
                                         self.dlQueue.put((tmpType,tmpFileName,0,tmpHash),False)
                                 else:
                                     tmpFile = XiboFile(tmpFileName,tmpHash)
@@ -935,15 +958,15 @@ class XiboDownloadManager(Thread):
                                     if not tmpFile.isValid():
                                         # The hashes don't match.
                                         # Queue for download.
-                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName)
+                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName,True)
                                         self.dlQueue.put((tmpType,tmpFileName,0,tmpHash),False)
                             else:
                                 # Queue the file for download later.
-                                log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpFileName)
+                                log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpFileName,True)
                                 self.dlQueue.put((tmpType,tmpFileName,0,tmpHash),False)
                         except:
                             # TODO: Blacklist the media item.
-                            log.log(0,"error",_("RequiredFiles XML error: File type=layout has no path attribute or no hash attribute. Blacklisting."))
+                            log.log(0,"error",_("RequiredFiles XML error: File type=layout has no path attribute or no hash attribute. Blacklisting."),True)
                     elif str(f.attributes['type'].value) == 'blacklist':
                         # It's a Blacklist node
                         #log.log(5,"info","Blacklist File Node found!")
@@ -1007,7 +1030,7 @@ class XiboDownloadManager(Thread):
                 f.write(cacheXml.toprettyxml())
                 f.close()
             except IOError:
-                log.log(0,"error",_("Unable to write cache.xml"))
+                log.log(0,"error",_("Unable to write cache.xml"),True)
                 
             # Force the cache to unlink and recover the RAM associated with it    
             cacheXml.unlink()
@@ -1029,7 +1052,7 @@ class XiboDownloadManager(Thread):
     def dlThreadCompleteNotify(self,tmpFileName):
         # Download thread completed. Log and remove from
         # self.runningDownloads
-        log.log(3,"info",_("Download thread completed for ") + tmpFileName)
+        log.log(3,"info",_("Download thread completed for ") + tmpFileName, True)
         del self.runningDownloads[tmpFileName]
         log.updateRunningDownloads(len(self.runningDownloads))
         
@@ -1092,14 +1115,14 @@ class XiboDownloadThread(Thread):
             try:
                 os.remove(self.tmpPath)
             except:
-                log.log(0,"error",_("Unable to delete file: ") + self.tmpPath)
+                log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
                 return
 
         fh = None
         try:
             fh = open(self.tmpPath, 'wb')
         except:
-            log.log(0,"error",_("Unable to write file: ") + self.tmpPath)
+            log.log(0,"error",_("Unable to write file: ") + self.tmpPath, True)
             return
 
         while tries < 5 and not finished:
@@ -1150,7 +1173,7 @@ class XiboDownloadThread(Thread):
             try:
                 os.remove(self.tmpPath)
             except:
-                log.log(0,"error",_("Unable to delete file: ") + self.tmpPath)
+                log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
                 return
 
         while tries < 5 and not finished:
@@ -1160,7 +1183,7 @@ class XiboDownloadThread(Thread):
             try:
                 fh = open(self.tmpPath, 'wb')
             except:
-                log.log(0,"error",_("Unable to write file: ") + self.tmpPath)
+                log.log(0,"error",_("Unable to write file: ") + self.tmpPath, True)
                 return
 
             try:
@@ -1189,7 +1212,7 @@ class XiboDownloadThread(Thread):
                 finished = True
                 md5Cache[self.tmpFileName] = tmpFile
             else:
-                log.log(4,"warning",_("File completed downloading but MD5 did not match.") + self.tmpFileName)
+                log.log(4,"warning",_("File completed downloading but MD5 did not match.") + self.tmpFileName, True)
         # End while
 
 #### Finish Download Manager
@@ -1297,7 +1320,7 @@ class XiboLayoutManager(Thread):
         self.__regionLock.acquire()
 
         if allExpired and not self.expiring:
-            log.log(2,"info",_("%s All regions have expired. Marking layout as expired") % self.layoutNodeName)
+            log.log(2,"info",_("%s All regions have expired. Marking layout as expired") % self.layoutNodeName, True)
             self.layoutExpired = True
             self.expiring = True
 
@@ -1329,11 +1352,11 @@ class XiboLayoutManager(Thread):
 
         self.__regionDisposeLock.acquire()
         if allExpired == True and not self.nextLayoutTriggered:
-            log.log(2,"info",_("%s All regions have disposed. Marking layout as disposed") % self.layoutNodeName)
+            log.log(2,"info",_("%s All regions have disposed. Marking layout as disposed") % self.layoutNodeName, True)
             self.layoutDisposed = True
 
             if self.hold:
-                log.log(2,"info",_("Holding the splash screen until we're told otherwise"))
+                log.log(2,"info",_("Holding the splash screen until we're told otherwise"), True)
             else:
                 log.log(2,"info",_("LayoutManager->parent->nextLayout()"))
                 self.nextLayoutTriggered = True
@@ -1384,7 +1407,7 @@ class XiboRegionManager(Thread):
         try:
             self.regionNodeName = "R" + str(self.regionNode.attributes['id'].value) + self.regionNodeNameExt
         except KeyError:
-            log.log(1,"error",_("Region XLF is invalid. Missing required id attribute"))
+            log.log(1,"error",_("Region XLF is invalid. Missing required id attribute"), True)
             self.regionExpired = True
             self.parent.regionElapsed()
             return
@@ -1394,7 +1417,7 @@ class XiboRegionManager(Thread):
         try:
             self.width = float(self.regionNode.attributes['width'].value) * parent.l.scaleFactor
         except KeyError:
-            log.log(1,"error",_("Region XLF is invalid. Missing required width attribute"))
+            log.log(1,"error",_("Region XLF is invalid. Missing required width attribute"), True)
             self.regionExpired = True
             self.parent.regionElapsed()
             return
@@ -1403,7 +1426,7 @@ class XiboRegionManager(Thread):
         try:
             self.height =  float(self.regionNode.attributes['height'].value) * parent.l.scaleFactor
         except KeyError:
-            log.log(1,"error",_("Region XLF is invalid. Missing required height attribute"))
+            log.log(1,"error",_("Region XLF is invalid. Missing required height attribute"), True)
             self.regionExpired = True
             self.parent.regionElapsed()
             return
@@ -1412,7 +1435,7 @@ class XiboRegionManager(Thread):
         try:
             self.top = float(self.regionNode.attributes['top'].value) * parent.l.scaleFactor
         except KeyError:
-            log.log(1,"error",_("Region XLF is invalid. Missing required top attribute"))
+            log.log(1,"error",_("Region XLF is invalid. Missing required top attribute"), True)
             self.regionExpired = True
             self.parent.regionElapsed()
             return
@@ -1541,7 +1564,7 @@ class XiboRegionManager(Thread):
                             self.previousMedia = self.currentMedia
                             self.currentMedia = None
                         except ImportError as detail:
-                            log.log(0,"error","Missing media plugin for media type " + type + ": " + str(detail))
+                            log.log(0,"error","Missing media plugin for media type " + type + ": " + str(detail), True)
                             # TODO: Do something with this layout? Blacklist?
                             self.lock.release()
 
@@ -1613,7 +1636,7 @@ class XiboRegionManager(Thread):
                 tmpTransition.start()
                 log.log(5,"info",self.regionNodeName + " control passed to Transition object.")
             except ImportError as detail:
-                log.log(3,"error",self.regionNodeName + ": Unable to import requested Transition plugin. " + str(detail))
+                log.log(3,"error",self.regionNodeName + ": Unable to import requested Transition plugin. " + str(detail), True)
                 self.disposeTransitionComplete()
         else:
             self.disposeTransitionComplete()
@@ -1682,7 +1705,7 @@ class XiboLayout:
                     import shutil
                     shutil.copy(os.path.join('resources','splash.jpg'),config.get('Main','libraryDir'))
             except IOError:
-                log.log(0,"error",_("Unable to write to libraryDir %s") % config.get('Main','libraryDir'))
+                log.log(0,"error",_("Unable to write to libraryDir %s") % config.get('Main','libraryDir'), True)
 
         # Read XLF from file (if it exists)
         # Set builtWithNoXLF = True if it doesn't
@@ -1699,7 +1722,7 @@ class XiboLayout:
             try:
                 xlfSchemaVersion = int(self.layoutNode.attributes['schemaVersion'].value)
             except KeyError:
-                log.log(1,"error",_("Layout has no schemaVersion attribute and cannot be shown by this client"))
+                log.log(1,"error",_("Layout has no schemaVersion attribute and cannot be shown by this client"), True)
                 self.builtWithNoXLF = True
                 self.schemaCheck = False
                 return
@@ -1707,7 +1730,7 @@ class XiboLayout:
             if xlfSchemaVersion != schemaVersion:
                 # Layout has incorrect schemaVersion.
                 # Set the flag so the scheduler doesn't present this to the display
-                log.log(1,"error",_("Layout has incorrect schemaVersion attribute and cannot be shown by this client.") + " " + str(xlfSchemaVersion) + " != " + str(schemaVersion))
+                log.log(1,"error",_("Layout has incorrect schemaVersion attribute and cannot be shown by this client.") + " " + str(xlfSchemaVersion) + " != " + str(schemaVersion), True)
                 self.schemaCheck = False
                 self.builtWithNoXLF = True
                 return
@@ -1721,7 +1744,7 @@ class XiboLayout:
                 self.backgroundColour = str(self.layoutNode.attributes['bgcolor'].value)[1:]
             except KeyError:
                 # Layout invalid as a required key was not present
-                log.log(1,"error",_("Layout XLF is invalid. Missing required attributes"))
+                log.log(1,"error",_("Layout XLF is invalid. Missing required attributes"), True)
 
             try:
                 self.backgroundImage = self.layoutNode.attributes['background'].value
@@ -1805,7 +1828,7 @@ class XiboLayout:
         self.scheduleCheck = False
         
         if len(self.mediaNodes) < 1:
-            log.log(3,"warn",_("Layout ") + self.layoutID + _(" cannot run because layout has no media nodes."))
+            log.log(3,"warn",_("Layout ") + self.layoutID + _(" cannot run because layout has no media nodes."), True)
             self.mediaCheck = False
 
         # Loop through all the media items in the layout
@@ -1817,17 +1840,17 @@ class XiboLayout:
                 try:
                     if not md5Cache[tmpFileName].isValid():
                         self.mediaCheck = False
-                        log.log(3,"warn",_("Layout ") + self.layoutID + _(" cannot run because MD5 is incorrect on ") + tmpFileName)
+                        log.log(3,"warn",_("Layout ") + self.layoutID + _(" cannot run because MD5 is incorrect on ") + tmpFileName, True)
 
                     if not os.path.isfile(tmpPath):
                         self.mediaCheck = False
-                        log.log(0,"error",_("Layout ") + self.layoutID + _(" cannot run because file is missing: ") + tmpFileName)
+                        log.log(0,"error",_("Layout ") + self.layoutID + _(" cannot run because file is missing: ") + tmpFileName, True)
                 except:
                     self.mediaCheck = False
-                    log.log(0,"error",_("Layout ") + self.layoutID + _(" cannot run because an exception was thrown.") + tmpFileName)
+                    log.log(0,"error",_("Layout ") + self.layoutID + _(" cannot run because an exception was thrown.") + tmpFileName, True)
             else:
                 self.mediaCheck = False
-                log.log(3,"info",_("Layout ") + self.layoutID + _(" cannot run because file is missing from the md5Cache: ") + tmpFileName)
+                log.log(3,"info",_("Layout ") + self.layoutID + _(" cannot run because file is missing from the md5Cache: ") + tmpFileName, True)
 
         # See if the item is in a scheduled window to run
         for sc in self.schedule:
@@ -2893,6 +2916,9 @@ class XiboPlayer(Thread):
 
         Thread.__init__(self)
         self.info = False
+        self.osLog = False
+        self.osLogX = 0
+        self.osLogY = 0
         self.q = Queue.Queue(0)
         self.uniqueId = 0
         self.dim = (int(config.get('Main','width')),int(config.get('Main','height')))
@@ -2954,9 +2980,13 @@ class XiboPlayer(Thread):
         if useRotation:
             infoX = (int(config.get('Main','vwidth')) - 400) / 2
             infoY = (int(config.get('Main','vheight')) - 300) / 2
+            self.osLogX = int(config.get('Main','vwidth'))
+            self.osLogY = int(config.get('Main','vheight')) - 20
         else:
             infoX = (int(config.get('Main','width')) - 400) / 2
             infoY = (int(config.get('Main','height')) - 300) / 2
+            self.osLogX = int(config.get('Main','width'))
+            self.osLogY = int(config.get('Main','height')) - 20
         
         # If the info window is bigger than the client, stick it in the top left corner.
         if infoX < 0:
@@ -2978,11 +3008,8 @@ class XiboPlayer(Thread):
         if useRotation:
             avgContent += '<div pos="(%s,%s)" id="rotation" width="%s" height="%s" angle="%s" crop="False">' % (oX,oY,config.get('Main','vwidth'), config.get('Main','vheight'), oR)
         avgContent += '<div id="screen" pos="(0,0)" crop="False" />'
-        avgContent += '<div id="info" width="400" height="300" x="'
-        avgContent += str(infoX)
-        avgContent += '" y="'
-        avgContent += str(infoY)
-        avgContent += '" opacity="0" crop="False" />'
+        avgContent += '<div id="osLog" pos="(0,%d)" width="%d" height="20" opacity="0" />' % (self.osLogY,self.osLogX)
+        avgContent += '<div id="info" width="400" height="300" x="%d" y="%d" opacity="0" crop="False" />' % (infoX,infoY)
         if useRotation:
             avgContent += '</div>'
         avgContent += '</avg>'
@@ -3014,6 +3041,14 @@ class XiboPlayer(Thread):
             if e.keystring == "r":
                 self.parent.downloader.collect()
                 self.parent.scheduler.collect()
+
+            if e.keystring == "l":
+                if self.osLog:
+                    self.osLog = False
+                    self.enqueue('setOpacity',('osLog',0))
+                else:
+                    self.osLog = True
+                    self.enqueue('setOpacity',('osLog',1))
             
             if e.keystring == "q":
                 #TODO: Fully implement a proper quit function
