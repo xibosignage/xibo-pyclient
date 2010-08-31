@@ -1264,11 +1264,11 @@ class XiboLayoutManager(Thread):
             # produce much smaller image sizes.
 
             if config.get('Main','lowTextureMemory') == "true":
-                w = (self.l.sWidth + 1) * 1.1
-                h = (self.l.sHeight + 1) * 1.1
+                w = int((self.l.sWidth + 1) * 1.1)
+                h = int((self.l.sHeight + 1) * 1.1)
             else:
-                w = self.l.sWidth + 1
-                h = self.l.sHeight + 1
+                w = int(self.l.sWidth + 1)
+                h = int(self.l.sHeight + 1)
                 
             fName = os.path.join(config.get('Main','libraryDir'),self.l.backgroundImage)
             thumb = os.path.join(config.get('Main','libraryDir'),'scaled',self.l.backgroundImage) + "-%dx%d" % (w,h)
