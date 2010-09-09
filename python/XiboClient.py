@@ -1820,9 +1820,12 @@ class XiboLayout:
 
     def canRun(self):
         # See if the layout file changed underneath us
-        if self.__mtime != os.path.getmtime(config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf'):
-            # It has. Force a reload
-            self.builtWithNoXLF = False
+        try:
+            if self.__mtime != os.path.getmtime(config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf'):
+                # It has. Force a reload
+                self.builtWithNoXLF = True
+        except:
+            return False
 
         # See if we were built with no XLF
         # If we were, attempt to set ourselves up
