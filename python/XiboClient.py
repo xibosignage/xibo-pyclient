@@ -1658,6 +1658,7 @@ class XiboLayout:
     def __init__(self,layoutID,isDefault):
         self.layoutID = layoutID
         self.isDefault = isDefault
+        self.__mtime = 0
         self.__setup()
         
     def __setup(self):
@@ -1712,6 +1713,8 @@ class XiboLayout:
         try:
             log.log(3,"info",_("Loading layout ID") + " " + self.layoutID + " " + _("from file") + " " + config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf')
             self.doc = minidom.parse(config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf')
+
+            self.__mtime = os.path.getmtime(config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf')
 
             # Find the layout node and store it
             for e in self.doc.childNodes:
@@ -1816,6 +1819,11 @@ class XiboLayout:
         log.log(3,"info","Layout " + str(self.layoutID) + " has tags: " + str(self.tags)) 
 
     def canRun(self):
+        # See if the layout file changed underneath us
+        if self.__mtime != os.path.getmtime(config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf'):
+            # It has. Force a reload
+            self.builtWithNoXLF = False
+
         # See if we were built with no XLF
         # If we were, attempt to set ourselves up
         # Otherwise return False
@@ -2001,6 +2009,7 @@ class XmdsScheduler(XiboScheduler):
             # Process the received schedule
             # If the schedule hasn't changed, do nothing.
             if self.previousSchedule != schedule:
+                self.previousSchedule = schedule
                 doc = minidom.parseString(schedule)
                 tmpLayouts = doc.getElementsByTagName('layout')
                 defaultLayout = doc.getElementsByTagName('default')
