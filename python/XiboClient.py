@@ -2921,6 +2921,11 @@ class XiboDisplayManager:
 class XiboPlayer(Thread):
     "Class to handle libavg interactions"
     def __init__(self,parent):
+        self.__lock = Semaphore()
+
+        # Acquire the lock so that nothing can enqueue stuff until this thread starts
+        self.__lock.acquire()
+
         global AVG_080
         global AVG_090
         global AVG_090SVN4277
@@ -2936,9 +2941,6 @@ class XiboPlayer(Thread):
         self.dim = (int(config.get('Main','width')),int(config.get('Main','height')))
         self.currentFH = None
         self.parent = parent
-        self.__lock = Semaphore()
-        # Acquire the lock so that nothing can enqueue stuff until this thread starts
-        self.__lock.acquire()
 
     def getDimensions(self):
         # TODO: I don't think this is ever used.
