@@ -744,7 +744,7 @@ class XiboFile(object):
     def __init__(self,fileName,targetHash,mtime=0):
         self.__path = os.path.join(config.get('Main','libraryDir'),fileName)
         self.__fileName = fileName
-        self.md5 = ""
+        self.md5 = "THIS IS DELIBERATELY AN IMPOSSIBLE MD5"
         self.checkTime = 1
 
         self.targetHash = targetHash
@@ -1755,6 +1755,7 @@ class XiboLayout:
                     self.backgroundImage = None
             except KeyError:
                 # Optional attributes, so pass on error.
+                self.backgroundImage = None
                 pass
 
             # Work out layout scaling and offset and set appropriate variables
@@ -1805,6 +1806,10 @@ class XiboLayout:
                 log.log(0,"error",_("Plugin missing for media in layout ") + self.layoutID)
                 return
             self.media = self.media + tmpMedia.requiredFiles()
+
+        # Also make sure we have the background (if the layout uses one)
+        if self.backgroundImage != None:
+            self.media = self.media + [self.backgroundImage]
         
         # Find all the tag nodes
         tagNodes = self.doc.getElementsByTagName('tag')
