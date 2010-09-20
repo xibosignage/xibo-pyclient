@@ -2001,7 +2001,7 @@ class XmdsScheduler(XiboScheduler):
             except IOError:
                 log.log(0,"error",_("Error trying to cache Schedule to disk"))
             except XMDSException:
-                log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
+                log.log(0,"warning",_("XMDS Schedule threw an exception"))
                 try:
                     try:
                         f = open(config.get('Main','libraryDir') + os.sep + 'schedule.xml')
@@ -2045,7 +2045,6 @@ class XmdsScheduler(XiboScheduler):
                         if g.layoutID == layoutID:
                             # Append Schedule
                             g.addSchedule(layoutFromDT,layoutToDT,layoutPriority)
-                            scheduleText += str(layoutID) + ', '
                             flag = False
                     
                     # The layout doesn't exist, add it and add a schedule for it
