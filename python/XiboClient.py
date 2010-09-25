@@ -1659,11 +1659,11 @@ class XiboLayout:
         self.layoutID = layoutID
         self.isDefault = isDefault
         self.__mtime = 0
+        self.schedule = []
         self.__setup()
         
     def __setup(self):
         self.builtWithNoXLF = False
-        self.schedule = []
         self.layoutNode = None
         self.iter = None
 
