@@ -49,7 +49,7 @@ import urlparse
 import PIL.Image
 import math
 
-version = "1.2.0a2"
+version = "1.2.0a3"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -744,7 +744,7 @@ class XiboFile(object):
     def __init__(self,fileName,targetHash,mtime=0):
         self.__path = os.path.join(config.get('Main','libraryDir'),fileName)
         self.__fileName = fileName
-        self.md5 = ""
+        self.md5 = "THIS IS DELIBERATELY AN IMPOSSIBLE MD5"
         self.checkTime = 1
 
         self.targetHash = targetHash
@@ -1264,11 +1264,11 @@ class XiboLayoutManager(Thread):
             # produce much smaller image sizes.
 
             if config.get('Main','lowTextureMemory') == "true":
-                w = (self.l.sWidth + 1) * 1.1
-                h = (self.l.sHeight + 1) * 1.1
+                w = int((self.l.sWidth + 1) * 1.1)
+                h = int((self.l.sHeight + 1) * 1.1)
             else:
-                w = self.l.sWidth + 1
-                h = self.l.sHeight + 1
+                w = int(self.l.sWidth + 1)
+                h = int(self.l.sHeight + 1)
                 
             fName = os.path.join(config.get('Main','libraryDir'),self.l.backgroundImage)
             thumb = os.path.join(config.get('Main','libraryDir'),'scaled',self.l.backgroundImage) + "-%dx%d" % (w,h)
@@ -1658,11 +1658,12 @@ class XiboLayout:
     def __init__(self,layoutID,isDefault):
         self.layoutID = layoutID
         self.isDefault = isDefault
+        self.__mtime = 0
+        self.schedule = []
         self.__setup()
         
     def __setup(self):
         self.builtWithNoXLF = False
-        self.schedule = []
         self.layoutNode = None
         self.iter = None
 
@@ -1713,6 +1714,8 @@ class XiboLayout:
             log.log(3,"info",_("Loading layout ID") + " " + self.layoutID + " " + _("from file") + " " + config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf')
             self.doc = minidom.parse(config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf')
 
+            self.__mtime = os.path.getmtime(config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf')
+
             # Find the layout node and store it
             for e in self.doc.childNodes:
                 if e.nodeType == e.ELEMENT_NODE and e.localName == "layout":
@@ -1752,6 +1755,7 @@ class XiboLayout:
                     self.backgroundImage = None
             except KeyError:
                 # Optional attributes, so pass on error.
+                self.backgroundImage = None
                 pass
 
             # Work out layout scaling and offset and set appropriate variables
@@ -1802,6 +1806,10 @@ class XiboLayout:
                 log.log(0,"error",_("Plugin missing for media in layout ") + self.layoutID)
                 return
             self.media = self.media + tmpMedia.requiredFiles()
+
+        # Also make sure we have the background (if the layout uses one)
+        if self.backgroundImage != None:
+            self.media = self.media + [self.backgroundImage]
         
         # Find all the tag nodes
         tagNodes = self.doc.getElementsByTagName('tag')
@@ -1816,6 +1824,14 @@ class XiboLayout:
         log.log(3,"info","Layout " + str(self.layoutID) + " has tags: " + str(self.tags)) 
 
     def canRun(self):
+        # See if the layout file changed underneath us
+        try:
+            if self.__mtime != os.path.getmtime(config.get('Main','libraryDir') + os.sep + self.layoutID + '.xlf'):
+                # It has. Force a reload
+                self.builtWithNoXLF = True
+        except:
+            return False
+
         # See if we were built with no XLF
         # If we were, attempt to set ourselves up
         # Otherwise return False
@@ -1985,7 +2001,7 @@ class XmdsScheduler(XiboScheduler):
             except IOError:
                 log.log(0,"error",_("Error trying to cache Schedule to disk"))
             except XMDSException:
-                log.log(0,"warning",_("XMDS RequiredFiles threw an exception"))
+                log.log(0,"warning",_("XMDS Schedule threw an exception"))
                 try:
                     try:
                         f = open(config.get('Main','libraryDir') + os.sep + 'schedule.xml')
@@ -2001,6 +2017,7 @@ class XmdsScheduler(XiboScheduler):
             # Process the received schedule
             # If the schedule hasn't changed, do nothing.
             if self.previousSchedule != schedule:
+                self.previousSchedule = schedule
                 doc = minidom.parseString(schedule)
                 tmpLayouts = doc.getElementsByTagName('layout')
                 defaultLayout = doc.getElementsByTagName('default')
@@ -2028,7 +2045,6 @@ class XmdsScheduler(XiboScheduler):
                         if g.layoutID == layoutID:
                             # Append Schedule
                             g.addSchedule(layoutFromDT,layoutToDT,layoutPriority)
-                            scheduleText += str(layoutID) + ', '
                             flag = False
                     
                     # The layout doesn't exist, add it and add a schedule for it
@@ -2909,6 +2925,11 @@ class XiboDisplayManager:
 class XiboPlayer(Thread):
     "Class to handle libavg interactions"
     def __init__(self,parent):
+        self.__lock = Semaphore()
+
+        # Acquire the lock so that nothing can enqueue stuff until this thread starts
+        self.__lock.acquire()
+
         global AVG_080
         global AVG_090
         global AVG_090SVN4277
@@ -2924,9 +2945,6 @@ class XiboPlayer(Thread):
         self.dim = (int(config.get('Main','width')),int(config.get('Main','height')))
         self.currentFH = None
         self.parent = parent
-        self.__lock = Semaphore()
-        # Acquire the lock so that nothing can enqueue stuff until this thread starts
-        self.__lock.acquire()
 
     def getDimensions(self):
         # TODO: I don't think this is ever used.
