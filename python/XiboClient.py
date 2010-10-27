@@ -49,6 +49,10 @@ import urlparse
 import PIL.Image
 import math
 
+# Only required for USB updates
+import dbus
+import gobject
+
 version = "1.2.0a3"
 
 # What layout schema version is supported
@@ -2786,7 +2790,207 @@ class XMDS:
                     log.log(0,"error",str(err))
                     self.hasInitialised = False
 
-#### Finish Websevrvice
+class XMDSOffline(Thread):
+    def __init__(self,displayManager):
+        Thread.__init__(self)
+        self.__schemaVersion__ = "2";
+        self.displayManager = displayManager
+        self.updatePath = ""
+
+        # Semaphore to allow only one XMDS call to run check simultaneously
+        self.checkLock = Semaphore()
+
+        self.hasInitialised = False
+
+        salt = None
+        try:
+            salt = config.get('Main','xmdsClientID')
+        except:
+            log.log(0,"error",_("No XMDS Client ID specified in your configuration"))
+            log.log(0,"error",_("Please check your xmdsClientID configuration option"))
+            exit(1)
+
+        self.uuid = uuid.uuid5(uuid.NAMESPACE_DNS, salt)
+        # Convert the UUID in to a SHA1 hash
+        self.uuid = hashlib.sha1(str(self.uuid)).hexdigest()
+
+        self.name = None
+        try:
+            self.name = config.get('Main','xmdsClientName')
+        except:
+            pass
+
+        if self.name == None or self.name == "":
+            import platform
+            self.name = platform.node()
+
+        self.start()
+
+    def run(self):
+        # Startup a loop listening for USB devices being connected to the system
+        from dbus.mainloop.glib import DBusGMainLoop
+        DBusGMainLoop(set_as_default=True)
+        loop = gobject.MainLoop()
+        gobject.threads_init()
+        XiboDeviceAddedListener(self.displayManager,self)
+        loop.run()
+       
+    def getIP(self):
+        return 'Offline Mode'
+    
+    def getDisk(self):
+        s = os.statvfs(config.get('Main','libraryDir'))
+        return (s.f_bsize * s.f_blocks,s.f_bsize * s.f_bavail)
+
+    def getUUID(self):
+        return str(self.uuid)
+
+    def getName(self):
+        return str(self.name)
+
+    def getKey(self):
+        return 'Offline'
+
+    def check(self):
+        return True
+
+    def RequiredFiles(self):
+        """Connect to XMDS and get a list of required files"""
+        log.lights('RF','amber')
+        req = None
+        if self.check():
+            try:
+                # Update the IP Address shown on the infoScreen
+                log.updateIP(self.getIP())
+            except:
+                pass
+
+            log.updateFreeSpace(self.getDisk())
+            
+            try:
+                fh = open(os.path.join(self.updatePath,self.uuid,'rf.xml'), 'r')
+                req = fh.read()
+                fh.close()
+            except IOError:
+                log.lights('RF','red')
+                raise XMDSException("XMDS could not be initialised")
+
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            log.lights('RF','grey')
+            raise XMDSException("XMDS could not be initialised")
+
+        log.lights('RF','green')
+        return req
+    
+    def SubmitLog(self,logXml):
+        return ''
+    
+    def SubmitStats(self,statXml):
+        return ''
+
+    def Schedule(self):
+        """Connect to XMDS and get the current schedule"""
+        log.lights('S','amber')
+        req = None
+        if self.check():
+            try:
+                fh = open(os.path.join(self.updatePath,self.uuid,'schedule.xml'), 'r')
+                req = fh.read()
+                fh.close()
+            except IOError:
+                log.lights('S','red')
+                raise XMDSException("XMDS could not be initialised")
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            log.lights('S','grey')
+            raise XMDSException("XMDS could not be initialised")
+
+        log.lights('S','green')
+        return req
+
+    def GetFile(self,tmpPath,tmpType,tmpOffset,tmpChunk):
+        """Connect to XMDS and download a file"""
+        response = None
+        log.lights('GF','amber')
+        if self.check():
+            if tmpType == 'media':
+                try:
+                    fh = open(os.path.join(self.updatePath,self.uuid,tmpPath), 'r')
+                    fh.seek(tmpOffset)
+                    response = fh.read(tmpChunk)
+                    fh.close()
+                except:
+                    log.lights('GF','red')
+                    raise XMDSException("XMDS could not be initialised")
+            if tmpType == 'layout':
+                try:
+                    fh = open(os.path.join(self.updatePath,self.uuid,tmpPath), 'r')
+                    response = fh.read()
+                    fh.close()
+                except:
+                    log.lights('GF','red')
+                    raise XMDSException("XMDS could not be initialised")
+            if tmpType == 'blacklist':
+                response = ""
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            log.lights('GF','grey')
+            raise XMDSException("XMDS could not be initialised")
+
+        log.lights('GF','green')
+        return response
+
+    def RegisterDisplay(self):
+        log.lights('RD','amber')
+        time.sleep(5)
+        log.lights('RD','green')
+
+class XiboDeviceAddedListener:
+    def __init__(self,displayManager,parent):
+        self.existingHandlers = []
+        self.displayManager = displayManager
+        self.XMDS = parent
+        self.bus = dbus.SystemBus()
+        self.hal_manager_obj = self.bus.get_object(
+                                              "org.freedesktop.Hal", 
+                                              "/org/freedesktop/Hal/Manager")
+        self.hal_manager = dbus.Interface(self.hal_manager_obj,
+                                          "org.freedesktop.Hal.Manager")
+        self.hal_manager.connect_to_signal("DeviceAdded", self._filter)
+
+    def _filter(self, udi):
+        log.log(5,"info","Device Added. Checking...")
+        device_obj = self.bus.get_object ("org.freedesktop.Hal", udi)
+        device = dbus.Interface(device_obj, "org.freedesktop.Hal.Device")
+
+        if not udi in self.existingHandlers:
+            self.existingHandlers.append(udi)
+            self.bus.add_signal_receiver(self.updateContent,
+                "PropertyModified",
+                "org.freedesktop.Hal.Device",
+                "org.freedesktop.Hal",
+                udi,
+                path_keyword = "sending_device" )
+
+    def updateContent(self, numupdates, updates, sending_device = None):
+        d_object = self.bus.get_object('org.freedesktop.Hal',sending_device)
+        d_interface = dbus.Interface(d_object,'org.freedesktop.Hal.Device')
+
+        # get their properties
+        d_properties = d_interface.GetAllProperties()
+
+        if not d_properties.has_key("block.is_volume"): return
+        if not d_properties["block.is_volume"]: return
+
+        log.log(0,"info","Found new USB drive for update at %s" % d_properties["volume.mount_point"],True)
+        # Trigger a collection
+        log.log(5,"info","Triggering a collection from new USB device.")
+        self.XMDS.updatePath = d_properties["volume.mount_point"]
+        self.displayManager.downloader.collect()
+        self.displayManager.scheduler.collect()
+
+#### Finish Webservice
 
 class XiboDisplayManager:
     def __init__(self):
@@ -2798,7 +3002,10 @@ class XiboDisplayManager:
         logLevel = config.get('Logging','logLevel');
         log = XiboLogScreen(logLevel)
         
-        self.xmds = XMDS()
+        if config.get('Main','manualUpdate') == 'true':
+            self.xmds = XMDSOffline(self)
+        else:
+            self.xmds = XMDS()
         
         # Check data directory exists
         try:
