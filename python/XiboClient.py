@@ -49,11 +49,7 @@ import urlparse
 import PIL.Image
 import math
 
-# Only required for USB updates
-import dbus
-import gobject
-
-version = "1.2.0a3"
+version = "1.2.1a1"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -2515,7 +2511,6 @@ class XMDS:
                 req = self.server.RequiredFiles(self.getKey(),self.getUUID(),self.__schemaVersion__)
             except SOAPpy.Types.faultType, err:
                 log.lights('RF','red')
-                log.lights('RF','red')
                 raise XMDSException("RequiredFiles: Incorrect arguments passed to XMDS.")
             except SOAPpy.Errors.HTTPError, err:
                 log.lights('RF','red')
@@ -2796,6 +2791,8 @@ class XMDSOffline(Thread):
         self.__schemaVersion__ = "2";
         self.displayManager = displayManager
         self.updatePath = ""
+        self.__running__ = True
+        self.__scanPath__ = '/media'
 
         # Semaphore to allow only one XMDS call to run check simultaneously
         self.checkLock = Semaphore()
@@ -2827,13 +2824,21 @@ class XMDSOffline(Thread):
         self.start()
 
     def run(self):
-        # Startup a loop listening for USB devices being connected to the system
-        from dbus.mainloop.glib import DBusGMainLoop
-        DBusGMainLoop(set_as_default=True)
-        loop = gobject.MainLoop()
-        gobject.threads_init()
-        XiboDeviceAddedListener(self.displayManager,self)
-        loop.run()
+        # Sleep for 10 seconds to allow the client time to start and settle.
+        time.sleep(10)
+
+        # Startup a loop listening scanning for new mounts
+        log.log(5,'info','Offline Update: Scanning.',True)
+        while self.__running__:
+            for folder in os.listdir(self.__scanPath__):
+                log.log(5,'info','Offline Update: Checking %s for new content.' % os.path.join(self.__scanPath__,folder),True)
+                if os.path.isdir(os.path.join(self.__scanPath__,folder,self.uuid)):
+                    log.log(5,'info','Offline Update: Starting update from %s.' % os.path.join(self.__scanPath__,folder,self.uuid),True)
+                    self.updatePath = os.path.join(self.__scanPath__,folder)
+                    self.displayManager.downloader.collect()
+                    self.displayManager.scheduler.collect()
+            log.log(5,'info','Offline Update: Sleeping 30 seconds.',True)
+            time.sleep(30)
        
     def getIP(self):
         return 'Offline Mode'
@@ -2884,10 +2889,10 @@ class XMDSOffline(Thread):
         return req
     
     def SubmitLog(self,logXml):
-        return ''
+        pass
     
     def SubmitStats(self,statXml):
-        return ''
+        pass
 
     def Schedule(self):
         """Connect to XMDS and get the current schedule"""
@@ -2945,50 +2950,6 @@ class XMDSOffline(Thread):
         log.lights('RD','amber')
         time.sleep(5)
         log.lights('RD','green')
-
-class XiboDeviceAddedListener:
-    def __init__(self,displayManager,parent):
-        self.existingHandlers = []
-        self.displayManager = displayManager
-        self.XMDS = parent
-        self.bus = dbus.SystemBus()
-        self.hal_manager_obj = self.bus.get_object(
-                                              "org.freedesktop.Hal", 
-                                              "/org/freedesktop/Hal/Manager")
-        self.hal_manager = dbus.Interface(self.hal_manager_obj,
-                                          "org.freedesktop.Hal.Manager")
-        self.hal_manager.connect_to_signal("DeviceAdded", self._filter)
-
-    def _filter(self, udi):
-        log.log(5,"info","Device Added. Checking...")
-        device_obj = self.bus.get_object ("org.freedesktop.Hal", udi)
-        device = dbus.Interface(device_obj, "org.freedesktop.Hal.Device")
-
-        if not udi in self.existingHandlers:
-            self.existingHandlers.append(udi)
-            self.bus.add_signal_receiver(self.updateContent,
-                "PropertyModified",
-                "org.freedesktop.Hal.Device",
-                "org.freedesktop.Hal",
-                udi,
-                path_keyword = "sending_device" )
-
-    def updateContent(self, numupdates, updates, sending_device = None):
-        d_object = self.bus.get_object('org.freedesktop.Hal',sending_device)
-        d_interface = dbus.Interface(d_object,'org.freedesktop.Hal.Device')
-
-        # get their properties
-        d_properties = d_interface.GetAllProperties()
-
-        if not d_properties.has_key("block.is_volume"): return
-        if not d_properties["block.is_volume"]: return
-
-        log.log(0,"info","Found new USB drive for update at %s" % d_properties["volume.mount_point"],True)
-        # Trigger a collection
-        log.log(5,"info","Triggering a collection from new USB device.")
-        self.XMDS.updatePath = d_properties["volume.mount_point"]
-        self.displayManager.downloader.collect()
-        self.displayManager.scheduler.collect()
 
 #### Finish Webservice
 
