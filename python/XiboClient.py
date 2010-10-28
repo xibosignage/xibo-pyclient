@@ -164,6 +164,12 @@ class XiboLog:
         self.p.enqueue('add',(tmpXML,'info'))
         tmpXML = '<words x="135" y="270" opacity="1" text="Stats" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
         self.p.enqueue('add',(tmpXML,'info'))
+
+        # Offline Update traffic light
+        tmpXML = '<image href="resources/dotamber.png" id="offlineUpdateAmber" opacity="0" width="20" height="20" x="20" y="20" />'
+        self.p.enqueue('add',(tmpXML,'offlineUpdate'))
+        tmpXML = '<image href="resources/dotgreen.png" id="offlineUpdateGreen" opacity="0" width="20" height="20" x="20" y="20" />'
+        self.p.enqueue('add',(tmpXML,'offlineUpdate'))
         
         # IP Address
         tmpXML = '<words x="5" y="5" opacity="1" text="IP Address: " font="Arial" color="000000" fontsize="11" />'
@@ -300,6 +306,13 @@ class XiboLog:
             self.p.enqueue('setOpacity',("info" + field + "Grey", 1))
             self.p.enqueue('setOpacity',("info" + field + "Amber", 0))
             self.p.enqueue('setOpacity',("info" + field + "Red", 0))
+        if value == "start":
+            self.p.enqueue('setOpacity',("%sAmber" % field, 1))
+            self.p.enqueue('setOpacity',("%sGreen" % field, 0))
+        if value == "finish":
+            self.p.enqueue('setOpacity',("%sAmber" % field, 0))
+            self.p.enqueue('setOpacity',("%sGreen" % field, 1))
+            self.p.enqueue('anim',('fadeOut','%sGreen' % field,3000,None))
 
     def updateSchedule(self,schedule):
         self.p.enqueue('del','infoCurrentSchedule')
@@ -984,6 +997,9 @@ class XiboDownloadManager(Thread):
                 while True:
                     tmpType, tmpFileName, tmpSize, tmpHash = self.dlQueue.get(False)
 
+                    if config.get('Main','manualUpdate') == 'true':
+                        log.lights('offlineUpdate','start')
+
                     # Check if the file is downloading already
                     if not tmpFileName in self.runningDownloads:
                         # Make a download thread and actually download the file.
@@ -1043,6 +1059,10 @@ class XiboDownloadManager(Thread):
             log.log(5,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
             log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
             self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+
+            if config.get('Main','manualUpdate') == 'true':
+                log.lights('offlineUpdate','finish')
+
             self.__lock.acquire()
         # End While
     
@@ -3196,6 +3216,7 @@ class XiboPlayer(Thread):
         avgContent += '<div id="screen" pos="(0,0)" crop="False" />'
         avgContent += '<div id="osLog" pos="(0,%d)" width="%d" height="20" opacity="0" />' % (self.osLogY,self.osLogX)
         avgContent += '<div id="info" width="400" height="300" x="%d" y="%d" opacity="0" crop="False" />' % (infoX,infoY)
+        avgContent += '<div id="offlineUpdate" width="100" height="100" x="0" y="0" opacity="1" crop="False" />'
         if useRotation:
             avgContent += '</div>'
         avgContent += '</avg>'
