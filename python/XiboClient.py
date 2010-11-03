@@ -824,6 +824,7 @@ class XiboDownloadManager(Thread):
         self.p = player
         self.__lock = Semaphore()
         self.__lock.acquire()
+        self.offline = config.getboolean('Main','manualUpdate')
 
         # Store a dictionary of XiboDownloadThread objects so we know
         # which files are downloading and how many download slots
@@ -1005,8 +1006,13 @@ class XiboDownloadManager(Thread):
                         # Make a download thread and actually download the file.
                         # Add the running thread to the self.runningDownloads dictionary
                         self.runningDownloads[tmpFileName] = XiboDownloadThread(self,tmpType,tmpFileName,tmpSize,tmpHash)
-                        self.runningDownloads[tmpFileName].start()
                         log.updateRunningDownloads(len(self.runningDownloads))
+
+                        if self.offline:
+                            # If we're running offline, block until completed.
+                            self.runningDownloads[tmpFileName].run()
+                        else:
+                            self.runningDownloads[tmpFileName].start()
 
                     while len(self.runningDownloads) >= (self.maxDownloads - 1):
                         # There are no download thread slots free
@@ -1067,7 +1073,8 @@ class XiboDownloadManager(Thread):
         # End While
     
     def collect(self):
-        self.__lock.release()
+        if len(self.runningDownloads) == 0:
+            self.__lock.release()
 
     def dlThreadCompleteNotify(self,tmpFileName):
         # Download thread completed. Log and remove from
