@@ -1063,11 +1063,13 @@ class XiboDownloadManager(Thread):
             self.updateInfo()
             
             log.log(5,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
-            log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
-            self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
 
-            if config.get('Main','manualUpdate') == 'true':
+            if config.getboolean('Main','manualUpdate'):
+                time.sleep(5)
                 log.lights('offlineUpdate','finish')
+            else:
+                log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
+                self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
 
             self.__lock.acquire()
         # End While
@@ -2089,8 +2091,12 @@ class XmdsScheduler(XiboScheduler):
                     log.updateSchedule(scheduleText)
             # End if previousSchedule != schedule
             
-            log.log(3,"info",_("XmdsScheduler: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
-            self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+            if config.getboolean('Main','manualUpdate'):
+                pass
+            else:
+                log.log(3,"info",_("XmdsScheduler: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
+                self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+
             self.__collectLock.acquire()
         # End while self.running
     
@@ -2862,8 +2868,9 @@ class XMDSOffline(Thread):
                 if os.path.isdir(os.path.join(self.__scanPath__,folder,self.uuid)):
                     log.log(5,'info','Offline Update: Starting update from %s.' % os.path.join(self.__scanPath__,folder,self.uuid),True)
                     self.updatePath = os.path.join(self.__scanPath__,folder)
-                    self.displayManager.downloader.collect()
                     self.displayManager.scheduler.collect()
+                    time.sleep(5)
+                    self.displayManager.downloader.collect()
             log.log(5,'info','Offline Update: Sleeping 30 seconds.',True)
             time.sleep(30)
        
