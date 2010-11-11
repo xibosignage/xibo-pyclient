@@ -2854,6 +2854,15 @@ class XMDSOffline(Thread):
         # Convert the UUID in to a SHA1 hash
         self.uuid = hashlib.sha1(str(self.uuid)).hexdigest()
 
+        licenseKey = ''
+        try:
+            licenseKey = config.get('Main','xmdsLicenseKey')
+        except:
+            pass
+
+        if licenseKey != '':
+            self.uuid = licenseKey
+
         self.name = None
         try:
             self.name = config.get('Main','xmdsClientName')
