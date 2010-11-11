@@ -2875,6 +2875,7 @@ class XMDSOffline(Thread):
         while self.__running__:
             for folder in os.listdir(self.__scanPath__):
                 log.log(5,'info','Offline Update: Checking %s for new content.' % os.path.join(self.__scanPath__,folder),True)
+                log.log(5,'info','Offline Update: Client License Key: %s' % self.uuid,True)
                 if os.path.isdir(os.path.join(self.__scanPath__,folder,self.uuid)):
                     log.log(5,'info','Offline Update: Starting update from %s.' % os.path.join(self.__scanPath__,folder,self.uuid),True)
                     self.updatePath = os.path.join(self.__scanPath__,folder)
