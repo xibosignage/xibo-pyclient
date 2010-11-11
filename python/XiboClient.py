@@ -2082,13 +2082,14 @@ class XmdsScheduler(XiboScheduler):
                         tmpLayout.addSchedule(layoutFromDT,layoutToDT,layoutPriority)
                         newLayouts.append(tmpLayout)
                         scheduleText += str(layoutID) + ', '
+                # End for l in tmpLayouts
                         
-                    # Swap the newLayouts array in to the live scheduler
-                    self.__lock.acquire()
-                    self.__layouts = newLayouts
-                    self.__lock.release()
+                # Swap the newLayouts array in to the live scheduler
+                self.__lock.acquire()
+                self.__layouts = newLayouts
+                self.__lock.release()
                     
-                    log.updateSchedule(scheduleText)
+                log.updateSchedule(scheduleText)
             # End if previousSchedule != schedule
             
             if config.getboolean('Main','manualUpdate'):
