@@ -71,13 +71,13 @@ class XiboLog:
             self.liftEnabled = config.get('Lift', 'enabled')
             if self.liftEnabled == "false":
                 self.liftEnabled = False
-                log.log(3,"audit",_("Disabling lift functionality in Logger"))
+                log.log(3, "audit", _("Disabling lift functionality in Logger"))
             else:
                 self.liftEnabled = True
-                log.log(3,"audit",_("Enabling lift functionality in Logger"))
+                log.log(3, "audit", _("Enabling lift functionality in Logger"))
         except:
             self.liftEnabled = False
-            log.log(3,"error",_("Lift->enabled not defined in configuration. Disabling lift functionality in Logger"))
+            log.log(3, "error", _("Lift->enabled not defined in configuration. Disabling lift functionality in Logger"))
         
         # Populate the info screen
         # Background.
@@ -3148,13 +3148,9 @@ class XiboPlayer(Thread):
     def __init__(self,parent):
         self.__lock = Semaphore()
 
-        # Acquire the lock so that nothing can enqueue stuff until this thread starts
+        # Acquire the lock so that nothing can enqueue stuff until this thread
+        # starts
         self.__lock.acquire()
-
-        global AVG_080
-        global AVG_090
-        global AVG_090SVN4277
-        global libavgVersion
 
         Thread.__init__(self)
         self.info = False
@@ -3163,12 +3159,13 @@ class XiboPlayer(Thread):
         self.osLogY = 0
         self.q = Queue.Queue(0)
         self.uniqueId = 0
-        self.dim = (int(config.get('Main','width')),int(config.get('Main','height')))
+        self.dim = (int(config.get('Main', 'width')),
+                    int(config.get('Main', 'height')))
         self.currentFH = None
         self.parent = parent
 
     def getDimensions(self):
-        # TODO: I don't think this is ever used.
+        # NB: I don't think this is ever used.
         return self.dim
 
     def getElementByID(self,id):
@@ -3185,21 +3182,32 @@ class XiboPlayer(Thread):
         return self.uniqueId
 
     def run(self):
-        log.log(1,"info",_("New XiboPlayer running"))
+        log.log(1, 'info', _("New XiboPlayer running"))
         self.player = avg.Player.get()
         
-        if config.get('Main','fullscreen') == "true":
-            self.player.setResolution(True,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
+        if config.get('Main', 'fullscreen') == "true":
+            self.player.setResolution(
+                True,
+                int(config.get('Main', 'width')),
+                int(config.get('Main', 'height')),
+                int(config.get('Main', 'bpp'))
+            )
         else:
-            self.player.setResolution(False,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
+            self.player.setResolution(
+                False,
+                int(config.get('Main', 'width')),
+                int(config.get('Main', 'height')),
+                int(config.get('Main', 'bpp'))
+            )
 
         try:
-            if int(config.get('Main','fps')) > 0:
-                fps = int(config.get('Main','fps'))
+            if int(config.get('Main', 'fps')) > 0:
+                fps = int(config.get('Main', 'fps'))
                 self.player.setFramerate(fps)
         except ValueError:
-            log.log(0,"error",_("Your configuration for fps is incorrect. Main->FPS should be an integer value."))
-            log.log(0,"error",_("Using 60fps as a default."))            
+            log.log(0, 'error', _('Your configuration for fps is incorrect.'
+                                  ' Main->FPS should be an integer value.'))
+            log.log(0, 'error', _('Using 60fps as a default.'))            
             fps = 60
             self.player.setFramerate(fps)
         except ConfigParser.NoOptionError:
@@ -3213,21 +3221,22 @@ class XiboPlayer(Thread):
         self.player.volume = 1
         self.player.stopOnEscape(False)
         
-        useRotation = bool(not int(config.get('Main','vwidth')) == 0)
+        useRotation = bool(not int(config.get('Main', 'vwidth')) == 0)
         
         # Calculate the information window
         if useRotation:
-            infoX = (int(config.get('Main','vwidth')) - 400) / 2
-            infoY = (int(config.get('Main','vheight')) - 300) / 2
-            self.osLogX = int(config.get('Main','vwidth'))
-            self.osLogY = int(config.get('Main','vheight')) - 20
+            infoX = (int(config.get('Main', 'vwidth')) - 400) / 2
+            infoY = (int(config.get('Main', 'vheight')) - 300) / 2
+            self.osLogX = int(config.get('Main', 'vwidth'))
+            self.osLogY = int(config.get('Main', 'vheight')) - 20
         else:
-            infoX = (int(config.get('Main','width')) - 400) / 2
-            infoY = (int(config.get('Main','height')) - 300) / 2
-            self.osLogX = int(config.get('Main','width'))
-            self.osLogY = int(config.get('Main','height')) - 20
+            infoX = (int(config.get('Main', 'width')) - 400) / 2
+            infoY = (int(config.get('Main', 'height')) - 300) / 2
+            self.osLogX = int(config.get('Main', 'width'))
+            self.osLogY = int(config.get('Main', 'height')) - 20
         
-        # If the info window is bigger than the client, stick it in the top left corner.
+        # If the info window is bigger than the client, stick it in the top
+        # left corner.
         if infoX < 0:
             infoX = 0
         if infoY < 0:
@@ -3416,7 +3425,8 @@ class XiboPlayer(Thread):
                     currentNode.setBitmap(data[1])
                 self.q.task_done()
                 # Call ourselves again to action any remaining queued items
-                # This does not make an infinite loop since when all queued items are processed
+                # This does not make an infinite loop since when all queued
+                # items are processed.
                 # A Queue.Empty exception is thrown and this whole block is skipped.
                 self.__lock.release()
                 self.frameHandle()
@@ -3427,7 +3437,8 @@ class XiboPlayer(Thread):
             except RuntimeError as detail:
                 log.log(1,"error",_("A runtime error occured: ") + str(detail))
                 self.__lock.release()
-            # TODO: Put this catchall back when finished debugging.
+            # Generic catchall to prevent unhandled player exceptions bringing
+            # us down.
             except:
                 # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
                 self.__lock.release()
