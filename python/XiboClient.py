@@ -37,7 +37,6 @@ import gettext
 import os
 import fnmatch
 import re
-import time
 import datetime
 import sys
 import socket
@@ -57,19 +56,19 @@ schemaVersion = 1
 #### Abstract Classes
 class XiboLog:
     "Abstract Class - Interface for Loggers"
-    level=0
-    def __init__(self,level): abstract
-    def log(self,level,category,message,osd=False): abstract
-    def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID): abstract
-    def setXmds(self,xmds):
+    level = 0
+    def __init__(self, level): abstract
+    def log(self, level, category, message, osd = False): abstract
+    def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID): abstract
+    def setXmds(self, xmds):
         pass
     def flush(self):
         pass
-    def setupInfo(self,p):
+    def setupInfo(self, p):
         self.p = p
         
         try:
-            self.liftEnabled = config.get('Lift','enabled')
+            self.liftEnabled = config.get('Lift', 'enabled')
             if self.liftEnabled == "false":
                 self.liftEnabled = False
                 log.log(3,"audit",_("Disabling lift functionality in Logger"))
@@ -83,291 +82,291 @@ class XiboLog:
         # Populate the info screen
         # Background.
         tmpXML = '<rect fillcolor="ffffff" id="infoBG" fillopacity="0.75" size="(400,300)" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Logo + version bottom right
         tmpXML = '<image href="resources/logo.png" id="infoLOGO" opacity="1" width="50" height="18" x="345" y="276" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="290" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" fontsize="12" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Required Files Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoRFGrey" opacity="1" width="20" height="20" x="5" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoRFRed" opacity="0" width="20" height="20" x="5" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoRFAmber" opacity="0" width="20" height="20" x="5" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoRFGreen" opacity="0" width="20" height="20" x="5" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="10" y="270" opacity="1" text="Required Files" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add' ,(tmpXML, 'info'))
         
         # GetFile Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoGFGrey" opacity="1" width="20" height="20" x="30" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoGFRed" opacity="0" width="20" height="20" x="30" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoGFAmber" opacity="0" width="20" height="20" x="30" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoGFGreen" opacity="0" width="20" height="20" x="30" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="35" y="270" opacity="1" text="Get File" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="0" font="Arial" color="000000" fontsize="10" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Schedule Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoSGrey" opacity="1" width="20" height="20" x="55" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoSRed" opacity="0" width="20" height="20" x="55" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoSAmber" opacity="0" width="20" height="20" x="55" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoSGreen" opacity="0" width="20" height="20" x="55" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="60" y="270" opacity="1" text="Schedule" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # RegisterDisplay Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoRDGrey" opacity="1" width="20" height="20" x="80" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoRDRed" opacity="0" width="20" height="20" x="80" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoRDAmber" opacity="0" width="20" height="20" x="80" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoRDGreen" opacity="0" width="20" height="20" x="80" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="85" y="270" opacity="1" text="Register Display" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Logs Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoLogGrey" opacity="1" width="20" height="20" x="105" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoLogRed" opacity="0" width="20" height="20" x="105" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoLogAmber" opacity="0" width="20" height="20" x="105" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoLogGreen" opacity="0" width="20" height="20" x="105" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="110" y="270" opacity="1" text="Log" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Stats Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoStatGrey" opacity="1" width="20" height="20" x="130" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoStatRed" opacity="0" width="20" height="20" x="130" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoStatAmber" opacity="0" width="20" height="20" x="130" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoStatGreen" opacity="0" width="20" height="20" x="130" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="135" y="270" opacity="1" text="Stats" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
         # Offline Update traffic light
         tmpXML = '<image href="resources/dotamber.png" id="offlineUpdateAmber" opacity="0" width="20" height="20" x="20" y="20" />'
-        self.p.enqueue('add',(tmpXML,'offlineUpdate'))
+        self.p.enqueue('add', (tmpXML, 'offlineUpdate'))
         tmpXML = '<image href="resources/dotgreen.png" id="offlineUpdateGreen" opacity="0" width="20" height="20" x="20" y="20" />'
-        self.p.enqueue('add',(tmpXML,'offlineUpdate'))
+        self.p.enqueue('add', (tmpXML, 'offlineUpdate'))
         
         # IP Address
         tmpXML = '<words x="5" y="5" opacity="1" text="IP Address: " font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoIP" x="75" y="5" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Disk Space
         tmpXML = '<words x="5" y="18" opacity="1" text="Disk Space: " font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoDisk" x="75" y="18" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
         # Lift Traffic Lights
         if self.liftEnabled:
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift1Grey" opacity="1" width="10" height="10" x="165" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift1Red" opacity="0" width="10" height="10" x="165" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift1Amber" opacity="0" width="10" height="10" x="165" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift1Green" opacity="0" width="10" height="10" x="165" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift2Grey" opacity="1" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift2Red" opacity="0" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift2Amber" opacity="0" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift2Green" opacity="0" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift3Grey" opacity="1" width="10" height="10" x="195" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift3Red" opacity="0" width="10" height="10" x="195" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift3Amber" opacity="0" width="10" height="10" x="195" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift3Green" opacity="0" width="10" height="10" x="195" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
 
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift4Grey" opacity="1" width="10" height="10" x="210" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift4Red" opacity="0" width="10" height="10" x="210" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift4Amber" opacity="0" width="10" height="10" x="210" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift4Green" opacity="0" width="10" height="10" x="210" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift5Grey" opacity="1" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift5Red" opacity="0" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift5Amber" opacity="0" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift5Green" opacity="0" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift6Grey" opacity="1" width="10" height="10" x="240" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift6Red" opacity="0" width="10" height="10" x="240" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift6Amber" opacity="0" width="10" height="10" x="240" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift6Green" opacity="0" width="10" height="10" x="240" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift7Grey" opacity="1" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift7Red" opacity="0" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift7Amber" opacity="0" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift7Green" opacity="0" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift8Grey" opacity="1" width="10" height="10" x="270" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift8Red" opacity="0" width="10" height="10" x="270" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift8Amber" opacity="0" width="10" height="10" x="270" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift8Green" opacity="0" width="10" height="10" x="270" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
 
             # Lift Tag
             tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: default" font="Arial" color="000000" fontsize="11" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
         
         # Schedule
         tmpXML = '<words x="5" y="75" opacity="1" text="Schedule" font="Arial" color="000000" fontsize="14" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoCurrentSchedule" x="5" y="90" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Now Playing
         tmpXML = '<words x="5" y="40" opacity="1" text="Now Playing" font="Arial" color="000000" fontsize="14" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoNowPlaying" x="5" y="55" opacity="1" text="" font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Media
         tmpXML = '<words x="205" y="5" opacity="1" text="Media" font="Arial" color="000000" fontsize="14" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" text="" font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
         # On Screen Logging
         tmpXML = '<rect fillcolor="ffffff" id="osLogBG" fillopacity="0.75" size="(%d,%d)" />' % (self.p.osLogX, 20)
-        self.p.enqueue('add',(tmpXML,'osLog'))
+        self.p.enqueue('add', (tmpXML, 'osLog'))
         tmpXML = '<words id="osLogText" x="5" y="3" opacity="1" text="Xibo Client v%s" font="Arial" color="000000" fontsize="11" />' % version
-        self.p.enqueue('add',(tmpXML,'osLog'))
+        self.p.enqueue('add', (tmpXML, 'osLog'))
     
-    def lights(self,field,value):
+    def lights(self, field, value):
         if value == "green":
-            self.p.enqueue('setOpacity',("info" + field + "Green", 1))
-            self.p.enqueue('setOpacity',("info" + field + "Grey", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Amber", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Red", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Green", 1))
+            self.p.enqueue('setOpacity', ("info" + field + "Grey", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Amber", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Red", 0))
         if value == "red":
-            self.p.enqueue('setOpacity',("info" + field + "Green", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Grey", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Amber", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Red", 1))
+            self.p.enqueue('setOpacity', ("info" + field + "Green", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Grey", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Amber", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Red", 1))
         if value == "amber":
-            self.p.enqueue('setOpacity',("info" + field + "Green", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Grey", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Amber", 1))
-            self.p.enqueue('setOpacity',("info" + field + "Red", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Green", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Grey", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Amber", 1))
+            self.p.enqueue('setOpacity', ("info" + field + "Red", 0))
         if value == "grey":
-            self.p.enqueue('setOpacity',("info" + field + "Green", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Grey", 1))
-            self.p.enqueue('setOpacity',("info" + field + "Amber", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Red", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Green", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Grey", 1))
+            self.p.enqueue('setOpacity', ("info" + field + "Amber", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Red", 0))
         if value == "start":
-            self.p.enqueue('setOpacity',("%sAmber" % field, 1))
-            self.p.enqueue('setOpacity',("%sGreen" % field, 0))
+            self.p.enqueue('setOpacity', ("%sAmber" % field, 1))
+            self.p.enqueue('setOpacity', ("%sGreen" % field, 0))
         if value == "finish":
-            self.p.enqueue('setOpacity',("%sAmber" % field, 0))
-            self.p.enqueue('setOpacity',("%sGreen" % field, 1))
-            self.p.enqueue('anim',('fadeOut','%sGreen' % field,3000,None))
+            self.p.enqueue('setOpacity', ("%sAmber" % field, 0))
+            self.p.enqueue('setOpacity', ("%sGreen" % field, 1))
+            self.p.enqueue('anim', ('fadeOut', '%sGreen' % field, 3000, None))
 
-    def updateSchedule(self,schedule):
-        self.p.enqueue('del','infoCurrentSchedule')
+    def updateSchedule(self, schedule):
+        self.p.enqueue('del', 'infoCurrentSchedule')
         tmpXML = '<words id="infoCurrentSchedule" x="5" y="90" opacity="1" text="' + schedule + '" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
-    def updateNowPlaying(self,now):
-        self.p.enqueue('del','infoNowPlaying')
+    def updateNowPlaying(self, now):
+        self.p.enqueue('del', 'infoNowPlaying')
         tmpXML = '<words id="infoNowPlaying" x="5" y="55" opacity="1" text="' + now + '" font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
-    def updateMedia(self,media):
-        self.p.enqueue('del','infoMedia')
+    def updateMedia(self, media):
+        self.p.enqueue('del', 'infoMedia')
         tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" font="Arial" color="000000" fontsize="11" width="180">' + media + '</words>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
     
-    def updateRunningDownloads(self,num):
-        self.p.enqueue('del','infoRunningDownloads')
+    def updateRunningDownloads(self, num):
+        self.p.enqueue('del', 'infoRunningDownloads')
         tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="' + str(num) + '" font="Arial" color="000000" fontsize="10" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
     
-    def updateIP(self,serverIP):
-        self.p.enqueue('del','infoIP')
+    def updateIP(self, serverIP):
+        self.p.enqueue('del', 'infoIP')
         tmpXML = '<words id="infoIP" x="75" y="5" opacity="1" text="' + str(serverIP) + '" font="Arial" color="000000" fontsize="10" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
-    def updateFreeSpace(self,tup):
+    def updateFreeSpace(self, tup):
         perc = int((tup[1] * 1.0 / tup[0]) * 100)
-        self.p.enqueue('del','infoDisk')
+        self.p.enqueue('del', 'infoDisk')
         tmpXML = '<words id="infoDisk" x="75" y="18" opacity="1" text="' + self.bytestr(tup[1]) + ' (' + str(perc) + '%) free" font="Arial" color="000000" fontsize="10" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
     # Convert a value in bytes to human readable format
     # Taken from http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
     # By Sridhar Ratnakumar
     # Assumed Public Domain
-    def bytestr(self,size):
-        for x in ['bytes','KB','MB','GB','TB']:
+    def bytestr(self, size):
+        for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
             if size < 1024.0:
                 return "%3.1f %s" % (size, x)
             size /= 1024.0
             
-    def updateLift(self,tag):
+    def updateLift(self, tag):
         # Break out if lift is disabled
         if not self.liftEnabled:
             return
         
-        self.p.enqueue('del','infoLiftTag')
+        self.p.enqueue('del', 'infoLiftTag')
         tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: ' + tag + '" font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
-    def osLog(self,message):
-        self.p.enqueue('del','osLogText')
+    def osLog(self, message):
+        self.p.enqueue('del', 'osLogText')
         tmpXML = '<words id="osLogText" x="5" y="3" opacity="1" text="%s" font="Arial" color="000000" fontsize="11" />' % message
-        self.p.enqueue('add',(tmpXML,'osLog'))
+        self.p.enqueue('add', (tmpXML, 'osLog'))
 
 class XiboScheduler(Thread):
     "Abstract Class - Interface for Schedulers"
@@ -2057,7 +2056,7 @@ class XmdsScheduler(XiboScheduler):
 
                     try:
                         if self.__defaultLayout.layoutID != layoutID:
-                           self.__defaultLayout = XiboLayout(layoutID,True)
+                            self.__defaultLayout = XiboLayout(layoutID,True)
                     except:
                         self.__defaultLayout = XiboLayout(layoutID,True)
             
@@ -2413,7 +2412,7 @@ class XMDSException(Exception):
 
 class XMDS:
     def __init__(self):
-        self.__schemaVersion__ = "2";
+        self.__schemaVersion__ = "2"
 
         # Semaphore to allow only one XMDS call to run check simultaneously
         self.checkLock = Semaphore()
@@ -2831,7 +2830,7 @@ class XMDS:
 class XMDSOffline(Thread):
     def __init__(self,displayManager):
         Thread.__init__(self)
-        self.__schemaVersion__ = "2";
+        self.__schemaVersion__ = "2"
         self.displayManager = displayManager
         self.updatePath = ""
         self.__running__ = True
@@ -3014,7 +3013,7 @@ class XiboDisplayManager:
     def run(self):
         # Run up a XiboLogScreen temporarily until XMDS is initialised.
         global log
-        logLevel = config.get('Logging','logLevel');
+        logLevel = config.get('Logging','logLevel')
         log = XiboLogScreen(logLevel)
         
         if config.get('Main','manualUpdate') == 'true':
@@ -3034,7 +3033,7 @@ class XiboDisplayManager:
             log.log(0,"error",_("No libraryDir specified in your configuration"))
             exit(1)            
                 
-        print _("Log Level is: ") + logLevel;
+        print _("Log Level is: ") + logLevel
         print _("Logging will be handled by: ") + config.get('Logging','logWriter')
         print _("Switching to new logger")
 
@@ -3430,9 +3429,9 @@ class XiboPlayer(Thread):
                 self.__lock.release()
             # TODO: Put this catchall back when finished debugging.
             except:
-                   # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
-                   self.__lock.release()
-                   log.log(0,"audit",str(cmd) + " : " + str(data))
+                # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
+                self.__lock.release()
+                log.log(0,"audit",str(cmd) + " : " + str(data))
         except AttributeError:
             log.log(0,"error","Caught that thing that makes the player crash on startup!")
             
