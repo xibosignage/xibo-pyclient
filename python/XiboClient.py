@@ -1901,13 +1901,19 @@ class XiboLayout:
             try:
                 fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
             except OverflowError:
-                log.log(0,'error',__("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
+                log.log(0, 'error', _("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
+                fromtDt = 0
+            except ValueError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
                 fromtDt = 0
 
             try:
                 toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
             except OverflowError:
-                log.log(0,'error',__("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
+                log.log(0, 'error', _("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
+                toDt = 2147472000
+            except ValueError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
                 toDt = 2147472000
 
             priority = sc[2]
@@ -1935,13 +1941,19 @@ class XiboLayout:
             try:
                 fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
             except OverflowError:
-                log.log(0,'error',__("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
+                log.log(0, 'error', _("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
+                fromtDt = 0
+            except ValueError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
                 fromtDt = 0
 
             try:
                 toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
             except OverflowError:
-                log.log(0,'error',__("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
+                log.log(0, 'error', _("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
+                toDt = 2147472000
+            except ValueError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
                 toDt = 2147472000
 
             priority = sc[2]
@@ -2174,58 +2186,58 @@ class XmdsScheduler(XiboScheduler):
                     log.log(8,'audit',_('Lift is enabled and there is a priority layout.'))
                     if tmpLayout.canRun() and tmpLayout.isPriority() and self.validTag in tmpLayout.tags:
                         log.updateNowPlaying(str(tmpLayout.layoutID) + " (P)")
-                        log.log(8,'audit',__('Releasing scheduler layout lock.'))
+                        log.log(8,'audit',_('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
-                        log.log(8,'audit',__('Trying next layout.'))
+                        log.log(8,'audit',_('Trying next layout.'))
                         count = count + 1
                 else:
                     log.log(8,'audit',_('Lift is enabled and there are no priority layouts.'))
                     if tmpLayout.canRun() and self.validTag in tmpLayout.tags:
                         log.updateNowPlaying(str(tmpLayout.layoutID))
-                        log.log(8,'audit',__('Releasing scheduler layout lock.'))
+                        log.log(8,'audit',_('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
-                        log.log(8,'audit',__('Trying next layout.'))
+                        log.log(8,'audit',_('Trying next layout.'))
                         count = count + 1
             else:
                 if thereIsPriority:
                     if tmpLayout.canRun() and tmpLayout.isPriority():
                         log.updateNowPlaying(str(tmpLayout.layoutID) + " (P)")
-                        log.log(8,'audit',__('Releasing scheduler layout lock.'))
+                        log.log(8,'audit',_('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
-                        log.log(8,'audit',__('Trying next layout.'))
+                        log.log(8,'audit',_('Trying next layout.'))
                         count = count + 1
                 else:
                     if tmpLayout.canRun():
                         log.updateNowPlaying(str(tmpLayout.layoutID))
-                        log.log(8,'audit',__('Releasing scheduler layout lock.'))
+                        log.log(8,'audit',_('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
-                        log.log(8,'audit',__('Trying next layout.'))
+                        log.log(8,'audit',_('Trying next layout.'))
                         count = count + 1
         
         log.log(8,'info',__('Tried all layouts and none could run.'))
         try:
             if self.__defaultLayout.canRun():
                 log.updateNowPlaying(str(self.__defaultLayout.layoutID) + " (Default)")
-                log.log(8,'audit',__('Releasing scheduler layout lock.'))
+                log.log(8,'audit',_('Releasing scheduler layout lock.'))
                 self.__lock.release()
                 return self.__defaultLayout
             else:
                 log.updateNowPlaying("Splash Screen")
-                log.log(8,'audit',__('Releasing scheduler layout lock.'))
+                log.log(8,'audit',_('Releasing scheduler layout lock.'))
                 self.__lock.release()
                 return XiboLayout('0',False)
         except:
             log.log(8,'info',__('Exception thrown checking default layout. Falling back to Splash Screen.'))
             log.updateNowPlaying("Splash Screen")
-            log.log(8,'audit',__('Releasing scheduler layout lock.'))
+            log.log(8,'audit',_('Releasing scheduler layout lock.'))
             self.__lock.release()
             return XiboLayout('0',False)
 
