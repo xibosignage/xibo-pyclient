@@ -1898,8 +1898,18 @@ class XiboLayout:
 
         # See if the item is in a scheduled window to run
         for sc in self.schedule:
-            fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
-            toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
+            try:
+                fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
+            except OverflowError:
+                log.log(0,'error',__("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
+                fromtDt = 0
+
+            try:
+                toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
+            except OverflowError:
+                log.log(0,'error',__("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
+                toDt = 2147472000
+
             priority = sc[2]
             now = time.time()
             
@@ -1922,8 +1932,18 @@ class XiboLayout:
     def isPriority(self):
         # Check through the schedule and see if we're priority at the moment.
         for sc in self.schedule:
-            fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
-            toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
+            try:
+                fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
+            except OverflowError:
+                log.log(0,'error',__("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
+                fromtDt = 0
+
+            try:
+                toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
+            except OverflowError:
+                log.log(0,'error',__("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
+                toDt = 2147472000
+
             priority = sc[2]
             now = time.time()
             
