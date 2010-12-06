@@ -2104,82 +2104,108 @@ class XmdsScheduler(XiboScheduler):
         self.__collectLock.release()
 
     def __len__(self):
+        log.log(8,'audit',_('There are %s layouts in the scheduler.') % len(self.__layouts))
         return len(self.__layouts)
 
     def nextLayout(self):
         "Return the next valid layout"
-        
+
+        log.log(8,'audit',_('nextLayout: IN'))        
         # If there are no possible layouts then return the default or splash screen straight away.
         if len(self) == 0:
+            log.log(8,'audit',_('No layouts available.'))
             try:
                 if self.__defaultLayout.canRun():
+                    log.log(8,'audit',_('Default layout can run.'))
                     log.updateNowPlaying(str(self.__defaultLayout.layoutID) + " (Default)")
                     return self.__defaultLayout
                 else:
+                    log.log(8,'audit',_('Default layout cannot run and there are no other layouts. Loading Splash Screen'))
                     log.updateNowPlaying("Splash Screen")
                     return XiboLayout('0',False)
             except:
+                log.log(8,'audit',_('Exception thrown checking default layout. Loading Splash Screen.'))
                 log.updateNowPlaying("Splash Screen")
                 return XiboLayout('0',False)
         
         # Consider each possible layout and see if it can run
         # Lock out the scheduler while we do this so that the
         # maths doesn't go horribly wrong!
+        log.log(8,'audit',_('Attempting to acquire scheduler layout lock.'))
         self.__lock.acquire()
+        log.log(8,'audit',_('Scheduler layout lock acquired.'))
 
         # Check if any layout is a priorty.
         thereIsPriority = False
         for l in self.__layouts:
             if l.isPriority():
+                log.log(8,'audit',_('There are layouts with priority.'))
                 thereIsPriority = True
 
         count = 0
         while count < len(self):
             self.__pointer = (self.__pointer + 1) % len(self)
             tmpLayout = self.__layouts[self.__pointer]
+
+            log.log(8,'audit',_('Checking layout schedule ID %s.') % self.__pointer)
             
             if self.liftEnabled:
                 if thereIsPriority:
+                    log.log(8,'audit',_('Lift is enabled and there is a priority layout.'))
                     if tmpLayout.canRun() and tmpLayout.isPriority() and self.validTag in tmpLayout.tags:
                         log.updateNowPlaying(str(tmpLayout.layoutID) + " (P)")
+                        log.log(8,'audit',__('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
+                        log.log(8,'audit',__('Trying next layout.'))
                         count = count + 1
                 else:
+                    log.log(8,'audit',_('Lift is enabled and there are no priority layouts.'))
                     if tmpLayout.canRun() and self.validTag in tmpLayout.tags:
                         log.updateNowPlaying(str(tmpLayout.layoutID))
+                        log.log(8,'audit',__('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
+                        log.log(8,'audit',__('Trying next layout.'))
                         count = count + 1
             else:
                 if thereIsPriority:
                     if tmpLayout.canRun() and tmpLayout.isPriority():
                         log.updateNowPlaying(str(tmpLayout.layoutID) + " (P)")
+                        log.log(8,'audit',__('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
+                        log.log(8,'audit',__('Trying next layout.'))
                         count = count + 1
                 else:
                     if tmpLayout.canRun():
                         log.updateNowPlaying(str(tmpLayout.layoutID))
+                        log.log(8,'audit',__('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
+                        log.log(8,'audit',__('Trying next layout.'))
                         count = count + 1
         
+        log.log(8,'info',__('Tried all layouts and none could run.'))
         try:
             if self.__defaultLayout.canRun():
                 log.updateNowPlaying(str(self.__defaultLayout.layoutID) + " (Default)")
+                log.log(8,'audit',__('Releasing scheduler layout lock.'))
                 self.__lock.release()
                 return self.__defaultLayout
             else:
                 log.updateNowPlaying("Splash Screen")
+                log.log(8,'audit',__('Releasing scheduler layout lock.'))
                 self.__lock.release()
                 return XiboLayout('0',False)
         except:
+            log.log(8,'info',__('Exception thrown checking default layout. Falling back to Splash Screen.'))
             log.updateNowPlaying("Splash Screen")
+            log.log(8,'audit',__('Releasing scheduler layout lock.'))
             self.__lock.release()
             return XiboLayout('0',False)
 
