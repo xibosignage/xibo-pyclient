@@ -2222,7 +2222,7 @@ class XmdsScheduler(XiboScheduler):
                         log.log(8,'audit',_('Trying next layout.'))
                         count = count + 1
         
-        log.log(8,'info',__('Tried all layouts and none could run.'))
+        log.log(8,'info',_('Tried all layouts and none could run.'))
         try:
             if self.__defaultLayout.canRun():
                 log.updateNowPlaying(str(self.__defaultLayout.layoutID) + " (Default)")
@@ -2235,7 +2235,7 @@ class XmdsScheduler(XiboScheduler):
                 self.__lock.release()
                 return XiboLayout('0',False)
         except:
-            log.log(8,'info',__('Exception thrown checking default layout. Falling back to Splash Screen.'))
+            log.log(8,'info',_('Exception thrown checking default layout. Falling back to Splash Screen.'))
             log.updateNowPlaying("Splash Screen")
             log.log(8,'audit',_('Releasing scheduler layout lock.'))
             self.__lock.release()
