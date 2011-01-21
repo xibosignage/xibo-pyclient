@@ -1282,8 +1282,17 @@ class XiboLayoutManager(Thread):
         # Add a ColorNode and maybe ImageNode to the layout div to draw the background
 
         # This code will work with libavg > 0.8.x
-        tmpXML = '<rect fillopacity="1" fillcolor="%s" color="%s" size="(%d,%d)" id="bgColor%s" />' % (self.l.backgroundColour.strip("#"),self.l.backgroundColour.strip("#"),self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt)
-        self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+        try:
+            tmpXML = '<rect fillopacity="1" fillcolor="%s" color="%s" size="(%d,%d)" id="bgColor%s" />' % (self.l.backgroundColour.strip("#"),self.l.backgroundColour.strip("#"),self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt)
+            self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+        except AttributeError:
+            # The background colour isn't set for the layout.
+            # This is likely to be bad news as the XLF is already invalid.
+            # Log this, sleep and then load a different layout.
+            log.log(0,'error',_("Layout %s is invalid or corrupt. No background colour specified in the XLF. Skipping.") % self.l.layoutID)
+            time.sleep(5)
+            self.parent.nextLayout()
+            return
 
         if self.l.backgroundImage != None:
             
