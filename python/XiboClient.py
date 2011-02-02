@@ -1120,9 +1120,11 @@ class XiboDownloadManager(Thread):
         log.updateMedia(infoStr)
 
     def updateMediaInventory(self):
-        # TODO: Silently return if in full offline mode
+        # Silently return if in full offline mode
+        if config.getboolean('Main','manualUpdate'):
+            return
 
-        # TODO: Get current md5Cache and send it back to the server
+        # Get current md5Cache and send it back to the server
         inventoryXml = minidom.Document()
         inventoryXmlRoot = inventoryXml.createElement("files")
         inventoryXml.appendChild(inventoryXmlRoot)
@@ -1145,7 +1147,6 @@ class XiboDownloadManager(Thread):
 
                 inventoryXmlRoot.appendChild(tmpNode)
         except:
-            # Happens when we delete an item from the cache it would seem.
             log.log(0,'error',_('updateMediaInventory: Unknown error building inventoryXml'))
 
         # TODO: Send via XMDS
