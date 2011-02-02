@@ -1135,8 +1135,12 @@ class XiboDownloadManager(Thread):
                 tmpFileInfo = tmpFile.toTuple()
                 tmpNode = inventoryXml.createElement("file")
                 tmpNode.setAttribute("md5",tmpFileInfo[1])
-                # TODO: Convert mtime to ISO DATE FORMAT
-                tmpNode.setAttribute("lastChecked",str(tmpFileInfo[3]))
+
+                # Convert unix timestamp to ISO format
+                tmpDt = datetime.datetime.fromtimestamp(tmpFileInfo[3])
+                tmpDt = tmpDt.strftime("%Y-%m-%d %H:%M:%S")
+
+                tmpNode.setAttribute("lastChecked",tmpDt)
                 tmpNode.setAttribute("id",str(tmpFileInfo[5]))
                 tmpNode.setAttribute("type",str(tmpFileInfo[6]))
 
