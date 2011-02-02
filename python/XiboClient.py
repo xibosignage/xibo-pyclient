@@ -756,7 +756,7 @@ class XiboFile(object):
     def __init__(self,fileName,targetHash,fileId,fileType,mtime=0):
         self.__path = os.path.join(config.get('Main','libraryDir'),fileName)
         self.__fileName = fileName
-        self.md5 = "THIS IS DELIBERATELY AN IMPOSSIBLE MD5"
+        self.md5 = "NOT CALCULATED"
         self.checkTime = 1
         self.fileType = fileType
         self.fileId = fileId
@@ -801,7 +801,7 @@ class XiboFile(object):
             try:
                 tmpMtime = os.path.getmtime(self.__path)
             except:
-                return True
+                return False
             
             return not self.mtime == tmpMtime
 
@@ -909,7 +909,7 @@ class XiboDownloadManager(Thread):
                             tmpHash = str(f.attributes['md5'].value)
                             tmpType = str(f.attributes['type'].value)
                             tmpId = int(f.attributes['id'].value)
-                            self.updateInfo()
+
                             if os.path.isfile(tmpPath) and os.path.getsize(tmpPath) == tmpSize:
                                 # File exists and is the right size
                                 # See if we checksummed it recently
@@ -924,7 +924,7 @@ class XiboDownloadManager(Thread):
                                         # The hashes don't match.
                                         # Queue for download.
                                         log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName,True)
-                                        self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
+                                        self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash,tmpId),False)
                                 else:
 #                                    print "*** It's 735 and %s isn't in md5Cache" % tmpFileName
                                     tmpFile = XiboFile(tmpFileName,tmpHash,tmpId,tmpType)
@@ -933,14 +933,17 @@ class XiboDownloadManager(Thread):
                                         # The hashes don't match.
                                         # Queue for download.
                                         log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName,True)
-                                        self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
+                                        self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash,tmpId),False)
                             else:
                                 # Queue the file for download later.
                                 log.log(3,"info",_("File does not exist or is not the correct size. Queueing for download. ") + tmpFileName,True)
-                                self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash),False)
+                                tmpFile = XiboFile(tmpFileName,tmpHash,tmpId,tmpType)
+                                md5Cache[tmpFileName] = tmpFile
+                                self.dlQueue.put((tmpType,tmpFileName,tmpSize,tmpHash,tmpId),False)
                         except:
                             # TODO: Blacklist the media item.
                             log.log(0,"error",_("RequiredFiles XML error: File type=media has no path attribute or no size attribute. Blacklisting."),True)
+
                         log.log(5,"audit",_("File " + tmpFileName + " is valid."))
                         
                     elif str(f.attributes['type'].value) == 'layout':
@@ -951,7 +954,7 @@ class XiboDownloadManager(Thread):
                             tmpHash = str(f.attributes['md5'].value)
                             tmpType = str(f.attributes['type'].value)
                             tmpId = int(f.attributes['id'].value)
-                            self.updateInfo()
+
                             if os.path.isfile(tmpPath):
                                 # File exists
                                 # See if we checksummed it recently
@@ -970,7 +973,7 @@ class XiboDownloadManager(Thread):
                                         # The hashes don't match.
                                         # Queue for download.
                                         log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName,True)
-                                        self.dlQueue.put((tmpType,tmpFileName,0,tmpHash),False)
+                                        self.dlQueue.put((tmpType,tmpFileName,0,tmpHash,tmpId),False)
                                 else:
                                     tmpFile = XiboFile(tmpFileName,tmpHash,tmpId,tmpType)
                                     md5Cache[tmpFileName] = tmpFile
@@ -978,11 +981,13 @@ class XiboDownloadManager(Thread):
                                         # The hashes don't match.
                                         # Queue for download.
                                         log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName,True)
-                                        self.dlQueue.put((tmpType,tmpFileName,0,tmpHash),False)
+                                        self.dlQueue.put((tmpType,tmpFileName,0,tmpHash,tmpId),False)
                             else:
                                 # Queue the file for download later.
                                 log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpFileName,True)
-                                self.dlQueue.put((tmpType,tmpFileName,0,tmpHash),False)
+                                tmpFile = XiboFile(tmpFileName,tmpHash,tmpId,tmpType)
+                                md5Cache[tmpFileName] = tmpFile
+                                self.dlQueue.put((tmpType,tmpFileName,0,tmpHash,tmpId),False)
                         except:
                             # TODO: Blacklist the media item.
                             log.log(0,"error",_("RequiredFiles XML error: File type=layout has no path attribute or no hash attribute. Blacklisting."),True)
@@ -994,14 +999,18 @@ class XiboDownloadManager(Thread):
                     else:
                         # Unknown node. Ignore
                         pass
+
                 fileNodes = None
             # End If self.doc != None
+
+            self.updateInfo()
+            self.updateMediaInventory()
 
             # Loop over the queue and download as required
             try:
                 # Throttle this to a maximum number of dl threads.
                 while True:
-                    tmpType, tmpFileName, tmpSize, tmpHash = self.dlQueue.get(False)
+                    tmpType, tmpFileName, tmpSize, tmpHash, tmpId = self.dlQueue.get(False)
 
                     if config.get('Main','manualUpdate') == 'true':
                         log.lights('offlineUpdate','start')
@@ -1037,7 +1046,7 @@ class XiboDownloadManager(Thread):
             # Loop over the MD5 hash cache and remove any entries older than 1 hour
             try:
                 for tmpFileName, tmpFile in md5Cache.iteritems():
-                    if tmpFile.isExpired():
+                    if tmpFile.isExpired() and (not tmpFileName in self.runningDownloads):
                         del md5Cache[tmpFileName]
                         
                     # Prepare to cache out to file
@@ -1068,6 +1077,7 @@ class XiboDownloadManager(Thread):
 
             # Update the infoscreen.
             self.updateInfo()
+            self.updateMediaInventory()
             
             log.log(5,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
 
@@ -1094,6 +1104,7 @@ class XiboDownloadManager(Thread):
         
         # Update the infoscreen
         self.updateInfo()
+        self.updateMediaInventory()
 
     def updateInfo(self):
         # Update the info screen with information about the media
@@ -1109,8 +1120,38 @@ class XiboDownloadManager(Thread):
         log.updateMedia(infoStr)
 
     def updateMediaInventory(self):
+        # TODO: Silently return if in full offline mode
+
         # TODO: Get current md5Cache and send it back to the server
-        pass
+        inventoryXml = minidom.Document()
+        inventoryXmlRoot = inventoryXml.createElement("files")
+        inventoryXml.appendChild(inventoryXmlRoot)
+
+        # Loop over the MD5 hash cache and build the inventory
+        try:
+            for tmpFileName, tmpFile in md5Cache.iteritems():
+                tmpFileInfo = tmpFile.toTuple()
+                tmpNode = inventoryXml.createElement("file")
+                tmpNode.setAttribute("md5",tmpFileInfo[1])
+                # TODO: Convert mtime to ISO DATE FORMAT
+                tmpNode.setAttribute("lastChecked",str(tmpFileInfo[3]))
+                tmpNode.setAttribute("id",str(tmpFileInfo[5]))
+                tmpNode.setAttribute("type",str(tmpFileInfo[6]))
+
+                if tmpFile.isValid():
+                    tmpNode.setAttribute("complete","1")
+                else:
+                    tmpNode.setAttribute("complete","0")
+
+                inventoryXmlRoot.appendChild(tmpNode)
+        except:
+            # Happens when we delete an item from the cache it would seem.
+            log.log(0,'error',_('updateMediaInventory: Unknown error building inventoryXml'))
+
+        # TODO: Send via XMDS
+        print inventoryXml.toprettyxml()
+
+        inventoryXml.unlink()
 
 class XiboDownloadThread(Thread):
     def __init__(self,parent,tmpType,tmpFileName,tmpSize,tmpHash,tmpId):
