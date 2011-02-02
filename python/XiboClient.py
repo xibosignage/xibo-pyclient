@@ -1153,8 +1153,11 @@ class XiboDownloadManager(Thread):
         except:
             log.log(0,'error',_('updateMediaInventory: Unknown error building inventoryXml'))
 
-        # TODO: Send via XMDS
-        print inventoryXml.toprettyxml()
+        # Send via XMDS
+        try:
+            self.xmds.MediaInventory(inventoryXml.toprettyxml())
+        except XMDSException:
+            log.log(1,'error',_('Unable to send mediaInventory to the server via XMDS.'))
 
         inventoryXml.unlink()
 
