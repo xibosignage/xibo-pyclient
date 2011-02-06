@@ -901,7 +901,7 @@ class XiboDownloadManager(Thread):
                         try:
                             tmpPath = os.path.join(config.get('Main','libraryDir'),str(f.attributes['path'].value))
                             tmpFileName = str(f.attributes['path'].value)
-                            tmpSize = int(f.attributes['size'].value)
+                            tmpSize = long(f.attributes['size'].value)
                             tmpHash = str(f.attributes['md5'].value)
                             tmpType = str(f.attributes['type'].value)
                             self.updateInfo()
@@ -1109,7 +1109,7 @@ class XiboDownloadThread(Thread):
         self.tmpSize = tmpSize
         self.tmpHash = tmpHash
         self.parent = parent
-        self.offset = 0
+        self.offset = long(0)
         self.chunk = 512000
         
         # Server versions prior to 1.0.5 send an invalid md5sum for layouts that require
