@@ -1124,6 +1124,9 @@ class XiboDownloadManager(Thread):
         if config.getboolean('Main','manualUpdate'):
             return
 
+        if not config.getboolean('Main','mediaInventory'):
+            return
+
         # Get current md5Cache and send it back to the server
         inventoryXml = minidom.Document()
         inventoryXmlRoot = inventoryXml.createElement("files")
