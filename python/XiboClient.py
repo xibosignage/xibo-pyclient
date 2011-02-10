@@ -37,7 +37,6 @@ import gettext
 import os
 import fnmatch
 import re
-import time
 import datetime
 import sys
 import socket
@@ -49,7 +48,7 @@ import urlparse
 import PIL.Image
 import math
 
-version = "1.2.0a3"
+version = "1.2.1a1"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -57,304 +56,317 @@ schemaVersion = 1
 #### Abstract Classes
 class XiboLog:
     "Abstract Class - Interface for Loggers"
-    level=0
-    def __init__(self,level): abstract
-    def log(self,level,category,message,osd=False): abstract
-    def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID): abstract
-    def setXmds(self,xmds):
+    level = 0
+    def __init__(self, level): abstract
+    def log(self, level, category, message, osd = False): abstract
+    def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID): abstract
+    def setXmds(self, xmds):
         pass
     def flush(self):
         pass
-    def setupInfo(self,p):
+    def setupInfo(self, p):
         self.p = p
         
         try:
-            self.liftEnabled = config.get('Lift','enabled')
+            self.liftEnabled = config.get('Lift', 'enabled')
             if self.liftEnabled == "false":
                 self.liftEnabled = False
-                log.log(3,"audit",_("Disabling lift functionality in Logger"))
+                log.log(3, "audit", _("Disabling lift functionality in Logger"))
             else:
                 self.liftEnabled = True
-                log.log(3,"audit",_("Enabling lift functionality in Logger"))
+                log.log(3, "audit", _("Enabling lift functionality in Logger"))
         except:
             self.liftEnabled = False
-            log.log(3,"error",_("Lift->enabled not defined in configuration. Disabling lift functionality in Logger"))
+            log.log(3, "error", _("Lift->enabled not defined in configuration. Disabling lift functionality in Logger"))
         
         # Populate the info screen
         # Background.
         tmpXML = '<rect fillcolor="ffffff" id="infoBG" fillopacity="0.75" size="(400,300)" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Logo + version bottom right
         tmpXML = '<image href="resources/logo.png" id="infoLOGO" opacity="1" width="50" height="18" x="345" y="276" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="290" y="280" opacity="1" text="v' + version + '" font="Arial" color="000000" fontsize="12" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Required Files Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoRFGrey" opacity="1" width="20" height="20" x="5" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoRFRed" opacity="0" width="20" height="20" x="5" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoRFAmber" opacity="0" width="20" height="20" x="5" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoRFGreen" opacity="0" width="20" height="20" x="5" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="10" y="270" opacity="1" text="Required Files" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add' ,(tmpXML, 'info'))
         
         # GetFile Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoGFGrey" opacity="1" width="20" height="20" x="30" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoGFRed" opacity="0" width="20" height="20" x="30" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoGFAmber" opacity="0" width="20" height="20" x="30" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoGFGreen" opacity="0" width="20" height="20" x="30" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="35" y="270" opacity="1" text="Get File" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="0" font="Arial" color="000000" fontsize="10" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Schedule Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoSGrey" opacity="1" width="20" height="20" x="55" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoSRed" opacity="0" width="20" height="20" x="55" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoSAmber" opacity="0" width="20" height="20" x="55" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoSGreen" opacity="0" width="20" height="20" x="55" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="60" y="270" opacity="1" text="Schedule" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # RegisterDisplay Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoRDGrey" opacity="1" width="20" height="20" x="80" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoRDRed" opacity="0" width="20" height="20" x="80" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoRDAmber" opacity="0" width="20" height="20" x="80" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoRDGreen" opacity="0" width="20" height="20" x="80" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="85" y="270" opacity="1" text="Register Display" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Logs Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoLogGrey" opacity="1" width="20" height="20" x="105" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoLogRed" opacity="0" width="20" height="20" x="105" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoLogAmber" opacity="0" width="20" height="20" x="105" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoLogGreen" opacity="0" width="20" height="20" x="105" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="110" y="270" opacity="1" text="Log" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Stats Traffic Light
         tmpXML = '<image href="resources/dotgrey.png" id="infoStatGrey" opacity="1" width="20" height="20" x="130" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotred.png" id="infoStatRed" opacity="0" width="20" height="20" x="130" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotamber.png" id="infoStatAmber" opacity="0" width="20" height="20" x="130" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<image href="resources/dotgreen.png" id="infoStatGreen" opacity="0" width="20" height="20" x="130" y="275" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words x="135" y="270" opacity="1" text="Stats" font="Arial" color="000000" fontsize="10" angle="-1.57079633" pivot="(0,0)"/>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
+
+        # Offline Update traffic light
+        tmpXML = '<image href="resources/dotamber.png" id="offlineUpdateAmber" opacity="0" width="20" height="20" x="20" y="20" />'
+        self.p.enqueue('add', (tmpXML, 'offlineUpdate'))
+        tmpXML = '<image href="resources/dotgreen.png" id="offlineUpdateGreen" opacity="0" width="20" height="20" x="20" y="20" />'
+        self.p.enqueue('add', (tmpXML, 'offlineUpdate'))
         
         # IP Address
         tmpXML = '<words x="5" y="5" opacity="1" text="IP Address: " font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoIP" x="75" y="5" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Disk Space
         tmpXML = '<words x="5" y="18" opacity="1" text="Disk Space: " font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoDisk" x="75" y="18" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
         # Lift Traffic Lights
         if self.liftEnabled:
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift1Grey" opacity="1" width="10" height="10" x="165" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift1Red" opacity="0" width="10" height="10" x="165" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift1Amber" opacity="0" width="10" height="10" x="165" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift1Green" opacity="0" width="10" height="10" x="165" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift2Grey" opacity="1" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift2Red" opacity="0" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift2Amber" opacity="0" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift2Green" opacity="0" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift3Grey" opacity="1" width="10" height="10" x="195" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift3Red" opacity="0" width="10" height="10" x="195" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift3Amber" opacity="0" width="10" height="10" x="195" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift3Green" opacity="0" width="10" height="10" x="195" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
 
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift4Grey" opacity="1" width="10" height="10" x="210" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift4Red" opacity="0" width="10" height="10" x="210" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift4Amber" opacity="0" width="10" height="10" x="210" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift4Green" opacity="0" width="10" height="10" x="210" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift5Grey" opacity="1" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift5Red" opacity="0" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift5Amber" opacity="0" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift5Green" opacity="0" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift6Grey" opacity="1" width="10" height="10" x="240" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift6Red" opacity="0" width="10" height="10" x="240" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift6Amber" opacity="0" width="10" height="10" x="240" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift6Green" opacity="0" width="10" height="10" x="240" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift7Grey" opacity="1" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift7Red" opacity="0" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift7Amber" opacity="0" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift7Green" opacity="0" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift8Grey" opacity="1" width="10" height="10" x="270" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotred.png" id="infoLift8Red" opacity="0" width="10" height="10" x="270" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotamber.png" id="infoLift8Amber" opacity="0" width="10" height="10" x="270" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift8Green" opacity="0" width="10" height="10" x="270" y="285" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
 
             # Lift Tag
             tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: default" font="Arial" color="000000" fontsize="11" />'
-            self.p.enqueue('add',(tmpXML,'info'))
+            self.p.enqueue('add', (tmpXML, 'info'))
         
         # Schedule
         tmpXML = '<words x="5" y="75" opacity="1" text="Schedule" font="Arial" color="000000" fontsize="14" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoCurrentSchedule" x="5" y="90" opacity="1" text="" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Now Playing
         tmpXML = '<words x="5" y="40" opacity="1" text="Now Playing" font="Arial" color="000000" fontsize="14" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoNowPlaying" x="5" y="55" opacity="1" text="" font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
         # Media
         tmpXML = '<words x="205" y="5" opacity="1" text="Media" font="Arial" color="000000" fontsize="14" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" text="" font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
         # On Screen Logging
         tmpXML = '<rect fillcolor="ffffff" id="osLogBG" fillopacity="0.75" size="(%d,%d)" />' % (self.p.osLogX, 20)
-        self.p.enqueue('add',(tmpXML,'osLog'))
+        self.p.enqueue('add', (tmpXML, 'osLog'))
         tmpXML = '<words id="osLogText" x="5" y="3" opacity="1" text="Xibo Client v%s" font="Arial" color="000000" fontsize="11" />' % version
-        self.p.enqueue('add',(tmpXML,'osLog'))
+        self.p.enqueue('add', (tmpXML, 'osLog'))
     
-    def lights(self,field,value):
+    def lights(self, field, value):
         if value == "green":
-            self.p.enqueue('setOpacity',("info" + field + "Green", 1))
-            self.p.enqueue('setOpacity',("info" + field + "Grey", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Amber", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Red", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Green", 1))
+            self.p.enqueue('setOpacity', ("info" + field + "Grey", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Amber", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Red", 0))
         if value == "red":
-            self.p.enqueue('setOpacity',("info" + field + "Green", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Grey", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Amber", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Red", 1))
+            self.p.enqueue('setOpacity', ("info" + field + "Green", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Grey", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Amber", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Red", 1))
         if value == "amber":
-            self.p.enqueue('setOpacity',("info" + field + "Green", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Grey", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Amber", 1))
-            self.p.enqueue('setOpacity',("info" + field + "Red", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Green", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Grey", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Amber", 1))
+            self.p.enqueue('setOpacity', ("info" + field + "Red", 0))
         if value == "grey":
-            self.p.enqueue('setOpacity',("info" + field + "Green", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Grey", 1))
-            self.p.enqueue('setOpacity',("info" + field + "Amber", 0))
-            self.p.enqueue('setOpacity',("info" + field + "Red", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Green", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Grey", 1))
+            self.p.enqueue('setOpacity', ("info" + field + "Amber", 0))
+            self.p.enqueue('setOpacity', ("info" + field + "Red", 0))
+        if value == "start":
+            self.p.enqueue('setOpacity', ("%sAmber" % field, 1))
+            self.p.enqueue('setOpacity', ("%sGreen" % field, 0))
+        if value == "finish":
+            self.p.enqueue('setOpacity', ("%sAmber" % field, 0))
+            self.p.enqueue('setOpacity', ("%sGreen" % field, 1))
+            self.p.enqueue('anim', ('fadeOut', '%sGreen' % field, 3000, None))
 
-    def updateSchedule(self,schedule):
-        self.p.enqueue('del','infoCurrentSchedule')
+    def updateSchedule(self, schedule):
+        self.p.enqueue('del', 'infoCurrentSchedule')
         tmpXML = '<words id="infoCurrentSchedule" x="5" y="90" opacity="1" text="' + schedule + '" font="Arial" color="000000" fontsize="11" width="180" linespacing="10" alignment="left" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
-    def updateNowPlaying(self,now):
-        self.p.enqueue('del','infoNowPlaying')
+    def updateNowPlaying(self, now):
+        self.p.enqueue('del', 'infoNowPlaying')
         tmpXML = '<words id="infoNowPlaying" x="5" y="55" opacity="1" text="' + now + '" font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
-    def updateMedia(self,media):
-        self.p.enqueue('del','infoMedia')
+    def updateMedia(self, media):
+        self.p.enqueue('del', 'infoMedia')
         tmpXML = '<words id="infoMedia" x="205" y="20" opacity="1" font="Arial" color="000000" fontsize="11" width="180">' + media + '</words>'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
     
-    def updateRunningDownloads(self,num):
-        self.p.enqueue('del','infoRunningDownloads')
+    def updateRunningDownloads(self, num):
+        self.p.enqueue('del', 'infoRunningDownloads')
         tmpXML = '<words id="infoRunningDownloads" x="37" y="278" opacity="1" text="' + str(num) + '" font="Arial" color="000000" fontsize="10" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
     
-    def updateIP(self,serverIP):
-        self.p.enqueue('del','infoIP')
+    def updateIP(self, serverIP):
+        self.p.enqueue('del', 'infoIP')
         tmpXML = '<words id="infoIP" x="75" y="5" opacity="1" text="' + str(serverIP) + '" font="Arial" color="000000" fontsize="10" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
-    def updateFreeSpace(self,tup):
+    def updateFreeSpace(self, tup):
         perc = int((tup[1] * 1.0 / tup[0]) * 100)
-        self.p.enqueue('del','infoDisk')
+        self.p.enqueue('del', 'infoDisk')
         tmpXML = '<words id="infoDisk" x="75" y="18" opacity="1" text="' + self.bytestr(tup[1]) + ' (' + str(perc) + '%) free" font="Arial" color="000000" fontsize="10" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
         
     # Convert a value in bytes to human readable format
     # Taken from http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
     # By Sridhar Ratnakumar
     # Assumed Public Domain
-    def bytestr(self,size):
-        for x in ['bytes','KB','MB','GB','TB']:
+    def bytestr(self, size):
+        for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
             if size < 1024.0:
                 return "%3.1f %s" % (size, x)
             size /= 1024.0
             
-    def updateLift(self,tag):
+    def updateLift(self, tag):
         # Break out if lift is disabled
         if not self.liftEnabled:
             return
         
-        self.p.enqueue('del','infoLiftTag')
+        self.p.enqueue('del', 'infoLiftTag')
         tmpXML = '<words id="infoLiftTag" x="165" y="265" opacity="1" text="Current Tag: ' + tag + '" font="Arial" color="000000" fontsize="11" />'
-        self.p.enqueue('add',(tmpXML,'info'))
+        self.p.enqueue('add', (tmpXML, 'info'))
 
-    def osLog(self,message):
-        self.p.enqueue('del','osLogText')
+    def osLog(self, message):
+        self.p.enqueue('del', 'osLogText')
         tmpXML = '<words id="osLogText" x="5" y="3" opacity="1" text="%s" font="Arial" color="000000" fontsize="11" />' % message
-        self.p.enqueue('add',(tmpXML,'osLog'))
+        self.p.enqueue('add', (tmpXML, 'osLog'))
 
 class XiboScheduler(Thread):
     "Abstract Class - Interface for Schedulers"
@@ -811,6 +823,7 @@ class XiboDownloadManager(Thread):
         self.p = player
         self.__lock = Semaphore()
         self.__lock.acquire()
+        self.offline = config.getboolean('Main','manualUpdate')
 
         # Store a dictionary of XiboDownloadThread objects so we know
         # which files are downloading and how many download slots
@@ -888,7 +901,7 @@ class XiboDownloadManager(Thread):
                         try:
                             tmpPath = os.path.join(config.get('Main','libraryDir'),str(f.attributes['path'].value))
                             tmpFileName = str(f.attributes['path'].value)
-                            tmpSize = int(f.attributes['size'].value)
+                            tmpSize = long(f.attributes['size'].value)
                             tmpHash = str(f.attributes['md5'].value)
                             tmpType = str(f.attributes['type'].value)
                             self.updateInfo()
@@ -984,13 +997,21 @@ class XiboDownloadManager(Thread):
                 while True:
                     tmpType, tmpFileName, tmpSize, tmpHash = self.dlQueue.get(False)
 
+                    if config.get('Main','manualUpdate') == 'true':
+                        log.lights('offlineUpdate','start')
+
                     # Check if the file is downloading already
                     if not tmpFileName in self.runningDownloads:
                         # Make a download thread and actually download the file.
                         # Add the running thread to the self.runningDownloads dictionary
                         self.runningDownloads[tmpFileName] = XiboDownloadThread(self,tmpType,tmpFileName,tmpSize,tmpHash)
-                        self.runningDownloads[tmpFileName].start()
                         log.updateRunningDownloads(len(self.runningDownloads))
+
+                        if self.offline:
+                            # If we're running offline, block until completed.
+                            self.runningDownloads[tmpFileName].run()
+                        else:
+                            self.runningDownloads[tmpFileName].start()
 
                     while len(self.runningDownloads) >= (self.maxDownloads - 1):
                         # There are no download thread slots free
@@ -1041,13 +1062,20 @@ class XiboDownloadManager(Thread):
             self.updateInfo()
             
             log.log(5,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
-            log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
-            self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+
+            if config.getboolean('Main','manualUpdate'):
+                time.sleep(5)
+                log.lights('offlineUpdate','finish')
+            else:
+                log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
+                self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+
             self.__lock.acquire()
         # End While
     
     def collect(self):
-        self.__lock.release()
+        if len(self.runningDownloads) == 0:
+            self.__lock.release()
 
     def dlThreadCompleteNotify(self,tmpFileName):
         # Download thread completed. Log and remove from
@@ -1081,7 +1109,7 @@ class XiboDownloadThread(Thread):
         self.tmpSize = tmpSize
         self.tmpHash = tmpHash
         self.parent = parent
-        self.offset = 0
+        self.offset = long(0)
         self.chunk = 512000
         
         # Server versions prior to 1.0.5 send an invalid md5sum for layouts that require
@@ -1254,8 +1282,17 @@ class XiboLayoutManager(Thread):
         # Add a ColorNode and maybe ImageNode to the layout div to draw the background
 
         # This code will work with libavg > 0.8.x
-        tmpXML = '<rect fillopacity="1" fillcolor="%s" color="%s" size="(%d,%d)" id="bgColor%s" />' % (self.l.backgroundColour.strip("#"),self.l.backgroundColour.strip("#"),self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt)
-        self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+        try:
+            tmpXML = '<rect fillopacity="1" fillcolor="%s" color="%s" size="(%d,%d)" id="bgColor%s" />' % (self.l.backgroundColour.strip("#"),self.l.backgroundColour.strip("#"),self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt)
+            self.p.enqueue('add',(tmpXML,self.layoutNodeName))
+        except AttributeError:
+            # The background colour isn't set for the layout.
+            # This is likely to be bad news as the XLF is already invalid.
+            # Log this, sleep and then load a different layout.
+            log.log(0,'error',_("Layout %s is invalid or corrupt. No background colour specified in the XLF. Skipping.") % self.l.layoutID)
+            time.sleep(5)
+            self.parent.nextLayout()
+            return
 
         if self.l.backgroundImage != None:
             
@@ -1870,8 +1907,24 @@ class XiboLayout:
 
         # See if the item is in a scheduled window to run
         for sc in self.schedule:
-            fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
-            toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
+            try:
+                fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
+            except OverflowError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
+                fromtDt = 0
+            except ValueError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
+                fromtDt = 0
+
+            try:
+                toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
+            except OverflowError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
+                toDt = 2147472000
+            except ValueError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
+                toDt = 2147472000
+
             priority = sc[2]
             now = time.time()
             
@@ -1894,8 +1947,24 @@ class XiboLayout:
     def isPriority(self):
         # Check through the schedule and see if we're priority at the moment.
         for sc in self.schedule:
-            fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
-            toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
+            try:
+                fromDt = time.mktime(time.strptime(sc[0], "%Y-%m-%d %H:%M:%S"))
+            except OverflowError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
+                fromtDt = 0
+            except ValueError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule start time. Using 00:00:00 UTC on 1 January 1970") % self.layoutID)
+                fromtDt = 0
+
+            try:
+                toDt = time.mktime(time.strptime(sc[1], "%Y-%m-%d %H:%M:%S"))
+            except OverflowError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
+                toDt = 2147472000
+            except ValueError:
+                log.log(0, 'error', _("Layout %s has an invalid schedule finish time. Using 00:00:00 UTC on 19 January 2038") % self.layoutID)
+                toDt = 2147472000
+
             priority = sc[2]
             now = time.time()
             
@@ -2028,7 +2097,7 @@ class XmdsScheduler(XiboScheduler):
 
                     try:
                         if self.__defaultLayout.layoutID != layoutID:
-                           self.__defaultLayout = XiboLayout(layoutID,True)
+                            self.__defaultLayout = XiboLayout(layoutID,True)
                     except:
                         self.__defaultLayout = XiboLayout(layoutID,True)
             
@@ -2053,17 +2122,22 @@ class XmdsScheduler(XiboScheduler):
                         tmpLayout.addSchedule(layoutFromDT,layoutToDT,layoutPriority)
                         newLayouts.append(tmpLayout)
                         scheduleText += str(layoutID) + ', '
+                # End for l in tmpLayouts
                         
-                    # Swap the newLayouts array in to the live scheduler
-                    self.__lock.acquire()
-                    self.__layouts = newLayouts
-                    self.__lock.release()
+                # Swap the newLayouts array in to the live scheduler
+                self.__lock.acquire()
+                self.__layouts = newLayouts
+                self.__lock.release()
                     
-                    log.updateSchedule(scheduleText)
+                log.updateSchedule(scheduleText)
             # End if previousSchedule != schedule
             
-            log.log(3,"info",_("XmdsScheduler: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
-            self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+            if config.getboolean('Main','manualUpdate'):
+                pass
+            else:
+                log.log(3,"info",_("XmdsScheduler: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
+                self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+
             self.__collectLock.acquire()
         # End while self.running
     
@@ -2071,82 +2145,108 @@ class XmdsScheduler(XiboScheduler):
         self.__collectLock.release()
 
     def __len__(self):
+        log.log(8,'audit',_('There are %s layouts in the scheduler.') % len(self.__layouts))
         return len(self.__layouts)
 
     def nextLayout(self):
         "Return the next valid layout"
-        
+
+        log.log(8,'audit',_('nextLayout: IN'))        
         # If there are no possible layouts then return the default or splash screen straight away.
         if len(self) == 0:
+            log.log(8,'audit',_('No layouts available.'))
             try:
                 if self.__defaultLayout.canRun():
+                    log.log(8,'audit',_('Default layout can run.'))
                     log.updateNowPlaying(str(self.__defaultLayout.layoutID) + " (Default)")
                     return self.__defaultLayout
                 else:
+                    log.log(8,'audit',_('Default layout cannot run and there are no other layouts. Loading Splash Screen'))
                     log.updateNowPlaying("Splash Screen")
                     return XiboLayout('0',False)
             except:
+                log.log(8,'audit',_('Exception thrown checking default layout. Loading Splash Screen.'))
                 log.updateNowPlaying("Splash Screen")
                 return XiboLayout('0',False)
         
         # Consider each possible layout and see if it can run
         # Lock out the scheduler while we do this so that the
         # maths doesn't go horribly wrong!
+        log.log(8,'audit',_('Attempting to acquire scheduler layout lock.'))
         self.__lock.acquire()
+        log.log(8,'audit',_('Scheduler layout lock acquired.'))
 
         # Check if any layout is a priorty.
         thereIsPriority = False
         for l in self.__layouts:
             if l.isPriority():
+                log.log(8,'audit',_('There are layouts with priority.'))
                 thereIsPriority = True
 
         count = 0
         while count < len(self):
             self.__pointer = (self.__pointer + 1) % len(self)
             tmpLayout = self.__layouts[self.__pointer]
+
+            log.log(8,'audit',_('Checking layout schedule ID %s.') % self.__pointer)
             
             if self.liftEnabled:
                 if thereIsPriority:
+                    log.log(8,'audit',_('Lift is enabled and there is a priority layout.'))
                     if tmpLayout.canRun() and tmpLayout.isPriority() and self.validTag in tmpLayout.tags:
                         log.updateNowPlaying(str(tmpLayout.layoutID) + " (P)")
+                        log.log(8,'audit',_('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
+                        log.log(8,'audit',_('Trying next layout.'))
                         count = count + 1
                 else:
+                    log.log(8,'audit',_('Lift is enabled and there are no priority layouts.'))
                     if tmpLayout.canRun() and self.validTag in tmpLayout.tags:
                         log.updateNowPlaying(str(tmpLayout.layoutID))
+                        log.log(8,'audit',_('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
+                        log.log(8,'audit',_('Trying next layout.'))
                         count = count + 1
             else:
                 if thereIsPriority:
                     if tmpLayout.canRun() and tmpLayout.isPriority():
                         log.updateNowPlaying(str(tmpLayout.layoutID) + " (P)")
+                        log.log(8,'audit',_('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
+                        log.log(8,'audit',_('Trying next layout.'))
                         count = count + 1
                 else:
                     if tmpLayout.canRun():
                         log.updateNowPlaying(str(tmpLayout.layoutID))
+                        log.log(8,'audit',_('Releasing scheduler layout lock.'))
                         self.__lock.release()
                         return tmpLayout
                     else:
+                        log.log(8,'audit',_('Trying next layout.'))
                         count = count + 1
         
+        log.log(8,'info',_('Tried all layouts and none could run.'))
         try:
             if self.__defaultLayout.canRun():
                 log.updateNowPlaying(str(self.__defaultLayout.layoutID) + " (Default)")
+                log.log(8,'audit',_('Releasing scheduler layout lock.'))
                 self.__lock.release()
                 return self.__defaultLayout
             else:
                 log.updateNowPlaying("Splash Screen")
+                log.log(8,'audit',_('Releasing scheduler layout lock.'))
                 self.__lock.release()
                 return XiboLayout('0',False)
         except:
+            log.log(8,'info',_('Exception thrown checking default layout. Falling back to Splash Screen.'))
             log.updateNowPlaying("Splash Screen")
+            log.log(8,'audit',_('Releasing scheduler layout lock.'))
             self.__lock.release()
             return XiboLayout('0',False)
 
@@ -2379,7 +2479,7 @@ class XMDSException(Exception):
 
 class XMDS:
     def __init__(self):
-        self.__schemaVersion__ = "2";
+        self.__schemaVersion__ = "2"
 
         # Semaphore to allow only one XMDS call to run check simultaneously
         self.checkLock = Semaphore()
@@ -2397,6 +2497,15 @@ class XMDS:
         self.uuid = uuid.uuid5(uuid.NAMESPACE_DNS, salt)
         # Convert the UUID in to a SHA1 hash
         self.uuid = hashlib.sha1(str(self.uuid)).hexdigest()
+
+        licenseKey = ''
+        try:
+            licenseKey = config.get('Main','xmdsLicenseKey')
+        except:
+            pass
+
+        if licenseKey != '':
+            self.uuid = licenseKey
 
         self.name = None
         try:
@@ -2510,7 +2619,6 @@ class XMDS:
             try:
                 req = self.server.RequiredFiles(self.getKey(),self.getUUID(),self.__schemaVersion__)
             except SOAPpy.Types.faultType, err:
-                log.lights('RF','red')
                 log.lights('RF','red')
                 raise XMDSException("RequiredFiles: Incorrect arguments passed to XMDS.")
             except SOAPpy.Errors.HTTPError, err:
@@ -2786,7 +2894,184 @@ class XMDS:
                     log.log(0,"error",str(err))
                     self.hasInitialised = False
 
-#### Finish Websevrvice
+class XMDSOffline(Thread):
+    def __init__(self,displayManager):
+        Thread.__init__(self)
+        self.__schemaVersion__ = "2"
+        self.displayManager = displayManager
+        self.updatePath = ""
+        self.__running__ = True
+        self.__scanPath__ = '/media'
+
+        # Semaphore to allow only one XMDS call to run check simultaneously
+        self.checkLock = Semaphore()
+
+        self.hasInitialised = False
+
+        salt = None
+        try:
+            salt = config.get('Main','xmdsClientID')
+        except:
+            log.log(0,"error",_("No XMDS Client ID specified in your configuration"))
+            log.log(0,"error",_("Please check your xmdsClientID configuration option"))
+            exit(1)
+
+        self.uuid = uuid.uuid5(uuid.NAMESPACE_DNS, salt)
+        # Convert the UUID in to a SHA1 hash
+        self.uuid = hashlib.sha1(str(self.uuid)).hexdigest()
+
+        licenseKey = ''
+        try:
+            licenseKey = config.get('Main','xmdsLicenseKey')
+        except:
+            pass
+
+        if licenseKey != '':
+            self.uuid = licenseKey
+
+        self.name = None
+        try:
+            self.name = config.get('Main','xmdsClientName')
+        except:
+            pass
+
+        if self.name == None or self.name == "":
+            import platform
+            self.name = platform.node()
+
+        self.start()
+
+    def run(self):
+        # Sleep for 10 seconds to allow the client time to start and settle.
+        time.sleep(10)
+
+        # Startup a loop listening scanning for new mounts
+        log.log(5,'info','Offline Update: Scanning.',True)
+        while self.__running__:
+            for folder in os.listdir(self.__scanPath__):
+                log.log(5,'info','Offline Update: Checking %s for new content.' % os.path.join(self.__scanPath__,folder),True)
+                log.log(5,'info','Offline Update: Client License Key: %s' % self.uuid,True)
+                if os.path.isdir(os.path.join(self.__scanPath__,folder,self.uuid)):
+                    log.log(5,'info','Offline Update: Starting update from %s.' % os.path.join(self.__scanPath__,folder,self.uuid),True)
+                    self.updatePath = os.path.join(self.__scanPath__,folder)
+                    self.displayManager.scheduler.collect()
+                    time.sleep(5)
+                    self.displayManager.downloader.collect()
+            log.log(5,'info','Offline Update: Sleeping 30 seconds.',True)
+            time.sleep(30)
+       
+    def getIP(self):
+        return 'Offline Mode'
+    
+    def getDisk(self):
+        s = os.statvfs(config.get('Main','libraryDir'))
+        return (s.f_bsize * s.f_blocks,s.f_bsize * s.f_bavail)
+
+    def getUUID(self):
+        return str(self.uuid)
+
+    def getName(self):
+        return str(self.name)
+
+    def getKey(self):
+        return 'Offline'
+
+    def check(self):
+        return True
+
+    def RequiredFiles(self):
+        """Connect to XMDS and get a list of required files"""
+        log.lights('RF','amber')
+        req = None
+        if self.check():
+            try:
+                # Update the IP Address shown on the infoScreen
+                log.updateIP(self.getIP())
+            except:
+                pass
+
+            log.updateFreeSpace(self.getDisk())
+            
+            try:
+                fh = open(os.path.join(self.updatePath,self.uuid,'rf.xml'), 'r')
+                req = fh.read()
+                fh.close()
+            except IOError:
+                log.lights('RF','red')
+                raise XMDSException("XMDS could not be initialised")
+
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            log.lights('RF','grey')
+            raise XMDSException("XMDS could not be initialised")
+
+        log.lights('RF','green')
+        return req
+    
+    def SubmitLog(self,logXml):
+        pass
+    
+    def SubmitStats(self,statXml):
+        pass
+
+    def Schedule(self):
+        """Connect to XMDS and get the current schedule"""
+        log.lights('S','amber')
+        req = None
+        if self.check():
+            try:
+                fh = open(os.path.join(self.updatePath,self.uuid,'schedule.xml'), 'r')
+                req = fh.read()
+                fh.close()
+            except IOError:
+                log.lights('S','red')
+                raise XMDSException("XMDS could not be initialised")
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            log.lights('S','grey')
+            raise XMDSException("XMDS could not be initialised")
+
+        log.lights('S','green')
+        return req
+
+    def GetFile(self,tmpPath,tmpType,tmpOffset,tmpChunk):
+        """Connect to XMDS and download a file"""
+        response = None
+        log.lights('GF','amber')
+        if self.check():
+            if tmpType == 'media':
+                try:
+                    fh = open(os.path.join(self.updatePath,self.uuid,tmpPath), 'r')
+                    fh.seek(tmpOffset)
+                    response = fh.read(tmpChunk)
+                    fh.close()
+                except:
+                    log.lights('GF','red')
+                    raise XMDSException("XMDS could not be initialised")
+            if tmpType == 'layout':
+                try:
+                    fh = open(os.path.join(self.updatePath,self.uuid,tmpPath), 'r')
+                    response = fh.read()
+                    fh.close()
+                except:
+                    log.lights('GF','red')
+                    raise XMDSException("XMDS could not be initialised")
+            if tmpType == 'blacklist':
+                response = ""
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            log.lights('GF','grey')
+            raise XMDSException("XMDS could not be initialised")
+
+        log.lights('GF','green')
+        return response
+
+    def RegisterDisplay(self):
+        log.lights('RD','amber')
+        time.sleep(5)
+        log.lights('RD','green')
+
+#### Finish Webservice
 
 class XiboDisplayManager:
     def __init__(self):
@@ -2795,10 +3080,13 @@ class XiboDisplayManager:
     def run(self):
         # Run up a XiboLogScreen temporarily until XMDS is initialised.
         global log
-        logLevel = config.get('Logging','logLevel');
+        logLevel = config.get('Logging','logLevel')
         log = XiboLogScreen(logLevel)
         
-        self.xmds = XMDS()
+        if config.get('Main','manualUpdate') == 'true':
+            self.xmds = XMDSOffline(self)
+        else:
+            self.xmds = XMDS()
         
         # Check data directory exists
         try:
@@ -2812,7 +3100,7 @@ class XiboDisplayManager:
             log.log(0,"error",_("No libraryDir specified in your configuration"))
             exit(1)            
                 
-        print _("Log Level is: ") + logLevel;
+        print _("Log Level is: ") + logLevel
         print _("Logging will be handled by: ") + config.get('Logging','logWriter')
         print _("Switching to new logger")
 
@@ -2927,13 +3215,9 @@ class XiboPlayer(Thread):
     def __init__(self,parent):
         self.__lock = Semaphore()
 
-        # Acquire the lock so that nothing can enqueue stuff until this thread starts
+        # Acquire the lock so that nothing can enqueue stuff until this thread
+        # starts
         self.__lock.acquire()
-
-        global AVG_080
-        global AVG_090
-        global AVG_090SVN4277
-        global libavgVersion
 
         Thread.__init__(self)
         self.info = False
@@ -2942,12 +3226,13 @@ class XiboPlayer(Thread):
         self.osLogY = 0
         self.q = Queue.Queue(0)
         self.uniqueId = 0
-        self.dim = (int(config.get('Main','width')),int(config.get('Main','height')))
+        self.dim = (int(config.get('Main', 'width')),
+                    int(config.get('Main', 'height')))
         self.currentFH = None
         self.parent = parent
 
     def getDimensions(self):
-        # TODO: I don't think this is ever used.
+        # NB: I don't think this is ever used.
         return self.dim
 
     def getElementByID(self,id):
@@ -2964,21 +3249,32 @@ class XiboPlayer(Thread):
         return self.uniqueId
 
     def run(self):
-        log.log(1,"info",_("New XiboPlayer running"))
+        log.log(1, 'info', _("New XiboPlayer running"))
         self.player = avg.Player.get()
         
-        if config.get('Main','fullscreen') == "true":
-            self.player.setResolution(True,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
+        if config.get('Main', 'fullscreen') == "true":
+            self.player.setResolution(
+                True,
+                int(config.get('Main', 'width')),
+                int(config.get('Main', 'height')),
+                int(config.get('Main', 'bpp'))
+            )
         else:
-            self.player.setResolution(False,int(config.get('Main','width')),int(config.get('Main','height')),int(config.get('Main','bpp')))
+            self.player.setResolution(
+                False,
+                int(config.get('Main', 'width')),
+                int(config.get('Main', 'height')),
+                int(config.get('Main', 'bpp'))
+            )
 
         try:
-            if int(config.get('Main','fps')) > 0:
-                fps = int(config.get('Main','fps'))
+            if int(config.get('Main', 'fps')) > 0:
+                fps = int(config.get('Main', 'fps'))
                 self.player.setFramerate(fps)
         except ValueError:
-            log.log(0,"error",_("Your configuration for fps is incorrect. Main->FPS should be an integer value."))
-            log.log(0,"error",_("Using 60fps as a default."))            
+            log.log(0, 'error', _('Your configuration for fps is incorrect.'
+                                  ' Main->FPS should be an integer value.'))
+            log.log(0, 'error', _('Using 60fps as a default.'))            
             fps = 60
             self.player.setFramerate(fps)
         except ConfigParser.NoOptionError:
@@ -2992,21 +3288,22 @@ class XiboPlayer(Thread):
         self.player.volume = 1
         self.player.stopOnEscape(False)
         
-        useRotation = bool(not int(config.get('Main','vwidth')) == 0)
+        useRotation = bool(not int(config.get('Main', 'vwidth')) == 0)
         
         # Calculate the information window
         if useRotation:
-            infoX = (int(config.get('Main','vwidth')) - 400) / 2
-            infoY = (int(config.get('Main','vheight')) - 300) / 2
-            self.osLogX = int(config.get('Main','vwidth'))
-            self.osLogY = int(config.get('Main','vheight')) - 20
+            infoX = (int(config.get('Main', 'vwidth')) - 400) / 2
+            infoY = (int(config.get('Main', 'vheight')) - 300) / 2
+            self.osLogX = int(config.get('Main', 'vwidth'))
+            self.osLogY = int(config.get('Main', 'vheight')) - 20
         else:
-            infoX = (int(config.get('Main','width')) - 400) / 2
-            infoY = (int(config.get('Main','height')) - 300) / 2
-            self.osLogX = int(config.get('Main','width'))
-            self.osLogY = int(config.get('Main','height')) - 20
+            infoX = (int(config.get('Main', 'width')) - 400) / 2
+            infoY = (int(config.get('Main', 'height')) - 300) / 2
+            self.osLogX = int(config.get('Main', 'width'))
+            self.osLogY = int(config.get('Main', 'height')) - 20
         
-        # If the info window is bigger than the client, stick it in the top left corner.
+        # If the info window is bigger than the client, stick it in the top
+        # left corner.
         if infoX < 0:
             infoX = 0
         if infoY < 0:
@@ -3028,6 +3325,7 @@ class XiboPlayer(Thread):
         avgContent += '<div id="screen" pos="(0,0)" crop="False" />'
         avgContent += '<div id="osLog" pos="(0,%d)" width="%d" height="20" opacity="0" />' % (self.osLogY,self.osLogX)
         avgContent += '<div id="info" width="400" height="300" x="%d" y="%d" opacity="0" crop="False" />' % (infoX,infoY)
+        avgContent += '<div id="offlineUpdate" width="100" height="100" x="0" y="0" opacity="1" crop="False" />'
         if useRotation:
             avgContent += '</div>'
         avgContent += '</avg>'
@@ -3194,7 +3492,8 @@ class XiboPlayer(Thread):
                     currentNode.setBitmap(data[1])
                 self.q.task_done()
                 # Call ourselves again to action any remaining queued items
-                # This does not make an infinite loop since when all queued items are processed
+                # This does not make an infinite loop since when all queued
+                # items are processed.
                 # A Queue.Empty exception is thrown and this whole block is skipped.
                 self.__lock.release()
                 self.frameHandle()
@@ -3205,11 +3504,12 @@ class XiboPlayer(Thread):
             except RuntimeError as detail:
                 log.log(1,"error",_("A runtime error occured: ") + str(detail))
                 self.__lock.release()
-            # TODO: Put this catchall back when finished debugging.
+            # Generic catchall to prevent unhandled player exceptions bringing
+            # us down.
             except:
-                   # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
-                   self.__lock.release()
-                   log.log(0,"audit",str(cmd) + " : " + str(data))
+                # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
+                self.__lock.release()
+                log.log(0,"audit",str(cmd) + " : " + str(data))
         except AttributeError:
             log.log(0,"error","Caught that thing that makes the player crash on startup!")
             
