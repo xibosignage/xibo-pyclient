@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009-2010 Alex Harrington
+# Copyright (C) 2009-2011 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -48,7 +48,7 @@ import urlparse
 import PIL.Image
 import math
 
-version = "1.2.2a1"
+version = "1.2.3a1"
 
 # What layout schema version is supported
 schemaVersion = 1
