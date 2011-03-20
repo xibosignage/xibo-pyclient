@@ -908,7 +908,12 @@ class XiboDownloadManager(Thread):
                             tmpSize = long(f.attributes['size'].value)
                             tmpHash = str(f.attributes['md5'].value)
                             tmpType = str(f.attributes['type'].value)
-                            tmpId = int(f.attributes['id'].value)
+                            try:
+                                tmpId = int(f.attributes['id'].value)
+                            except:
+                                # Layout background images don't come down with IDs
+                                # Blame Dan :D
+                                tmpId = 0
 
                             if os.path.isfile(tmpPath) and os.path.getsize(tmpPath) == tmpSize:
                                 # File exists and is the right size
