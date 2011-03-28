@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim, button
+from libavg import avg, anim
 from optparse import OptionParser
 from SOAPpy import WSDL
 import SOAPpy.Types
@@ -3550,6 +3550,8 @@ class XiboPlayer(Thread):
                         animation = avg.fadeOut(currentNode,data[2],data[3])
                     if data[0] == "linear":
                         animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
+                    if data[0] == "ease":
+                        animation = anim.EaseInOutAnim(currentNode,data[3],data[2],data[4],data[5],data[7],data[8],False,data[6],None)
                 elif cmd == "play":
                     currentNode = self.player.getElementByID(data)
                     currentNode.play()
