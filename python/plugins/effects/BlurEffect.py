@@ -21,9 +21,10 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from XiboEffect import XiboEffect
 from threading import Thread
 
-class BlurEffect(Thread):
+class BlurEffect(XiboEffect):
 
     def run(self):
         ## Options
@@ -33,7 +34,7 @@ class BlurEffect(Thread):
 
         self.p.enqueue('effect',('blur',
                                  self.media,
-                                 self.options['radius']))
+                                 int(self.options['radius'])))
 
         if self.callback != None:
             try:

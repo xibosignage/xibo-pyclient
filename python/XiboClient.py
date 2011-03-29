@@ -1594,13 +1594,13 @@ class XiboRegionManager(Thread):
 
                             # Apply (multiple or none) media effects here
                             import plugins.effects
+                            tmpEffects = []
                             for cn in self.currentMedia.effects:
                                 eType = str(cn.attributes['type'].value)
                                 eType = eType[0:1].upper() + eType[1:]
                                 __import__("plugins.effects." + eType + "Effect",None,None,[''])
-                                tmpEffect = eval("plugins.effetcs." + eType + "Effect." + eType + "Effect")(log,self.p,self.currentMedia.mediaNodeName,cn)
-                                # TODO: This may need to move later?
-                                tmpEffect.start()
+                                tmpE = eval("plugins.effects." + eType + "Effect." + eType + "Effect")(log,self.p,self.currentMedia.mediaNodeName,cn)
+                                tmpEffects.append(tmpE)
 
                             # Transition between media here...
                             import plugins.transitions
@@ -1623,6 +1623,8 @@ class XiboRegionManager(Thread):
                             if (trans[0] == trans[1]) and trans[0] != "":
                                 self.currentMedia.add()
                                 self.currentMedia.start()
+                                for e in tmpEffects:
+                                    e.start()
                                 try:
                                     __import__("plugins.transitions." + trans[0] + "Transition",None,None,[''])
                                     tmpTransition = eval("plugins.transitions." + trans[0] + "Transition." + trans[0] + "Transition")(log,self.p,self.previousMedia,self.currentMedia,self.tNext)
@@ -1650,6 +1652,8 @@ class XiboRegionManager(Thread):
                                 if (trans[1] != ""):
                                     self.currentMedia.add()
                                     self.currentMedia.start()
+                                    for e in tmpEffects:
+                                        e.start()
                                     try:
                                         __import__("plugins.transitions." + trans[1] + "Transition",None,None,[''])
                                         tmpTransition = eval("plugins.transitions." + trans[1] + "Transition." + trans[1] + "Transition")(log,self.p,None,self.currentMedia,self.tNext)
@@ -1662,6 +1666,8 @@ class XiboRegionManager(Thread):
                                 else:
                                     self.currentMedia.add()
                                     self.currentMedia.start()
+                                    for e in tmpEffects:
+                                        e.start()
                             # Cleanup
                             try:
                                 # TODO: I removed an if self.disposing == False: here
@@ -3628,9 +3634,14 @@ class XiboPlayer(Thread):
                         effect.setParams(data[2],data[3],data[4],data[5])
                         currentNode.setEffect(effect)
                     elif data[0] == "blur":
+                        print "********** BLUR STARTED *************"
                         effect = avg.BlurFXNode()
-                        effect.setParams(data[2])
+                        print "********** BLUR CREATED *************"
+                        print "********** SETTING RADIUS TO %s *****" % data[2]
+                        effect.setParam(data[2])
+                        print "********** BLUR PARAMS *************"
                         currentNode.setEffect(effect)
+                        print "********** BLUR APPLIED *************"
                     
                 self.q.task_done()
                 # Call ourselves again to action any remaining queued items

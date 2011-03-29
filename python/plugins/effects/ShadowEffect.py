@@ -21,9 +21,10 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from XiboEffect import XiboEffect
 from threading import Thread
 
-class ShadowEffect(Thread):
+class ShadowEffect(XiboEffect):
 
     def run(self):
         ## Options

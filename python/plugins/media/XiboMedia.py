@@ -120,9 +120,7 @@ class XiboMedia(Thread):
                     self.options[str(cn.localName)] = ""
 
         # Parse the effects block
-        self.effects = []
-        for cn in self.mediaNode.getElementsByTagName('effect'):
-            self.effects.append(cn)
+        self.effects = self.mediaNode.getElementsByTagName('effect')
 
     def run(self):
         # If there was a problem initialising the media object, kill it off and go to the next media item

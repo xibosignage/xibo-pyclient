@@ -36,8 +36,11 @@ class XiboEffect(Thread):
         self.options = {}
 
         # Get all the options from the effects node
-        for attrib, val in self.node.attributes:
-            self.options['attrib'] = val.value
+        attrs = self.node.attributes
+        for attrName in attrs.keys():
+            attrNode = attrs.get(attrName)
+            attrValue = attrNode.nodeValue
+            self.options[attrName] = attrValue
 
     def run(self):
         if self.callback != None:
