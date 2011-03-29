@@ -25,17 +25,19 @@ from threading import Thread
 
 class XiboEffect(Thread):
     "Abstract Class - Interface for Effects"
-    def __init__(self,log,player,media,options=None,callback=None):
+    def __init__(self,log,player,media,node,callback=None):
         Thread.__init__(self)
         log.log(2,"info",self.__class__.__name__ + " plugin loaded!")
         self.log = log
         self.p = player
         self.media = media
         self.callback = callback
-        self.options = options
-
-    if self.options == None:
+        self.node = node
         self.options = {}
+
+        # Get all the options from the effects node
+        for attrib, val in self.node.attributes:
+            self.options['attrib'] = val.value
 
     def run(self):
         if self.callback != None:

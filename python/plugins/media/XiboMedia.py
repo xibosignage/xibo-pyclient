@@ -119,6 +119,11 @@ class XiboMedia(Thread):
                     # Some options are allowed to be empty. Ignore these.
                     self.options[str(cn.localName)] = ""
 
+        # Parse the effects block
+        self.effects = []
+        for cn in self.mediaNode.getElementsByTagName('effect'):
+            self.effects.append(cn)
+
     def run(self):
         # If there was a problem initialising the media object, kill it off and go to the next media item
         if self.invalid == True:

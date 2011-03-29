@@ -1592,7 +1592,15 @@ class XiboRegionManager(Thread):
                             __import__("plugins.media." + type + "Media",None,None,[''])
                             self.currentMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,config,self,self.p,cn)
 
-                            # TODO: Apply media effects here
+                            # Apply (multiple or none) media effects here
+                            import plugins.effects
+                            for cn in self.currentMedia.effects:
+                                eType = str(cn.attributes['type'].value)
+                                eType = eType[0:1].upper() + eType[1:]
+                                __import__("plugins.effects." + eType + "Effect",None,None,[''])
+                                tmpEffect = eval("plugins.effetcs." + eType + "Effect." + eType + "Effect")(log,self.p,self.currentMedia.mediaNodeName,cn)
+                                # TODO: This may need to move later?
+                                tmpEffect.start()
 
                             # Transition between media here...
                             import plugins.transitions
