@@ -23,21 +23,18 @@
 
 from threading import Thread
 
-class XiboEffect(Thread):
-    "Abstract Class - Interface for Effects"
-    def __init__(self,log,player,media,options=None,callback=None):
-        Thread.__init__(self)
-        log.log(2,"info",self.__class__.__name__ + " plugin loaded!")
-        self.log = log
-        self.p = player
-        self.media = media
-        self.callback = callback
-        self.options = options
-
-    if self.options == None:
-        self.options = {}
+class BlurEffect(Thread):
 
     def run(self):
+        ## Options
+        
+        if self.options == {}:
+            self.options['radius'] = 1
+
+        self.p.enqueue('effect',('blur',
+                                 self.media,
+                                 self.options['radius']))
+
         if self.callback != None:
             try:
                 self.callback()

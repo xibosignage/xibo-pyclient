@@ -23,21 +23,24 @@
 
 from threading import Thread
 
-class XiboEffect(Thread):
-    "Abstract Class - Interface for Effects"
-    def __init__(self,log,player,media,options=None,callback=None):
-        Thread.__init__(self)
-        log.log(2,"info",self.__class__.__name__ + " plugin loaded!")
-        self.log = log
-        self.p = player
-        self.media = media
-        self.callback = callback
-        self.options = options
-
-    if self.options == None:
-        self.options = {}
+class ShadowEffect(Thread):
 
     def run(self):
+        ## Options
+        
+        if self.options == {}:
+            self.options['offset'] = (2,2)
+            self.options['radius'] = 1
+            self.options['opacity'] = 1
+            self.options['color'] = "FFFFFF"
+
+        self.p.enqueue('effect',('shadow',
+                                 self.media,
+                                 self.options['offset'],
+                                 self.options['radius'],
+                                 self.options['opacity'],
+                                 self.options['color']))
+
         if self.callback != None:
             try:
                 self.callback()

@@ -3611,6 +3611,17 @@ class XiboPlayer(Thread):
                 elif cmd == "setBitmap":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.setBitmap(data[1])
+                elif cmd == "effect":
+                    currentNode = self.player.getElementByID(data[1])
+                    if data[0] == "shadow":
+                        effect = avg.ShadowFXNode()
+                        effect.setParams(data[2],data[3],data[4],data[5])
+                        currentNode.setEffect(effect)
+                    elif data[0] == "blur":
+                        effect = avg.BlurFXNode()
+                        effect.setParams(data[2])
+                        currentNode.setEffect(effect)
+                    
                 self.q.task_done()
                 # Call ourselves again to action any remaining queued items
                 # This does not make an infinite loop since when all queued
