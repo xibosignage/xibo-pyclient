@@ -1,4 +1,4 @@
-﻿<?xml version="1.0"?>
+<?xml version="1.0"?>
 <layout schemaVersion="1" width="1920" height="1080" bgcolor="#000000" background="">
 	<region id="splash" width="1920" height="1080" top="0" left="0">
 		<media id="1" type="image" duration="10" lkid="1" schemaVersion="1">
@@ -10,6 +10,12 @@
                 <transOutDuration>2000</transOutDuration>
 			</options>
 			<raw/>
+			<effects>
+			    <!-- <effect type="spin" speed="-5" /> -->
+                <!--<effect type="rotate" angle="-270" animate="1" duration="1000" />-->
+                <!-- <effect type="blur" radius="10" /> -->
+                <!-- <effect type="shadow" offsetx="5" offsety="5" radius="5" opacity="1" color="FF0000" /> -->
+			</effects>
 		</media>
         <options>
                 <transOut>FadeOut</transOut>

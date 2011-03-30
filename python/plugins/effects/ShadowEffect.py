@@ -30,17 +30,21 @@ class ShadowEffect(XiboEffect):
         ## Options
         
         if self.options == {}:
-            self.options['offset'] = (2,2)
+            self.options['offsetx'] = 2
+            self.options['offsety'] = 2
             self.options['radius'] = 1
             self.options['opacity'] = 1
             self.options['color'] = "FFFFFF"
 
+        self.options['offset'] = (int(self.options['offsetx']),
+                                   int(self.options['offsety']))
+
         self.p.enqueue('effect',('shadow',
                                  self.media,
                                  self.options['offset'],
-                                 self.options['radius'],
-                                 self.options['opacity'],
-                                 self.options['color']))
+                                 float(self.options['radius']),
+                                 float(self.options['opacity']),
+                                 str(self.options['color'])))
 
         if self.callback != None:
             try:
