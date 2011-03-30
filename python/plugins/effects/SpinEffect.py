@@ -23,6 +23,7 @@
 
 from XiboEffect import XiboEffect
 from threading import Thread
+import math
 
 class SpinEffect(XiboEffect):
 
@@ -30,7 +31,10 @@ class SpinEffect(XiboEffect):
         ## Options
         
         if self.options == {}:
-            self.options['speed'] = -0.2
+            self.options['speed'] = -5
+
+        # Convert degrees/second speed value in config to radians/second for libavg
+        self.options['speed'] = math.radians(float(self.options['speed']))
 
         self.p.enqueue('anim',('continuous',
                                  self.media,
