@@ -3608,6 +3608,9 @@ class XiboPlayer(Thread):
                 elif cmd == "setOpacity":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.opacity = data[1]
+                elif cmd == "setAngle":
+                    currentNode = self.player.getElementByID(data[0])
+                    currentNode.angle = data[1]
                 elif cmd == "browserNavigate":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.onFinishLoading = data[2]
@@ -3637,14 +3640,9 @@ class XiboPlayer(Thread):
                         effect.setParams(data[2],data[3],data[4],data[5])
                         currentNode.setEffect(effect)
                     elif data[0] == "blur":
-                        print "********** BLUR STARTED *************"
                         effect = avg.BlurFXNode()
-                        print "********** BLUR CREATED *************"
-                        print "********** SETTING RADIUS TO %s *****" % data[2]
                         effect.setParam(data[2])
-                        print "********** BLUR PARAMS *************"
                         currentNode.setEffect(effect)
-                        print "********** BLUR APPLIED *************"
                     
                 self.q.task_done()
                 # Call ourselves again to action any remaining queued items
