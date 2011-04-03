@@ -3607,7 +3607,7 @@ class XiboPlayer(Thread):
                     currentNode.setEOFCallback(data[1])
                 elif cmd == "setOpacity":
                     currentNode = self.player.getElementByID(data[0])
-                    currentNode.opacity = data[1]
+                    currentNode.opacity = float(data[1])
                 elif cmd == "setAngle":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.angle = data[1]
