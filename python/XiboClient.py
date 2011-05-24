@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim, button
+from libavg import avg, anim
 from optparse import OptionParser
 from SOAPpy import WSDL
 import SOAPpy.Types
@@ -220,22 +220,22 @@ class XiboLog:
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift4Green" opacity="0" width="5" height="5" x="180" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
             
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift5Grey" opacity="1" width="5" height="5" x="185" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift5Grey" opacity="1" width="5" height="5" x="190" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift5Red" opacity="0" width="5" height="5" x="185" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift5Red" opacity="0" width="5" height="5" x="190" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift5Amber" opacity="0" width="5" height="5" x="185" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift5Amber" opacity="0" width="5" height="5" x="190" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift5Green" opacity="0" width="5" height="5" x="185" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift5Green" opacity="0" width="5" height="5" x="190" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
             
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift6Grey" opacity="1" width="5" height="5" x="190" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift6Grey" opacity="1" width="5" height="5" x="195" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift6Red" opacity="0" width="5" height="5" x="190" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift6Red" opacity="0" width="5" height="5" x="195" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift6Amber" opacity="0" width="5" height="5" x="190" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift6Amber" opacity="0" width="5" height="5" x="195" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift6Green" opacity="0" width="5" height="5" x="190" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift6Green" opacity="0" width="5" height="5" x="195" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
             
             tmpXML = '<image href="resources/dotgrey.png" id="infoLift7Grey" opacity="1" width="5" height="5" x="200" y="285" />'
@@ -256,76 +256,76 @@ class XiboLog:
             tmpXML = '<image href="resources/dotgreen.png" id="infoLift8Green" opacity="0" width="5" height="5" x="205" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
 
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift9Grey" opacity="1" width="5" height="5" x="210" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift9Grey" opacity="1" width="5" height="5" x="215" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift9Red" opacity="0" width="5" height="5" x="210" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift9Red" opacity="0" width="5" height="5" x="215" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift9Amber" opacity="0" width="5" height="5" x="210" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift9Amber" opacity="0" width="5" height="5" x="215" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift9Green" opacity="0" width="5" height="5" x="210" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift10Grey" opacity="1" width="5" height="5" x="215" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift10Red" opacity="0" width="5" height="5" x="215" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift10Amber" opacity="0" width="5" height="5" x="215" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift10Green" opacity="0" width="5" height="5" x="215" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift9Green" opacity="0" width="5" height="5" x="215" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
             
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift11Grey" opacity="1" width="5" height="5" x="220" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift10Grey" opacity="1" width="5" height="5" x="220" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift11Red" opacity="0" width="5" height="5" x="220" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift10Red" opacity="0" width="5" height="5" x="220" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift11Amber" opacity="0" width="5" height="5" x="220" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift10Amber" opacity="0" width="5" height="5" x="220" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift11Green" opacity="0" width="5" height="5" x="220" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift10Green" opacity="0" width="5" height="5" x="220" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift11Grey" opacity="1" width="5" height="5" x="225" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift11Red" opacity="0" width="5" height="5" x="225" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift11Amber" opacity="0" width="5" height="5" x="225" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift11Green" opacity="0" width="5" height="5" x="225" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
 
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift12Grey" opacity="1" width="5" height="5" x="225" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift12Grey" opacity="1" width="5" height="5" x="230" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift12Red" opacity="0" width="5" height="5" x="225" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift12Red" opacity="0" width="5" height="5" x="230" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift12Amber" opacity="0" width="5" height="5" x="225" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift12Amber" opacity="0" width="5" height="5" x="230" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift12Green" opacity="0" width="5" height="5" x="225" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift13Grey" opacity="1" width="5" height="5" x="230" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift13Red" opacity="0" width="5" height="5" x="230" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift13Amber" opacity="0" width="5" height="5" x="230" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift13Green" opacity="0" width="5" height="5" x="230" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift12Green" opacity="0" width="5" height="5" x="230" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
             
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift14Grey" opacity="1" width="5" height="5" x="235" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift13Grey" opacity="1" width="5" height="5" x="240" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift14Red" opacity="0" width="5" height="5" x="235" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift13Red" opacity="0" width="5" height="5" x="240" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift14Amber" opacity="0" width="5" height="5" x="235" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift13Amber" opacity="0" width="5" height="5" x="240" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift14Green" opacity="0" width="5" height="5" x="235" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift15Grey" opacity="1" width="5" height="5" x="240" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift15Red" opacity="0" width="5" height="5" x="240" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift15Amber" opacity="0" width="5" height="5" x="240" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift15Green" opacity="0" width="5" height="5" x="240" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift13Green" opacity="0" width="5" height="5" x="240" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
             
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift16Grey" opacity="1" width="5" height="5" x="245" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift14Grey" opacity="1" width="5" height="5" x="245" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift16Red" opacity="0" width="5" height="5" x="245" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift14Red" opacity="0" width="5" height="5" x="245" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift16Amber" opacity="0" width="5" height="5" x="245" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift14Amber" opacity="0" width="5" height="5" x="245" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift16Green" opacity="0" width="5" height="5" x="245" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift14Green" opacity="0" width="5" height="5" x="245" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift15Grey" opacity="1" width="5" height="5" x="250" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift15Red" opacity="0" width="5" height="5" x="250" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift15Amber" opacity="0" width="5" height="5" x="250" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift15Green" opacity="0" width="5" height="5" x="250" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift16Grey" opacity="1" width="5" height="5" x="255" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift16Red" opacity="0" width="5" height="5" x="255" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift16Amber" opacity="0" width="5" height="5" x="255" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift16Green" opacity="0" width="5" height="5" x="255" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
 
             # Lift Tag
@@ -2414,7 +2414,7 @@ class SwitchWatcher(Thread):
             self.defaultTag = "default"
             log.log(0,"error",_("No LiftTags.default specified in your configuration. Defaulting to 'default'."))
         
-        for i in range(0,15):
+        for i in range(0,16):
             try:
                 self.tags.append(str(config.get('LiftTags','lift' + str(i))))
             except ConfigParser.NoOptionError:
@@ -2505,34 +2505,34 @@ class SwitchWatcher(Thread):
             return
         
         # Figure out which numbers to loop over
-        if ser0 and ser1:
-            # ie 0,4
-            rS=0
-            rF=5
-            rD=4
-        else:
-            if ser0:
-                # ie 0
-                rS=0
-                rF=1
-                rD=4
+        loopCounter = []
+
+        if ser0:
+            loopCounter.append(0)
             
-            if ser1:
-                # ie 4
-                rS=4
-                rF=5
-                rD=4
+        if ser1:
+            loopCounter.append(4)
+
+        if ser2:
+            loopCounter.append(8)
+
+        if ser3:
+            loopCounter.append(12)
         
         while True:
             flag = False
             offFlag = False
             activeLift = None
             
-            for i in range(rS,rF,rD):
+            for i in loopCounter:
                 if i == 0:
                     ser = ser0
-                else:
+                elif i == 4:
                     ser = ser1
+                elif i == 8:
+                    ser = ser2
+                elif i == 12:
+                    ser = ser3
                     
                 if ser.getCD() == state[i]:
                     if not state[i]:
@@ -2615,7 +2615,8 @@ class SwitchWatcher(Thread):
             
             if offFlag:
                 # Work our way back down the stack of lift events until we reach a matching state
-                if not (state[0] or state[1] or state[2] or state[3] or state[4] or state[5] or state[6] or state[7]):
+                if not (state[0] or state[1] or state[2] or state[3] or state[4] or state[5] or state[6] or state[7]
+                        or state[8] or state[9] or state[10] or state[11] or state[12] or state[13] or state[14] or state[15]):
                     # All the lifts are off. Reset the liftStack and show the default
                     self.liftStack = Queue.LifoQueue()
                     self.scheduler.validTag = self.defaultTag
