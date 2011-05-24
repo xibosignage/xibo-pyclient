@@ -2414,7 +2414,7 @@ class SwitchWatcher(Thread):
             self.defaultTag = "default"
             log.log(0,"error",_("No LiftTags.default specified in your configuration. Defaulting to 'default'."))
         
-        for i in range(0,7):
+        for i in range(0,15):
             try:
                 self.tags.append(str(config.get('LiftTags','lift' + str(i))))
             except ConfigParser.NoOptionError:
@@ -2430,16 +2430,28 @@ class SwitchWatcher(Thread):
             self.serialPort1 = config.get('Lift','serial1')
         except:
             self.serialPort1 = '/dev/ttyUSB1'
+
+        try:
+            self.serialPort2 = config.get('Lift','serial2')
+        except:
+            self.serialPort2 = '/dev/ttyUSB2'
+
+        try:
+            self.serialPort3 = config.get('Lift','serial3')
+        except:
+            self.serialPort3 = '/dev/ttyUSB3'
         
     def run(self):
         import serial
         
-        state = [False,False,False,False,False,False,False,False]
-        stats = ["","","","","","","",""]
-        liftHistory = [0,0,0,0,0,0,0,0]
+        state = [False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False]
+        stats = ["","","","","","","","","","","","","","","",""]
+        liftHistory = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
         ser0 = None
         ser1 = None
+        ser2 = None
+        ser3 = None
         
         trigger = None
         try:
@@ -2466,9 +2478,31 @@ class SwitchWatcher(Thread):
             log.lights('Lift7','red')
             log.lights('Lift8','red')
             ser1 = False
-            if ser0 == False:
-                # No lifts are active. Quit now.
-                return
+
+        try:
+            ser2 = serial.Serial(self.serialPort2)
+        except serial.SerialException:
+            log.log(0,"error","Unable to open configured serial port. Switch interface disabled: " + self.serialPort2)
+            log.lights('Lift9','red')
+            log.lights('Lift10','red')
+            log.lights('Lift11','red')
+            log.lights('Lift12','red')
+            ser2 = False
+
+        try:
+            ser3 = serial.Serial(self.serialPort3)
+        except serial.SerialException:
+            log.log(0,"error","Unable to open configured serial port. Switch interface disabled: " + self.serialPort3)
+            log.lights('Lift13','red')
+            log.lights('Lift14','red')
+            log.lights('Lift15','red')
+            log.lights('Lift16','red')
+            ser3 = False
+
+
+        if ser0 == False and ser1 == False and ser2 == False and ser3 == False:
+            # No lifts are active. Quit now.
+            return
         
         # Figure out which numbers to loop over
         if ser0 and ser1:
