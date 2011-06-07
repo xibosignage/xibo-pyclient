@@ -3663,7 +3663,7 @@ class XiboPlayer(Thread):
             except:
                 # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
                 self.__lock.release()
-                log.log(0,"audit",str(cmd) + " : " + str(data))
+                log.log(0,"audit",_("An unspecified error occured: ") + str(cmd) + " : " + str(data))
         except AttributeError:
             log.log(0,"error","Caught that thing that makes the player crash on startup!")
             
