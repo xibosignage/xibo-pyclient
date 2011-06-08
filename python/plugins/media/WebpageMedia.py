@@ -28,7 +28,9 @@ import math
 
 class WebpageMedia(XiboMedia):
     def add(self):
-        tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + '"/>'
+        zoomLevel = self.calculateZoomLevel()
+        tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + \
+                '" zoomLevel="' + str(zoomLevel) + '"/>'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
     def run(self):
@@ -41,16 +43,12 @@ class WebpageMedia(XiboMedia):
     def dispose(self):
         self.p.enqueue('del',self.mediaNodeName)
         self.parent.tNext()
-    
-    def finishedRendering(self):
-        bo = self.browserOptions()
-        optionsTuple = (self.mediaNodeName,bo[0],bo[1])
-        self.p.enqueue('browserOptions',optionsTuple)
-        
+
+    def calculateZoomLevel(self):
         # Calling the zoomIn/zoomOut methods of a browser causes a 20% zoom in/out
         # Calculate how many calls to make
         n = 100
-        scaleCalls = 0
+        count = 0
         try:
             n = int(self.options['scaling'])
         except:
@@ -61,14 +59,16 @@ class WebpageMedia(XiboMedia):
         else:
             if n < 100:
                 # Zoom Out
-                count = int(math.ceil((100 - n) / 20.0))
-                for i in range(0,count):
-                    self.p.enqueue('zoomOut',self.mediaNodeName)
+                count = -int(math.ceil((100 - n) / 20.0))
             else:
                 # Zoom In
                 count = int(math.ceil((n - 100) / 20.0))
-                for i in range(0,count):
-                    self.p.enqueue('zoomIn',self.mediaNodeName)
+        return count
+    
+    def finishedRendering(self):
+        bo = self.browserOptions()
+        optionsTuple = (self.mediaNodeName,bo[0],bo[1])
+        self.p.enqueue('browserOptions',optionsTuple)
                 
         # Make the browser visible
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
