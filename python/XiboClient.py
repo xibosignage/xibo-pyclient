@@ -3473,6 +3473,11 @@ class XiboPlayer(Thread):
         self.currentFH = None
         self.parent = parent
 
+        self.ticketCounter = 0
+        self.maxTicketCounter = int(config.get('TicketCounter', 'maxCount'))
+        self.ticketCounterNextScanCode = int(config.get('TicketCounter', 'nextScanCode'))
+        self.ticketCounterResetScanCode = int(config.get('TicketCounter', 'resetScanCode'))
+
     def getDimensions(self):
         # NB: I don't think this is ever used.
         return self.dim
@@ -3589,7 +3594,21 @@ class XiboPlayer(Thread):
             else:
                 self.info = True
                 self.enqueue('setOpacity',('info',1))
-                
+
+        if self.osLog:
+            log.log(0,"info",_("Detected keypress with scancode %s") % e.scancode,True)
+
+        if e.scancode == self.ticketCounterNextScanCode:
+            if self.ticketCounter == self.maxTicketCounter:
+                self.ticketCounter = 1
+            else:
+                self.ticketCounter = self.ticketCounter + 1
+            log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.ticketCounter,True)
+
+        if e.scancode == self.ticketCounterResetScanCode:
+            self.ticketCounter = 0
+            log.log(1,"info",_("TicketCounter: Reset"),True)
+
         if self.info:
             # Process key strokes that are only active when the info
             # screen is showing
