@@ -2668,8 +2668,8 @@ class TicketCounter(Thread):
     def __init__(self, player):
         Thread.__init__(self)
         self.__lock = Semaphore()
-        self.lock.acquire()
-        self.player = player
+        self.__lock.acquire()
+        self.p = player
         self.value = 0
         self.max = int(config.get('TicketCounter', 'maxCount'))
         self.osdBackColour = config.get('TicketCounter', 'osdBackColour')
@@ -2687,7 +2687,7 @@ class TicketCounter(Thread):
         # Loop forever. Block waiting for the lock to be released
         # by an increment, reset or lock event.
         while self.running:
-            self.lock.acquire()
+            self.__lock.acquire()
             if self.running:
                 self.update()
 
@@ -3484,9 +3484,9 @@ class XiboDisplayManager:
             self.switch = SwitchWatcher(self.scheduler,self)
             self.switch.start()
 
-	# Thread to watch Ticket Counter value and update the display as required
-	self.ticketCounter = TicketCounter(self.Player)
-	self.ticketCounter.start()
+        # Thread to watch Ticket Counter value and update the display as required
+        self.ticketCounter = TicketCounter(self.Player)
+        self.ticketCounter.start()
 
         # Attempt to register with the webservice.
         # The RegisterDisplay code will block here if
@@ -3621,11 +3621,11 @@ class XiboPlayer(Thread):
 
         # Calculate the TicketCounter div
         if useRotation:
-            ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'vwidth')
+            ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'vwidth'))
             ticketX = (int(config.get('Main', 'vwidth')) - ticketW) / 2
             ticketY = (int(config.get('Main', 'vheight')) - ticketW) / 2
         else:
-            ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'width')
+            ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'width'))
             ticketX = (int(config.get('Main', 'width')) - ticketW) / 2
             ticketY = (int(config.get('Main', 'height')) - ticketW) / 2
 
