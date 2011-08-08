@@ -2665,16 +2665,25 @@ class SwitchWatcher(Thread):
 #### Ticket Counter ####
 class TicketCounter(Thread):
     
-    def __init__(self):
+    def __init__(self, player):
         Thread.__init__(self)
         self.__lock = Semaphore()
+        self.lock.acquire()
+        self.player = player
         self.value = 0
         self.max = int(config.get('TicketCounter', 'maxCount'))
+        self.osdBackColour = config.get('TicketCounter', 'osdBackColour')
+        self.osdBackOpacity = config.get('TicketCounter', 'osdBackOpacity')
+        self.osdFontSize = config.get('TicketCounter', 'osdFontSize')
+        self.osdFontColour = config.get('TicketCounter', 'osdFontColour')
+        self.osdTimeOut = config.get('TicketCounter', 'osdTimeOut')
         self.running = True
+
+        # Draw the OSD
+        tmpXML = '<rect fillcolor="%s" id="ticketCounterBG" fillopacity="%s" />' % (self.osdBackColour,self.osdBackOpacity)
+        self.p.enqueue('add', (tmpXML, 'ticketCounter'))
         
     def run(self):
-        self.lock.acquire()
-
         # Loop forever. Block waiting for the lock to be released
         # by an increment, reset or lock event.
         while self.running:
@@ -2685,9 +2694,13 @@ class TicketCounter(Thread):
     def update(self):
 
         # Update OSD number and display
+        tmpXML = '<words id="ticketCounterText" x="5" y="3" opacity="1" text="%s" font="Arial" color="%s" fontsize="%s" />' % (self.value,self.osdFontColour,self.osdFontSize)
+        self.p.enqueue('delete', 'ticketCounterText')
+        self.p.enqueue('add', (tmpXML, 'ticketCounter'))
+        self.p.enqueue('setOpacity', ('ticketCounter', 1))
+        self.p.enqueue('anim', ('fadeOut', 'ticketCounter', self.osdTimeOut, None))
 
         # Update any TicketCounter region
-        pass
 
     def increment(self):
         # Incremement the counter by one, or reset to 1 if hit max
@@ -3472,7 +3485,7 @@ class XiboDisplayManager:
             self.switch.start()
 
 	# Thread to watch Ticket Counter value and update the display as required
-	self.ticketCounter = TicketCounter(self)
+	self.ticketCounter = TicketCounter(self.Player)
 	self.ticketCounter.start()
 
         # Attempt to register with the webservice.
@@ -3605,7 +3618,22 @@ class XiboPlayer(Thread):
             infoX = 0
         if infoY < 0:
             infoY = 0
-        
+
+        # Calculate the TicketCounter div
+        if useRotation:
+            ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'vwidth')
+            ticketX = (int(config.get('Main', 'vwidth')) - ticketW) / 2
+            ticketY = (int(config.get('Main', 'vheight')) - ticketW) / 2
+        else:
+            ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'width')
+            ticketX = (int(config.get('Main', 'width')) - ticketW) / 2
+            ticketY = (int(config.get('Main', 'height')) - ticketW) / 2
+
+        if ticketX < 0:
+            ticketX = 0
+        if ticketY < 0:
+            ticketY = 0
+
         if useRotation:
             # The layout rotates around the centre so figure out how far we need to move it up/down or left/right to get it centred
             # before it's rotated.
@@ -3620,6 +3648,7 @@ class XiboPlayer(Thread):
         if useRotation:
             avgContent += '<div pos="(%s,%s)" id="rotation" width="%s" height="%s" angle="%s" crop="False">' % (oX,oY,config.get('Main','vwidth'), config.get('Main','vheight'), oR)
         avgContent += '<div id="screen" pos="(0,0)" crop="False" />'
+        avgContent += '<div id="ticketCounter" width="%d" height="%d" x="%d" y="%d" opacity="0" crop="False" />' % (ticketW,ticketW,ticketX,ticketY)
         avgContent += '<div id="osLog" pos="(0,%d)" width="%d" height="20" opacity="0" />' % (self.osLogY,self.osLogX)
         avgContent += '<div id="info" width="400" height="300" x="%d" y="%d" opacity="0" crop="False" />' % (infoX,infoY)
         avgContent += '<div id="offlineUpdate" width="100" height="100" x="0" y="0" opacity="1" crop="False" />'
