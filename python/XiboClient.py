@@ -22,7 +22,6 @@
 #
 
 from libavg import avg, anim
-from optparse import OptionParser
 from SOAPpy import WSDL
 import SOAPpy.Types
 import SOAPpy.Errors
@@ -2663,6 +2662,55 @@ class SwitchWatcher(Thread):
     
 #### End Switch Input Watcher ####
 
+#### Ticket Counter ####
+class TicketCounter(Thread):
+    
+    def __init__(self):
+        Thread.__init__(self)
+        self.__lock = Semaphore()
+        self.value = 0
+        self.max = int(config.get('TicketCounter', 'maxCount'))
+        self.running = True
+        
+    def run(self):
+        self.lock.acquire()
+
+        # Loop forever. Block waiting for the lock to be released
+        # by an increment, reset or lock event.
+        while self.running:
+            self.lock.acquire()
+            if self.running:
+                self.update()
+
+    def update(self):
+
+        # Update OSD number and display
+
+        # Update any TicketCounter region
+        pass
+
+    def increment(self):
+        # Incremement the counter by one, or reset to 1 if hit max
+        if self.value == self.max:
+            self.value = 1
+        else:
+            self.value = self.value + 1
+
+        self.__lock.release()
+        log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.value,True)
+
+    def reset(self):
+        self.value = 0
+        self.__lock.release()
+        log.log(1,"info",_("TicketCounter: Reset"),True)
+
+    def quit(self):
+        self.running = False
+        self.__lock.release()
+
+    
+#### End Ticket Counter ####
+
 #### Webservice
 class XMDSException(Exception):
     def __init__(self, value):
@@ -3423,6 +3471,10 @@ class XiboDisplayManager:
             self.switch = SwitchWatcher(self.scheduler,self)
             self.switch.start()
 
+	# Thread to watch Ticket Counter value and update the display as required
+	self.ticketCounter = TicketCounter(self)
+	self.ticketCounter.start()
+
         # Attempt to register with the webservice.
         # The RegisterDisplay code will block here if
         # we're configured not to play cached content on startup.
@@ -3473,8 +3525,6 @@ class XiboPlayer(Thread):
         self.currentFH = None
         self.parent = parent
 
-        self.ticketCounter = 0
-        self.maxTicketCounter = int(config.get('TicketCounter', 'maxCount'))
         self.ticketCounterNextScanCode = int(config.get('TicketCounter', 'nextScanCode'))
         self.ticketCounterResetScanCode = int(config.get('TicketCounter', 'resetScanCode'))
 
@@ -3599,15 +3649,10 @@ class XiboPlayer(Thread):
             log.log(0,"info",_("Detected keypress with scancode %s") % e.scancode,True)
 
         if e.scancode == self.ticketCounterNextScanCode:
-            if self.ticketCounter == self.maxTicketCounter:
-                self.ticketCounter = 1
-            else:
-                self.ticketCounter = self.ticketCounter + 1
-            log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.ticketCounter,True)
+            self.parent.ticketCounter.increment()    
 
         if e.scancode == self.ticketCounterResetScanCode:
-            self.ticketCounter = 0
-            log.log(1,"info",_("TicketCounter: Reset"),True)
+            self.parent.ticketCounter.reset()
 
         if self.info:
             # Process key strokes that are only active when the info
@@ -3637,6 +3682,7 @@ class XiboPlayer(Thread):
                 self.parent.downloader.collect()
                 self.parent.scheduler.running = False
                 self.parent.scheduler.collect()
+                self.parent.ticketCounter.quit()
 
                 log.log(5,"info",_("Blocking waiting for Scheduler"))
                 self.parent.scheduler.join()
@@ -3825,72 +3871,9 @@ class XiboClient:
 
         self.dm.run()
 
-class XiboOptions:
-    "Xibo Options Dialogue"
-    def __init__(self):
-        pass
-    
-    def exitClicked(event):
-        self.player.stop()
-        exit()
-    
-    def play(self):
-        global version
-        
-        print _("Xibo Client v") + version
-        
-        global schemaVersion
-        global log
-        log = XiboLogScreen(0)
-        
-        global config
-        
-        print _("Reading default configuration")
-        config = ConfigParser.ConfigParser()
-        config.readfp(open('defaults.cfg'))
-        
-        print _("Reading user configuration")
-        config.read(['site.cfg', os.path.expanduser('~/.xibo')])
-        
-        # Load avg UI
-        self.player = avg.Player.get()
-            
-#        self.player.setResolution(False,400,300,24)
-        self.player.showCursor(1)
-        self.player.volume = 1
-        
-        # Build the XML that defines the avg node and divs for screen and information
-        avgContent = '<avg id="main" width="400" height="300">'
-        avgContent += '<div id="options_screen" crop="False">'
-        avgContent += '<words id="exitButton">Exit</words>'
-        avgContent += '</div>'
-        avgContent += '</avg>'
-        self.player.loadString(avgContent)
-
-        button.init(avg)
-        exitButton = button.Button(self.player.getElementByID("options_screen"),self.exitClicked)
-        
-        # Release the lock so other threads can add content
-        self.player.play()
-        
-        # Create AVG Player
-        
-        # Add scripts
-        
-        # Run AVG player
-# END XiboOptions Class        
-
 # Main - create a XiboClient and run
 gettext.install("messages", "locale")
 
-parser = OptionParser(usage="usage: %prog [options]",version="%prog v" + version)
-parser.add_option("-o","--options", action="store_true", dest="show_options", default=False, help="Open Xibo Client Options")
-(options, args) = parser.parse_args()
-
-if options.show_options:
-    xc = XiboOptions()
-else:
-    xc = XiboClient()
-
+xc = XiboClient()
 xc.play()
 
