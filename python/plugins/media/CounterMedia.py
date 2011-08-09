@@ -42,7 +42,7 @@ class CounterMedia(BrowserMediaAnimatedBase):
                     self.log.log(5,'audit','Template is: ' + self.template)
         except:
             self.log.log(2,'error','%s Error parsing out the template from the xlf' % self.mediaNodeName)
-            return []
+            return ''
 
         # Replace the template [Counter] tag:
         self.text = self.template.replace("[Counter]", '<div id="Counter">C</div>')
@@ -50,7 +50,7 @@ class CounterMedia(BrowserMediaAnimatedBase):
 
         print self.text
 
-        return [self.text]
+        return self.text
 
     def injectScript(self):
         js = "<script type='text/javascript'>\n\n"
