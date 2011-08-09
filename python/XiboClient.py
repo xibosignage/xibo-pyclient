@@ -2703,14 +2703,16 @@ class TicketCounter(Thread):
     def update(self):
 
         # Update OSD number and display
-        tmpXML = '<words id="ticketCounterText" alignment="left" pos="(0,0)" opacity="1" text="%s" font="Arial" color="%s" fontsize="%s" size="(%s,%s)"/>' % (self.value,self.osdFontColour,self.osdFontSize,self.ticketW,self.ticketW)
-        self.p.enqueue('del', 'ticketCounterText')
-        self.p.enqueue('add', (tmpXML, 'ticketCounter'))
-        self.p.enqueue('setOpacity', ('ticketCounter', 1))
-        self.p.enqueue('timer', (self.osdTimeOut, self.fadeOutOSD))
-        self.__triggers = self.__triggers + 1
+        if self.p.ticketOSD:
+            tmpXML = '<words id="ticketCounterText" alignment="center" width="%s" pos="(%s,10)" opacity="1" text="%s" font="Arial" color="%s" fontsize="%s" />' % (self.ticketW,(self.ticketW/2),self.value,self.osdFontColour,self.osdFontSize)
+            self.p.enqueue('del', 'ticketCounterText')
+            self.p.enqueue('add', (tmpXML, 'ticketCounter'))
+            self.p.enqueue('setOpacity', ('ticketCounter', 1))
+            self.p.enqueue('timer', (self.osdTimeOut, self.fadeOutOSD))
+            self.__triggers = self.__triggers + 1
 
         # Update any TicketCounter region
+        
 
     def fadeOutOSD(self):
         self.__triggers = self.__triggers - 1
@@ -3554,8 +3556,16 @@ class XiboPlayer(Thread):
         self.currentFH = None
         self.parent = parent
 
+        self.ticketOSD = True
+
         self.ticketCounterNextScanCode = int(config.get('TicketCounter', 'nextScanCode'))
         self.ticketCounterResetScanCode = int(config.get('TicketCounter', 'resetScanCode'))
+
+    def enableTicketOSD(self):
+        self.ticketOSD = True
+
+    def disableTicketOSD(self):
+        self.ticketOSD = False
 
     def getDimensions(self):
         # NB: I don't think this is ever used.
