@@ -2673,14 +2673,23 @@ class TicketCounter(Thread):
         self.value = 0
         self.max = int(config.get('TicketCounter', 'maxCount'))
         self.osdBackColour = config.get('TicketCounter', 'osdBackColour')
-        self.osdBackOpacity = config.get('TicketCounter', 'osdBackOpacity')
+        self.osdBackOpacity = float(config.get('TicketCounter', 'osdBackOpacity'))
         self.osdFontSize = config.get('TicketCounter', 'osdFontSize')
         self.osdFontColour = config.get('TicketCounter', 'osdFontColour')
-        self.osdTimeOut = config.get('TicketCounter', 'osdTimeOut')
+        self.osdTimeOut = int(config.get('TicketCounter', 'osdTimeOut'))
+        self.__triggers = 0
+        
+        useRotation = bool(not int(config.get('Main', 'vwidth')) == 0)
+
+        if useRotation:
+            self.ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'vwidth'))
+        else:
+            self.ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'width'))
+
         self.running = True
 
         # Draw the OSD
-        tmpXML = '<rect fillcolor="%s" id="ticketCounterBG" fillopacity="%s" />' % (self.osdBackColour,self.osdBackOpacity)
+        tmpXML = '<rect fillcolor="%s" strokewidth="0" id="ticketCounterBG" fillopacity="%s" size="(%s,%s)" />' % (self.osdBackColour,self.osdBackOpacity,self.ticketW,self.ticketW)
         self.p.enqueue('add', (tmpXML, 'ticketCounter'))
         
     def run(self):
@@ -2694,13 +2703,20 @@ class TicketCounter(Thread):
     def update(self):
 
         # Update OSD number and display
-        tmpXML = '<words id="ticketCounterText" x="5" y="3" opacity="1" text="%s" font="Arial" color="%s" fontsize="%s" />' % (self.value,self.osdFontColour,self.osdFontSize)
-        self.p.enqueue('delete', 'ticketCounterText')
+        tmpXML = '<words id="ticketCounterText" alignment="left" pos="(0,0)" opacity="1" text="%s" font="Arial" color="%s" fontsize="%s" size="(%s,%s)"/>' % (self.value,self.osdFontColour,self.osdFontSize,self.ticketW,self.ticketW)
+        self.p.enqueue('del', 'ticketCounterText')
         self.p.enqueue('add', (tmpXML, 'ticketCounter'))
         self.p.enqueue('setOpacity', ('ticketCounter', 1))
-        self.p.enqueue('anim', ('fadeOut', 'ticketCounter', self.osdTimeOut, None))
+        self.p.enqueue('timer', (self.osdTimeOut, self.fadeOutOSD))
+        self.__triggers = self.__triggers + 1
 
         # Update any TicketCounter region
+
+    def fadeOutOSD(self):
+        self.__triggers = self.__triggers - 1
+
+        if self.__triggers == 0:
+            self.p.enqueue('anim', ('fadeOut', 'ticketCounter', 250, None))
 
     def increment(self):
         # Incremement the counter by one, or reset to 1 if hit max
@@ -3678,10 +3694,16 @@ class XiboPlayer(Thread):
             log.log(0,"info",_("Detected keypress with scancode %s") % e.scancode,True)
 
         if e.scancode == self.ticketCounterNextScanCode:
-            self.parent.ticketCounter.increment()    
+            try:
+                self.parent.ticketCounter.increment()    
+            except:
+                pass
 
         if e.scancode == self.ticketCounterResetScanCode:
-            self.parent.ticketCounter.reset()
+            try:
+                self.parent.ticketCounter.reset()
+            except:
+                pass
 
         if self.info:
             # Process key strokes that are only active when the info
@@ -3707,16 +3729,35 @@ class XiboPlayer(Thread):
                 # the lot off.
                 log.flush()
 
-                self.parent.downloader.running = False
-                self.parent.downloader.collect()
-                self.parent.scheduler.running = False
-                self.parent.scheduler.collect()
-                self.parent.ticketCounter.quit()
+                try:
+                    self.parent.downloader.running = False
+                    self.parent.downloader.collect()
+                except:
+                    pass
+                
+                try:
+                    self.parent.scheduler.running = False
+                    self.parent.scheduler.collect()
+                except:
+                    pass
+
+                try:
+                    self.parent.ticketCounter.quit()
+                except:
+                    pass
 
                 log.log(5,"info",_("Blocking waiting for Scheduler"))
-                self.parent.scheduler.join()
+                try:
+                    self.parent.scheduler.join()
+                except:
+                    pass
+
                 log.log(5,"info",_("Blocking waiting for DownloadManager"))
-                self.parent.downloader.join()
+                try:
+                    self.parent.downloader.join()
+                except:
+                    pass
+                
                 log.log(5,"info",_("Blocking waiting for Player"))
                 self.player.stop()
                 os._exit(0)
