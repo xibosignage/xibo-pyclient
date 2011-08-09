@@ -30,7 +30,7 @@ from threading import Thread
 
 class CounterMedia(BrowserMediaAnimatedBase):
 
-    def getContent(self):
+    def injectContent(self):
         # Parse out the template element from the raw tag.
         try:
             for t in self.rawNode.getElementsByTagName('template'):
