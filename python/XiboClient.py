@@ -3874,6 +3874,9 @@ class XiboPlayer(Thread):
                     if not data[2] == None:
                         if data[2] == False:
                             currentNode.executeJavascript("document.body.style.overflow='hidden';")
+                elif cmd == "executeJavascript":
+                    currentNode = self.player.getElementByID(data[0])
+                    currentNode.executeJavascript(data[1])
                 elif cmd == "zoomIn":
                     # BrowserNode Zoom In
                     currentNode = self.player.getElementByID(data)
