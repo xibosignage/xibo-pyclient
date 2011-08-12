@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim, button
+from libavg import avg, anim
 from optparse import OptionParser
 from SOAPpy import WSDL
 import SOAPpy.Types
@@ -523,7 +523,7 @@ class XiboLogXmds(XiboLog):
         if osd and self.p.osLog:
             self.osLog(message)
 
-    def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID):
+    def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID):
         if self.statsOn:
             self.stats.put((statType,fromDT,toDT,tag,layoutID,scheduleID,mediaID),False)
         return

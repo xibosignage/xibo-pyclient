@@ -23,6 +23,7 @@
 
 from threading import Thread
 import os
+import time
 
 class XiboMedia(Thread):
     "Abstract Class - Interface for Media"
@@ -56,6 +57,8 @@ class XiboMedia(Thread):
         self.options = {}
         self.rawNode = None
         self.optionsNode = None
+        self.statsFrom = None
+        self.statsTo = None
         try:
             self.scaleFactor = self.parent.parent.l.scaleFactor
         except:
@@ -147,4 +150,11 @@ class XiboMedia(Thread):
         # Media should dispose itself
         # Call tNext to release the regionManager lock.
         self.parent.tNext()
+
+    def startStats(self):
+        self.statsFrom = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+    
+    def returnStats(self):
+        self.statsTo = str(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime()))
+        self.log.stat("media", self.statsFrom, self.statsTo, "", str(self.parent.parent.l.layoutID), "", str(self.mediaId))
 

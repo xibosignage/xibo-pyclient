@@ -51,10 +51,12 @@ class ImageMedia(XiboMedia):
     def run(self):
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
         self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
+        self.startStats()
 
     def requiredFiles(self):
         return [str(self.options['uri'])]
 	
     def dispose(self):
         self.p.enqueue('del',self.mediaNodeName)
+        self.returnStats()
         self.parent.tNext()

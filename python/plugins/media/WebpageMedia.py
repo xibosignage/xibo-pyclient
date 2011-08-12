@@ -34,11 +34,13 @@ class WebpageMedia(XiboMedia):
     def run(self):
         self.p.enqueue('browserNavigate',(self.mediaNodeName,urllib.unquote(str(self.options['uri'])),self.finishedRendering))
         self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
+        self.startStats()
 
     def requiredFiles(self):
         return []
 	
     def dispose(self):
+        self.returnStats()
         self.p.enqueue('del',self.mediaNodeName)
         self.parent.tNext()
     
