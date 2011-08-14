@@ -2670,7 +2670,7 @@ class TicketCounter(Thread):
         self.__lock = Semaphore()
         self.__lock.acquire()
         self.p = player
-        self.value = 0
+        self.p.counterValue = 0
         self.max = int(config.get('TicketCounter', 'maxCount'))
         self.osdBackColour = config.get('TicketCounter', 'osdBackColour')
         self.osdBackOpacity = float(config.get('TicketCounter', 'osdBackOpacity'))
@@ -2704,7 +2704,7 @@ class TicketCounter(Thread):
 
         # Update OSD number and display
         if self.p.ticketOSD:
-            tmpXML = '<words id="ticketCounterText" alignment="center" width="%s" pos="(%s,10)" opacity="1" text="%s" font="Arial" color="%s" fontsize="%s" />' % (self.ticketW,(self.ticketW/2),self.value,self.osdFontColour,self.osdFontSize)
+            tmpXML = '<words id="ticketCounterText" alignment="center" width="%s" pos="(%s,10)" opacity="1" text="%s" font="Arial" color="%s" fontsize="%s" />' % (self.ticketW,(self.ticketW/2),self.p.counterValue,self.osdFontColour,self.osdFontSize)
             self.p.enqueue('del', 'ticketCounterText')
             self.p.enqueue('add', (tmpXML, 'ticketCounter'))
             self.p.enqueue('setOpacity', ('ticketCounter', 1))
@@ -2712,6 +2712,7 @@ class TicketCounter(Thread):
             self.__triggers = self.__triggers + 1
 
         # Update any TicketCounter region
+        self.p.enqueue('updateCounter', self.p.counterValue)
         
 
     def fadeOutOSD(self):
@@ -2722,16 +2723,16 @@ class TicketCounter(Thread):
 
     def increment(self):
         # Incremement the counter by one, or reset to 1 if hit max
-        if self.value == self.max:
-            self.value = 1
+        if self.p.counterValue == self.max:
+            self.p.counterValue = 1
         else:
-            self.value = self.value + 1
+            self.p.counterValue = self.p.counterValue + 1
 
         self.__lock.release()
-        log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.value,True)
+        log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.p.counterValue,True)
 
     def reset(self):
-        self.value = 0
+        self.p.counterValue = 0
         self.__lock.release()
         log.log(1,"info",_("TicketCounter: Reset"),True)
 
@@ -3560,6 +3561,8 @@ class XiboPlayer(Thread):
 
         self.ticketCounterNextScanCode = int(config.get('TicketCounter', 'nextScanCode'))
         self.ticketCounterResetScanCode = int(config.get('TicketCounter', 'resetScanCode'))
+        self.counterValue = 0
+        self.counterID = 0
 
     def enableTicketOSD(self):
         self.ticketOSD = True
@@ -3573,6 +3576,14 @@ class XiboPlayer(Thread):
 
     def getElementByID(self,id):
         return self.player.getElementByID(id)
+
+    def nextCounterId(self):
+        self.counterID += 1
+
+        if self.counterID > 10:
+            self.counterID = 1
+
+        return self.counterID
 
     def nextUniqueId(self):
         # This is just to ensure there are never two identically named nodes on the
@@ -3898,6 +3909,15 @@ class XiboPlayer(Thread):
                         effect = avg.BlurFXNode()
                         effect.setParam(data[2])
                         currentNode.setEffect(effect)
+                elif cmd == "updateCounter":
+                    # Iterate over all the BrowserNodes and
+                    # Call the update method on them
+                    for i in range(1,11):
+                        try:
+                            currentNode = self.player.getElementByID('counter%s' % i)
+                            currentNode.executeJavascript("updateCounter('%s');" % self.counterValue)
+                        except:
+                            pass
                     
                 self.q.task_done()
                 # Call ourselves again to action any remaining queued items
