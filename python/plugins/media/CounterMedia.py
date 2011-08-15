@@ -126,8 +126,8 @@ class CounterMedia(BrowserMediaAnimatedBase):
             return ''
 
         # Replace the template [Counter] tag:
-        self.text = self.template.replace("[Counter]", '<div id="Counter">C</div>')
-        self.text = self.text.replace("[counter]", '<div id="Counter">C</div>')
+        self.text = self.template.replace("[Counter]", '<span id="Counter">C</span>')
+        self.text = self.text.replace("[counter]", '<span id="Counter">C</span>')
 
         return self.text
 
