@@ -3531,6 +3531,7 @@ class XiboDisplayManager:
         tmpLayout = self.currentLM.layoutNodeName
 
         # New LayoutManager
+        self.Player.ticketOSD = True
         self.currentLM = XiboLayoutManager(self, self.Player, self.scheduler.nextLayout())
         log.log(2,"info",_("XiboLayoutManager: nextLayout() -> Starting new XiboLayoutManager with layout ") + str(self.currentLM.l.layoutID))
         self.currentLM.start()

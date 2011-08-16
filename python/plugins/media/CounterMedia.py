@@ -111,6 +111,12 @@ class CounterMedia(BrowserMediaAnimatedBase):
         # Parse the effects block
         self.effects = self.mediaNode.getElementsByTagName('effect')
 
+        if str(self.options['popupNotification']) == '1':
+            self.p.ticketOSD = True
+        else:
+            self.p.ticketOSD = False
+
+
     def injectContent(self):
         # Parse out the template element from the raw tag.
         try:
