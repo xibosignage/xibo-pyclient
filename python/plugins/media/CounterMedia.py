@@ -64,6 +64,10 @@ class CounterMedia(BrowserMediaAnimatedBase):
             self.width = self.parent.width
             self.height = self.parent.height
             self.mediaNodeNameExt = str(self.p.nextCounterId())
+            if str(self.options['popupNotification']) == '1':
+                self.p.ticketOSD = True
+            else:
+                self.p.ticketOSD = False
 
         # Calculate the media ID name
         try:
@@ -110,11 +114,6 @@ class CounterMedia(BrowserMediaAnimatedBase):
 
         # Parse the effects block
         self.effects = self.mediaNode.getElementsByTagName('effect')
-
-        if str(self.options['popupNotification']) == '1':
-            self.p.ticketOSD = True
-        else:
-            self.p.ticketOSD = False
 
 
     def injectContent(self):
