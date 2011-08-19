@@ -149,8 +149,25 @@ class TickerMedia(BrowserMediaAnimatedBase):
                 for field in feedDetails:
                     tmpItem = tmpItem.replace("[%s]" % field[0], field[1])
 
-                
                 content.append(tmpItem)
+
+            if not self.options.has_key('numItems'):
+                self.options['numItems'] = '';
+
+            if not self.options.has_key('takeItemsFrom'):
+                self.options['takeItemsFrom'] = 'start';
+
+            try:
+                if not self.options['numItems'] == '':
+                    numItems = int(self.options['numItems'])
+
+                    if self.options['takeItemsFrom'] == 'start':
+                        content = content[numItems:]
+                    else:
+                        content = content[:numItems]
+
+            except:
+                pass
                 
         return content
         

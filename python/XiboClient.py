@@ -2752,7 +2752,7 @@ class XMDSException(Exception):
 
 class XMDS:
     def __init__(self):
-        self.__schemaVersion__ = "3"
+        self.__schemaVersion__ = "2"
 
         # Semaphore to allow only one XMDS call to run check simultaneously
         self.checkLock = Semaphore()
