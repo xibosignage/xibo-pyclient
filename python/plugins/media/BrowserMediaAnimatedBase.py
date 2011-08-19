@@ -53,6 +53,8 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             
             content += tmpItem
         
+        self.itemCount = count
+
         # Add in the Copyright Text (if applicable)
         try:
             content += self.options['copyright']
@@ -126,6 +128,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
                 js += "  $('#text').cycle({fx: 'fade', sync: 0, speed: 1, timeout: itemTime, cleartypeNoBg:true});\n"
                 js += "  }\n"
                 js += "</script>\n\n"
+                self.duration = int(self.duration) * self.itemCount
         elif self.options['direction'] == "none":
             pass
         else:

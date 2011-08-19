@@ -33,6 +33,9 @@ class BrowserMediaBase(XiboMedia):
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
     def run(self):
+
+        self.itemCount = 0
+
         # Open the HTML template file and read it in to a string
         try:
             try:
