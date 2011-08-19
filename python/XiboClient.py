@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009-2010 Alex Harrington
+# Copyright (C) 2009-2011 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -21,8 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim, button
-from optparse import OptionParser
+from libavg import avg, anim
 from SOAPpy import WSDL
 import SOAPpy.Types
 import SOAPpy.Errors
@@ -48,7 +47,7 @@ import urlparse
 import PIL.Image
 import math
 
-version = "1.3.0a1"
+version = "1.3.0"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -184,76 +183,148 @@ class XiboLog:
 
         # Lift Traffic Lights
         if self.liftEnabled:
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift1Grey" opacity="1" width="10" height="10" x="165" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift1Grey" opacity="1" width="5" height="5" x="165" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift1Red" opacity="0" width="10" height="10" x="165" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift1Red" opacity="0" width="5" height="5" x="165" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift1Amber" opacity="0" width="10" height="10" x="165" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift1Amber" opacity="0" width="5" height="5" x="165" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift1Green" opacity="0" width="10" height="10" x="165" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift2Grey" opacity="1" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift2Red" opacity="0" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift2Amber" opacity="0" width="10" height="10" x="180" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift2Green" opacity="0" width="10" height="10" x="180" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift1Green" opacity="0" width="5" height="5" x="165" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
             
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift3Grey" opacity="1" width="10" height="10" x="195" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift2Grey" opacity="1" width="5" height="5" x="170" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift3Red" opacity="0" width="10" height="10" x="195" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift2Red" opacity="0" width="5" height="5" x="170" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift3Amber" opacity="0" width="10" height="10" x="195" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift2Amber" opacity="0" width="5" height="5" x="170" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift3Green" opacity="0" width="10" height="10" x="195" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift2Green" opacity="0" width="5" height="5" x="170" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift3Grey" opacity="1" width="5" height="5" x="175" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift3Red" opacity="0" width="5" height="5" x="175" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift3Amber" opacity="0" width="5" height="5" x="175" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift3Green" opacity="0" width="5" height="5" x="175" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
 
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift4Grey" opacity="1" width="10" height="10" x="210" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift4Grey" opacity="1" width="5" height="5" x="180" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift4Red" opacity="0" width="10" height="10" x="210" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift4Red" opacity="0" width="5" height="5" x="180" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift4Amber" opacity="0" width="10" height="10" x="210" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift4Amber" opacity="0" width="5" height="5" x="180" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift4Green" opacity="0" width="10" height="10" x="210" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift5Grey" opacity="1" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift5Red" opacity="0" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift5Amber" opacity="0" width="10" height="10" x="225" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift5Green" opacity="0" width="10" height="10" x="225" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift4Green" opacity="0" width="5" height="5" x="180" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
             
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift6Grey" opacity="1" width="10" height="10" x="240" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift5Grey" opacity="1" width="5" height="5" x="190" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift6Red" opacity="0" width="10" height="10" x="240" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift5Red" opacity="0" width="5" height="5" x="190" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift6Amber" opacity="0" width="10" height="10" x="240" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift5Amber" opacity="0" width="5" height="5" x="190" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift6Green" opacity="0" width="10" height="10" x="240" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift7Grey" opacity="1" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift7Red" opacity="0" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift7Amber" opacity="0" width="10" height="10" x="255" y="285" />'
-            self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift7Green" opacity="0" width="10" height="10" x="255" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift5Green" opacity="0" width="5" height="5" x="190" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
             
-            tmpXML = '<image href="resources/dotgrey.png" id="infoLift8Grey" opacity="1" width="10" height="10" x="270" y="285" />'
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift6Grey" opacity="1" width="5" height="5" x="195" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotred.png" id="infoLift8Red" opacity="0" width="10" height="10" x="270" y="285" />'
+            tmpXML = '<image href="resources/dotred.png" id="infoLift6Red" opacity="0" width="5" height="5" x="195" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotamber.png" id="infoLift8Amber" opacity="0" width="10" height="10" x="270" y="285" />'
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift6Amber" opacity="0" width="5" height="5" x="195" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
-            tmpXML = '<image href="resources/dotgreen.png" id="infoLift8Green" opacity="0" width="10" height="10" x="270" y="285" />'
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift6Green" opacity="0" width="5" height="5" x="195" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift7Grey" opacity="1" width="5" height="5" x="200" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift7Red" opacity="0" width="5" height="5" x="200" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift7Amber" opacity="0" width="5" height="5" x="200" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift7Green" opacity="0" width="5" height="5" x="200" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift8Grey" opacity="1" width="5" height="5" x="205" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift8Red" opacity="0" width="5" height="5" x="205" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift8Amber" opacity="0" width="5" height="5" x="205" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift8Green" opacity="0" width="5" height="5" x="205" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift9Grey" opacity="1" width="5" height="5" x="215" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift9Red" opacity="0" width="5" height="5" x="215" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift9Amber" opacity="0" width="5" height="5" x="215" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift9Green" opacity="0" width="5" height="5" x="215" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift10Grey" opacity="1" width="5" height="5" x="220" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift10Red" opacity="0" width="5" height="5" x="220" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift10Amber" opacity="0" width="5" height="5" x="220" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift10Green" opacity="0" width="5" height="5" x="220" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift11Grey" opacity="1" width="5" height="5" x="225" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift11Red" opacity="0" width="5" height="5" x="225" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift11Amber" opacity="0" width="5" height="5" x="225" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift11Green" opacity="0" width="5" height="5" x="225" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift12Grey" opacity="1" width="5" height="5" x="230" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift12Red" opacity="0" width="5" height="5" x="230" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift12Amber" opacity="0" width="5" height="5" x="230" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift12Green" opacity="0" width="5" height="5" x="230" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift13Grey" opacity="1" width="5" height="5" x="240" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift13Red" opacity="0" width="5" height="5" x="240" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift13Amber" opacity="0" width="5" height="5" x="240" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift13Green" opacity="0" width="5" height="5" x="240" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift14Grey" opacity="1" width="5" height="5" x="245" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift14Red" opacity="0" width="5" height="5" x="245" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift14Amber" opacity="0" width="5" height="5" x="245" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift14Green" opacity="0" width="5" height="5" x="245" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift15Grey" opacity="1" width="5" height="5" x="250" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift15Red" opacity="0" width="5" height="5" x="250" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift15Amber" opacity="0" width="5" height="5" x="250" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift15Green" opacity="0" width="5" height="5" x="250" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            
+            tmpXML = '<image href="resources/dotgrey.png" id="infoLift16Grey" opacity="1" width="5" height="5" x="255" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotred.png" id="infoLift16Red" opacity="0" width="5" height="5" x="255" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotamber.png" id="infoLift16Amber" opacity="0" width="5" height="5" x="255" y="285" />'
+            self.p.enqueue('add', (tmpXML, 'info'))
+            tmpXML = '<image href="resources/dotgreen.png" id="infoLift16Green" opacity="0" width="5" height="5" x="255" y="285" />'
             self.p.enqueue('add', (tmpXML, 'info'))
 
             # Lift Tag
@@ -1592,6 +1663,16 @@ class XiboRegionManager(Thread):
                             __import__("plugins.media." + type + "Media",None,None,[''])
                             self.currentMedia = eval("plugins.media." + type + "Media." + type + "Media")(log,config,self,self.p,cn)
 
+                            # Apply (multiple or none) media effects here
+                            import plugins.effects
+                            tmpEffects = []
+                            for cn in self.currentMedia.effects:
+                                eType = str(cn.attributes['type'].value)
+                                eType = eType[0:1].upper() + eType[1:]
+                                __import__("plugins.effects." + eType + "Effect",None,None,[''])
+                                tmpE = eval("plugins.effects." + eType + "Effect." + eType + "Effect")(log,self.p,self.currentMedia.mediaNodeName,cn)
+                                tmpEffects.append(tmpE)
+
                             # Transition between media here...
                             import plugins.transitions
                             try:
@@ -1613,6 +1694,8 @@ class XiboRegionManager(Thread):
                             if (trans[0] == trans[1]) and trans[0] != "":
                                 self.currentMedia.add()
                                 self.currentMedia.start()
+                                for e in tmpEffects:
+                                    e.start()
                                 try:
                                     __import__("plugins.transitions." + trans[0] + "Transition",None,None,[''])
                                     tmpTransition = eval("plugins.transitions." + trans[0] + "Transition." + trans[0] + "Transition")(log,self.p,self.previousMedia,self.currentMedia,self.tNext)
@@ -1640,6 +1723,8 @@ class XiboRegionManager(Thread):
                                 if (trans[1] != ""):
                                     self.currentMedia.add()
                                     self.currentMedia.start()
+                                    for e in tmpEffects:
+                                        e.start()
                                     try:
                                         __import__("plugins.transitions." + trans[1] + "Transition",None,None,[''])
                                         tmpTransition = eval("plugins.transitions." + trans[1] + "Transition." + trans[1] + "Transition")(log,self.p,None,self.currentMedia,self.tNext)
@@ -1652,6 +1737,8 @@ class XiboRegionManager(Thread):
                                 else:
                                     self.currentMedia.add()
                                     self.currentMedia.start()
+                                    for e in tmpEffects:
+                                        e.start()
                             # Cleanup
                             try:
                                 # TODO: I removed an if self.disposing == False: here
@@ -2342,7 +2429,7 @@ class SwitchWatcher(Thread):
             self.defaultTag = "default"
             log.log(0,"error",_("No LiftTags.default specified in your configuration. Defaulting to 'default'."))
         
-        for i in range(0,7):
+        for i in range(0,16):
             try:
                 self.tags.append(str(config.get('LiftTags','lift' + str(i))))
             except ConfigParser.NoOptionError:
@@ -2358,16 +2445,28 @@ class SwitchWatcher(Thread):
             self.serialPort1 = config.get('Lift','serial1')
         except:
             self.serialPort1 = '/dev/ttyUSB1'
+
+        try:
+            self.serialPort2 = config.get('Lift','serial2')
+        except:
+            self.serialPort2 = '/dev/ttyUSB2'
+
+        try:
+            self.serialPort3 = config.get('Lift','serial3')
+        except:
+            self.serialPort3 = '/dev/ttyUSB3'
         
     def run(self):
         import serial
         
-        state = [False,False,False,False,False,False,False,False]
-        stats = ["","","","","","","",""]
-        liftHistory = [0,0,0,0,0,0,0,0]
+        state = [False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False]
+        stats = ["","","","","","","","","","","","","","","",""]
+        liftHistory = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
         ser0 = None
         ser1 = None
+        ser2 = None
+        ser3 = None
         
         trigger = None
         try:
@@ -2394,39 +2493,61 @@ class SwitchWatcher(Thread):
             log.lights('Lift7','red')
             log.lights('Lift8','red')
             ser1 = False
-            if ser0 == False:
-                # No lifts are active. Quit now.
-                return
+
+        try:
+            ser2 = serial.Serial(self.serialPort2)
+        except serial.SerialException:
+            log.log(0,"error","Unable to open configured serial port. Switch interface disabled: " + self.serialPort2)
+            log.lights('Lift9','red')
+            log.lights('Lift10','red')
+            log.lights('Lift11','red')
+            log.lights('Lift12','red')
+            ser2 = False
+
+        try:
+            ser3 = serial.Serial(self.serialPort3)
+        except serial.SerialException:
+            log.log(0,"error","Unable to open configured serial port. Switch interface disabled: " + self.serialPort3)
+            log.lights('Lift13','red')
+            log.lights('Lift14','red')
+            log.lights('Lift15','red')
+            log.lights('Lift16','red')
+            ser3 = False
+
+
+        if ser0 == False and ser1 == False and ser2 == False and ser3 == False:
+            # No lifts are active. Quit now.
+            return
         
         # Figure out which numbers to loop over
-        if ser0 and ser1:
-            # ie 0,4
-            rS=0
-            rF=5
-            rD=4
-        else:
-            if ser0:
-                # ie 0
-                rS=0
-                rF=1
-                rD=4
+        loopCounter = []
+
+        if ser0:
+            loopCounter.append(0)
             
-            if ser1:
-                # ie 4
-                rS=4
-                rF=5
-                rD=4
+        if ser1:
+            loopCounter.append(4)
+
+        if ser2:
+            loopCounter.append(8)
+
+        if ser3:
+            loopCounter.append(12)
         
         while True:
             flag = False
             offFlag = False
             activeLift = None
             
-            for i in range(rS,rF,rD):
+            for i in loopCounter:
                 if i == 0:
                     ser = ser0
-                else:
+                elif i == 4:
                     ser = ser1
+                elif i == 8:
+                    ser = ser2
+                elif i == 12:
+                    ser = ser3
                     
                 if ser.getCD() == state[i]:
                     if not state[i]:
@@ -2509,7 +2630,8 @@ class SwitchWatcher(Thread):
             
             if offFlag:
                 # Work our way back down the stack of lift events until we reach a matching state
-                if not (state[0] or state[1] or state[2] or state[3] or state[4] or state[5] or state[6] or state[7]):
+                if not (state[0] or state[1] or state[2] or state[3] or state[4] or state[5] or state[6] or state[7]
+                        or state[8] or state[9] or state[10] or state[11] or state[12] or state[13] or state[14] or state[15]):
                     # All the lifts are off. Reset the liftStack and show the default
                     self.liftStack = Queue.LifoQueue()
                     self.scheduler.validTag = self.defaultTag
@@ -2539,6 +2661,87 @@ class SwitchWatcher(Thread):
             
     
 #### End Switch Input Watcher ####
+
+#### Ticket Counter ####
+class TicketCounter(Thread):
+    
+    def __init__(self, player):
+        Thread.__init__(self)
+        self.__lock = Semaphore()
+        self.__lock.acquire()
+        self.p = player
+        self.p.counterValue = 0
+        self.max = int(config.get('TicketCounter', 'maxCount'))
+        self.osdBackColour = config.get('TicketCounter', 'osdBackColour')
+        self.osdBackOpacity = float(config.get('TicketCounter', 'osdBackOpacity'))
+        self.osdFontSize = config.get('TicketCounter', 'osdFontSize')
+        self.osdFontColour = config.get('TicketCounter', 'osdFontColour')
+        self.osdTimeOut = int(config.get('TicketCounter', 'osdTimeOut'))
+        self.__triggers = 0
+        
+        useRotation = bool(not int(config.get('Main', 'vwidth')) == 0)
+
+        if useRotation:
+            self.ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'vwidth'))
+        else:
+            self.ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'width'))
+
+        self.running = True
+
+        # Draw the OSD
+        tmpXML = '<rect fillcolor="%s" strokewidth="0" id="ticketCounterBG" fillopacity="%s" size="(%s,%s)" />' % (self.osdBackColour,self.osdBackOpacity,self.ticketW,self.ticketW)
+        self.p.enqueue('add', (tmpXML, 'ticketCounter'))
+        
+    def run(self):
+        # Loop forever. Block waiting for the lock to be released
+        # by an increment, reset or lock event.
+        while self.running:
+            self.__lock.acquire()
+            if self.running:
+                self.update()
+
+    def update(self):
+
+        # Update OSD number and display
+        if self.p.ticketOSD:
+            tmpXML = '<words id="ticketCounterText" alignment="center" width="%s" pos="(%s,10)" opacity="1" text="%s" font="Arial" color="%s" fontsize="%s" />' % (self.ticketW,(self.ticketW/2),self.p.counterValue,self.osdFontColour,self.osdFontSize)
+            self.p.enqueue('del', 'ticketCounterText')
+            self.p.enqueue('add', (tmpXML, 'ticketCounter'))
+            self.p.enqueue('setOpacity', ('ticketCounter', 1))
+            self.p.enqueue('timer', (self.osdTimeOut, self.fadeOutOSD))
+            self.__triggers = self.__triggers + 1
+
+        # Update any TicketCounter region
+        self.p.enqueue('updateCounter', self.p.counterValue)
+        
+
+    def fadeOutOSD(self):
+        self.__triggers = self.__triggers - 1
+
+        if self.__triggers == 0:
+            self.p.enqueue('anim', ('fadeOut', 'ticketCounter', 250, None))
+
+    def increment(self):
+        # Incremement the counter by one, or reset to 1 if hit max
+        if self.p.counterValue == self.max:
+            self.p.counterValue = 1
+        else:
+            self.p.counterValue = self.p.counterValue + 1
+
+        self.__lock.release()
+        log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.p.counterValue,True)
+
+    def reset(self):
+        self.p.counterValue = 0
+        self.__lock.release()
+        log.log(1,"info",_("TicketCounter: Reset"),True)
+
+    def quit(self):
+        self.running = False
+        self.__lock.release()
+
+    
+#### End Ticket Counter ####
 
 #### Webservice
 class XMDSException(Exception):
@@ -3300,6 +3503,10 @@ class XiboDisplayManager:
             self.switch = SwitchWatcher(self.scheduler,self)
             self.switch.start()
 
+        # Thread to watch Ticket Counter value and update the display as required
+        self.ticketCounter = TicketCounter(self.Player)
+        self.ticketCounter.start()
+
         # Attempt to register with the webservice.
         # The RegisterDisplay code will block here if
         # we're configured not to play cached content on startup.
@@ -3324,6 +3531,7 @@ class XiboDisplayManager:
         tmpLayout = self.currentLM.layoutNodeName
 
         # New LayoutManager
+        self.Player.ticketOSD = True
         self.currentLM = XiboLayoutManager(self, self.Player, self.scheduler.nextLayout())
         log.log(2,"info",_("XiboLayoutManager: nextLayout() -> Starting new XiboLayoutManager with layout ") + str(self.currentLM.l.layoutID))
         self.currentLM.start()
@@ -3350,12 +3558,33 @@ class XiboPlayer(Thread):
         self.currentFH = None
         self.parent = parent
 
+        self.ticketOSD = True
+
+        self.ticketCounterNextScanCode = int(config.get('TicketCounter', 'nextScanCode'))
+        self.ticketCounterResetScanCode = int(config.get('TicketCounter', 'resetScanCode'))
+        self.counterValue = 0
+        self.counterID = 0
+
+    def enableTicketOSD(self):
+        self.ticketOSD = True
+
+    def disableTicketOSD(self):
+        self.ticketOSD = False
+
     def getDimensions(self):
         # NB: I don't think this is ever used.
         return self.dim
 
     def getElementByID(self,id):
         return self.player.getElementByID(id)
+
+    def nextCounterId(self):
+        self.counterID += 1
+
+        if self.counterID > 10:
+            self.counterID = 1
+
+        return self.counterID
 
     def nextUniqueId(self):
         # This is just to ensure there are never two identically named nodes on the
@@ -3427,7 +3656,22 @@ class XiboPlayer(Thread):
             infoX = 0
         if infoY < 0:
             infoY = 0
-        
+
+        # Calculate the TicketCounter div
+        if useRotation:
+            ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'vwidth'))
+            ticketX = (int(config.get('Main', 'vwidth')) - ticketW) / 2
+            ticketY = (int(config.get('Main', 'vheight')) - ticketW) / 2
+        else:
+            ticketW = (int(config.get('TicketCounter', 'osdWidthPercent')) / 100.0) * int(config.get('Main', 'width'))
+            ticketX = (int(config.get('Main', 'width')) - ticketW) / 2
+            ticketY = (int(config.get('Main', 'height')) - ticketW) / 2
+
+        if ticketX < 0:
+            ticketX = 0
+        if ticketY < 0:
+            ticketY = 0
+
         if useRotation:
             # The layout rotates around the centre so figure out how far we need to move it up/down or left/right to get it centred
             # before it's rotated.
@@ -3442,6 +3686,7 @@ class XiboPlayer(Thread):
         if useRotation:
             avgContent += '<div pos="(%s,%s)" id="rotation" width="%s" height="%s" angle="%s" crop="False">' % (oX,oY,config.get('Main','vwidth'), config.get('Main','vheight'), oR)
         avgContent += '<div id="screen" pos="(0,0)" crop="False" />'
+        avgContent += '<div id="ticketCounter" width="%d" height="%d" x="%d" y="%d" opacity="0" crop="False" />' % (ticketW,ticketW,ticketX,ticketY)
         avgContent += '<div id="osLog" pos="(0,%d)" width="%d" height="20" opacity="0" />' % (self.osLogY,self.osLogX)
         avgContent += '<div id="info" width="400" height="300" x="%d" y="%d" opacity="0" crop="False" />' % (infoX,infoY)
         avgContent += '<div id="offlineUpdate" width="100" height="100" x="0" y="0" opacity="1" crop="False" />'
@@ -3466,7 +3711,22 @@ class XiboPlayer(Thread):
             else:
                 self.info = True
                 self.enqueue('setOpacity',('info',1))
-                
+
+        if self.osLog:
+            log.log(0,"info",_("Detected keypress with scancode %s") % e.scancode,True)
+
+        if e.scancode == self.ticketCounterNextScanCode:
+            try:
+                self.parent.ticketCounter.increment()    
+            except:
+                pass
+
+        if e.scancode == self.ticketCounterResetScanCode:
+            try:
+                self.parent.ticketCounter.reset()
+            except:
+                pass
+
         if self.info:
             # Process key strokes that are only active when the info
             # screen is showing
@@ -3491,15 +3751,35 @@ class XiboPlayer(Thread):
                 # the lot off.
                 log.flush()
 
-                self.parent.downloader.running = False
-                self.parent.downloader.collect()
-                self.parent.scheduler.running = False
-                self.parent.scheduler.collect()
+                try:
+                    self.parent.downloader.running = False
+                    self.parent.downloader.collect()
+                except:
+                    pass
+                
+                try:
+                    self.parent.scheduler.running = False
+                    self.parent.scheduler.collect()
+                except:
+                    pass
+
+                try:
+                    self.parent.ticketCounter.quit()
+                except:
+                    pass
 
                 log.log(5,"info",_("Blocking waiting for Scheduler"))
-                self.parent.scheduler.join()
+                try:
+                    self.parent.scheduler.join()
+                except:
+                    pass
+
                 log.log(5,"info",_("Blocking waiting for DownloadManager"))
-                self.parent.downloader.join()
+                try:
+                    self.parent.downloader.join()
+                except:
+                    pass
+                
                 log.log(5,"info",_("Blocking waiting for Player"))
                 self.player.stop()
                 os._exit(0)
@@ -3550,6 +3830,11 @@ class XiboPlayer(Thread):
                         animation = avg.fadeOut(currentNode,data[2],data[3])
                     if data[0] == "linear":
                         animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
+                    if data[0] == "ease":
+                        animation = anim.EaseInOutAnim(currentNode,data[3],data[2],data[4],data[5],data[7],data[8],False,data[6],None)
+                    if data[0] == "continuous":
+                        animation = anim.ContinuousAnim(currentNode,data[2],data[3],data[4])
+                    animation.start()
                 elif cmd == "play":
                     currentNode = self.player.getElementByID(data)
                     currentNode.play()
@@ -3586,7 +3871,10 @@ class XiboPlayer(Thread):
                     currentNode.setEOFCallback(data[1])
                 elif cmd == "setOpacity":
                     currentNode = self.player.getElementByID(data[0])
-                    currentNode.opacity = data[1]
+                    currentNode.opacity = float(data[1])
+                elif cmd == "setAngle":
+                    currentNode = self.player.getElementByID(data[0])
+                    currentNode.angle = data[1]
                 elif cmd == "browserNavigate":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.onFinishLoading = data[2]
@@ -3598,6 +3886,9 @@ class XiboPlayer(Thread):
                     if not data[2] == None:
                         if data[2] == False:
                             currentNode.executeJavascript("document.body.style.overflow='hidden';")
+                elif cmd == "executeJavascript":
+                    currentNode = self.player.getElementByID(data[0])
+                    currentNode.executeJavascript(data[1])
                 elif cmd == "zoomIn":
                     # BrowserNode Zoom In
                     currentNode = self.player.getElementByID(data)
@@ -3609,6 +3900,26 @@ class XiboPlayer(Thread):
                 elif cmd == "setBitmap":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.setBitmap(data[1])
+                elif cmd == "effect":
+                    currentNode = self.player.getElementByID(data[1])
+                    if data[0] == "shadow":
+                        effect = avg.ShadowFXNode()
+                        effect.setParams(data[2],data[3],data[4],data[5])
+                        currentNode.setEffect(effect)
+                    elif data[0] == "blur":
+                        effect = avg.BlurFXNode()
+                        effect.setParam(data[2])
+                        currentNode.setEffect(effect)
+                elif cmd == "updateCounter":
+                    # Iterate over all the BrowserNodes and
+                    # Call the update method on them
+                    for i in range(1,11):
+                        try:
+                            currentNode = self.player.getElementByID('counter%s' % i)
+                            currentNode.executeJavascript("updateCounter('%s');" % self.counterValue)
+                        except:
+                            pass
+                    
                 self.q.task_done()
                 # Call ourselves again to action any remaining queued items
                 # This does not make an infinite loop since when all queued
@@ -3628,7 +3939,7 @@ class XiboPlayer(Thread):
             except:
                 # log.log(0,"error",_("An unspecified error occured: ") + str(sys.exc_info()[0]))
                 self.__lock.release()
-                log.log(0,"audit",str(cmd) + " : " + str(data))
+                log.log(0,"audit",_("An unspecified error occured: ") + str(cmd) + " : " + str(data))
         except AttributeError:
             log.log(0,"error","Caught that thing that makes the player crash on startup!")
             
@@ -3664,72 +3975,9 @@ class XiboClient:
 
         self.dm.run()
 
-class XiboOptions:
-    "Xibo Options Dialogue"
-    def __init__(self):
-        pass
-    
-    def exitClicked(event):
-        self.player.stop()
-        exit()
-    
-    def play(self):
-        global version
-        
-        print _("Xibo Client v") + version
-        
-        global schemaVersion
-        global log
-        log = XiboLogScreen(0)
-        
-        global config
-        
-        print _("Reading default configuration")
-        config = ConfigParser.ConfigParser()
-        config.readfp(open('defaults.cfg'))
-        
-        print _("Reading user configuration")
-        config.read(['site.cfg', os.path.expanduser('~/.xibo')])
-        
-        # Load avg UI
-        self.player = avg.Player.get()
-            
-#        self.player.setResolution(False,400,300,24)
-        self.player.showCursor(1)
-        self.player.volume = 1
-        
-        # Build the XML that defines the avg node and divs for screen and information
-        avgContent = '<avg id="main" width="400" height="300">'
-        avgContent += '<div id="options_screen" crop="False">'
-        avgContent += '<words id="exitButton">Exit</words>'
-        avgContent += '</div>'
-        avgContent += '</avg>'
-        self.player.loadString(avgContent)
-
-        button.init(avg)
-        exitButton = button.Button(self.player.getElementByID("options_screen"),self.exitClicked)
-        
-        # Release the lock so other threads can add content
-        self.player.play()
-        
-        # Create AVG Player
-        
-        # Add scripts
-        
-        # Run AVG player
-# END XiboOptions Class        
-
 # Main - create a XiboClient and run
 gettext.install("messages", "locale")
 
-parser = OptionParser(usage="usage: %prog [options]",version="%prog v" + version)
-parser.add_option("-o","--options", action="store_true", dest="show_options", default=False, help="Open Xibo Client Options")
-(options, args) = parser.parse_args()
-
-if options.show_options:
-    xc = XiboOptions()
-else:
-    xc = XiboClient()
-
+xc = XiboClient()
 xc.play()
 

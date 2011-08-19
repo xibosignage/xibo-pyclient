@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009 Alex Harrington
+# Copyright (C) 2011 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -21,25 +21,14 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from threading import Thread
 import os
+import time
+import sys
 
-class XiboMedia(Thread):
-    "Abstract Class - Interface for Media"
+from BrowserMediaAnimatedBase import BrowserMediaAnimatedBase
+from threading import Thread
 
-    def __init__(self,log,config,parent,player,mediaNode):
-        """
-        Represents a media item. Can be constructed with valid parent (RegionManager) and Player objects - by a real running layout
-        or with None types when the Layout object is interegated to find out if all the media nodes are in a state ready to run.
-        """
-        Thread.__init__(self)
-        self.__setupMedia__(log,config,parent,player,mediaNode)
-
-    def requiredFiles(self):
-        return []
-
-    def add(self):
-        pass
+class CounterMedia(BrowserMediaAnimatedBase):
 
     def __setupMedia__(self,log,config,parent,player,mediaNode):
         log.log(6,"info",self.__class__.__name__ + " plugin loaded!")
@@ -74,12 +63,12 @@ class XiboMedia(Thread):
             self.regionNodeNameExt = self.parent.regionNodeNameExt
             self.width = self.parent.width
             self.height = self.parent.height
-            self.mediaNodeNameExt = "-" + str(self.p.nextUniqueId())
+            self.mediaNodeNameExt = str(self.p.nextCounterId())
 
         # Calculate the media ID name
         try:
             self.mediaId = str(self.mediaNode.attributes['id'].value)
-            self.mediaNodeName = "M" + self.mediaId + self.regionNodeNameExt + self.mediaNodeNameExt
+            self.mediaNodeName = "counter" + self.mediaNodeNameExt
         except KeyError:
             log.log(1,"error",_("Media XLF is invalid. Missing required id attribute"))
             self.mediaNodeName = "M-invalid-" + self.regionNodeNameExt + self.mediaNodeNameExt
@@ -122,32 +111,47 @@ class XiboMedia(Thread):
         # Parse the effects block
         self.effects = self.mediaNode.getElementsByTagName('effect')
 
-    def run(self):
-        # If there was a problem initialising the media object, kill it off and go to the next media item
-        if self.invalid == True:
-            self.parent.next()
-            return
+        if self.p != None:
+            if str(self.options['popupNotification']) == '1':
+                self.p.ticketOSD = True
+            else:
+                self.p.ticketOSD = False
 
-    def getWidth(self):
-        return self.width
 
-    def getHeight(self):
-        return self.height
+    def injectContent(self):
+        # Parse out the template element from the raw tag.
+        try:
+            for t in self.rawNode.getElementsByTagName('template'):
+                self.templateNode = t
+        
+            for node in self.templateNode.childNodes:
+                if node.nodeType == node.CDATA_SECTION_NODE:
+                    self.template = node.data.strip()
+                    self.log.log(5,'audit','Template is: ' + self.template)
+        except:
+            self.log.log(2,'error','%s Error parsing out the template from the xlf' % self.mediaNodeName)
+            return ''
 
-    def getX(self):
-        return 0
+        # Replace the template [Counter] tag:
+        self.text = self.template.replace("[Counter]", '<span id="Counter">C</span>')
+        self.text = self.text.replace("[counter]", '<span id="Counter">C</span>')
 
-    def getY(self):
-        return 0
+        return self.text
 
-    def getName(self):
-        return self.mediaNodeName
+    def injectScript(self):
+        js = "<script type='text/javascript'>\n\n"
+        js += "function updateCounter(number) {\n"
+        js += "  document.getElementById('Counter').innerHTML = number;\n"
+        js += "}\n"
+        js += "</script>\n\n"
 
-    def requiredFiles(self):
-        return []
+        return js
 
-    def dispose(self):
-        # Media should dispose itself
-        # Call tNext to release the regionManager lock.
-        self.parent.tNext()
-
+    def finishedRendering(self):
+        bo = self.browserOptions()
+        optionsTuple = (self.mediaNodeName,bo[0],bo[1])
+        self.p.enqueue('browserOptions',optionsTuple)
+        self.p.enqueue('executeJavascript',(self.mediaNodeName,"updateCounter('%s');" % self.p.counterValue))
+        self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+        # TODO: This next line should really callback self.parent.next. See timerElapsed function
+        self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
