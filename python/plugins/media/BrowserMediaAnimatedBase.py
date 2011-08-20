@@ -48,13 +48,13 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
                 tmpItem = tmpItem.replace('<div/>','')
                 
                 tmpItem = "<span class='article' style='padding-left:4px;'>%s</span>" % tmpItem
-                if count < len(items):
-                    tmpItem += "<span style='padding-left:4px;'> - </span>"
             else:
                 tmpItem = "<div class='XiboRssItem' style='display:block;padding:4px;width:%dpx'>%s</div>" % (self.width - 10,tmpItem)
             
             content += tmpItem
         
+        self.itemCount = count
+
         # Add in the Copyright Text (if applicable)
         try:
             content += self.options['copyright']
@@ -93,6 +93,12 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
                 self.options['scrollSpeed'] = '30'
         else:
             self.options['scrollSpeed'] = '30'
+
+        if self.options.has_key('durationIsPerItem'):
+            if self.options['durationIsPerItem'] == "":
+                self.options['durationIsPerItem'] = '0'
+        else:
+            self.options['durationIsPerItem'] = '0';
         
         if not self.scaleFactor == 0:
             s = self.options['scrollSpeed']
@@ -101,16 +107,28 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             
         js = ""
         if self.options['direction'] == "single":
-            js = "<script type='text/javascript'>\n\n"
-            js += "function init() {\n"
-            js += "  var totalDuration = %d * 1000;\n" % int(self.duration)
-            js += "  var itemCount = $('.XiboRssItem').size();\n"
-            js += "  var itemTime = totalDuration / itemCount;\n"
-            js += "  if (itemTime < 2000) itemTime = 2000;\n"
-            js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
-            js += "  $('#text').cycle({fx: 'fade', sync: 0, speed: 1, timeout: itemTime, cleartypeNoBg:true});\n"
-            js += "  }\n"
-            js += "</script>\n\n"
+            if self.options['durationIsPerItem'] == 0:
+                js = "<script type='text/javascript'>\n\n"
+                js += "function init() {\n"
+                js += "  var totalDuration = %d * 1000;\n" % int(self.duration)
+                js += "  var itemCount = $('.XiboRssItem').size();\n"
+                js += "  var itemTime = totalDuration / itemCount;\n"
+                js += "  if (itemTime < 2000) itemTime = 2000;\n"
+                js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
+                js += "  $('#text').cycle({fx: 'fade', sync: 0, speed: 1, timeout: itemTime, cleartypeNoBg:true});\n"
+                js += "  }\n"
+                js += "</script>\n\n"
+            else:
+                js = "<script type='text/javascript'>\n\n"
+                js += "function init() {\n"
+                js += "  var totalDuration = %d * 1000 * itemCount;\n" % int(self.duration)
+                js += "  var itemCount = $('.XiboRssItem').size();\n"
+                js += "  var itemTime = %d * 1000;\n" % int(self.duration)
+                js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
+                js += "  $('#text').cycle({fx: 'fade', sync: 0, speed: 1, timeout: itemTime, cleartypeNoBg:true});\n"
+                js += "  }\n"
+                js += "</script>\n\n"
+                self.duration = int(self.duration) * self.itemCount
         elif self.options['direction'] == "none":
             pass
         else:

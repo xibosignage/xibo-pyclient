@@ -28,6 +28,7 @@ import sys, os, codecs
 class BrowserMediaBase(XiboMedia):
         
     def add(self):
+        self.itemCount = 0
         self.tmpPath = os.path.join(self.libraryDir,self.mediaNodeName + "-tmp.html")
         tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + '"/>'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
@@ -46,18 +47,17 @@ class BrowserMediaBase(XiboMedia):
             return
         
         # Write the two out to temporary file
-        
+        try:
+            tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",self.injectContent())
+        except:
+            tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",u"")
+            self.log.log(0,"error","Unable to substitute BODYCONTENT in %s" % self.mediaNodeName)        
+
         try:
             tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",self.injectScript())
         except:
             tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",u"")
             self.log.log(0,"error","Unable to substitute HEADCONTENT in %s" % self.mediaNodeName)
-        
-        try:
-            tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",self.injectContent())
-        except:
-            tmpHtml = tmpHtml.replace("<!--[[[BODYCONTENT]]]-->",u"")
-            self.log.log(0,"error","Unable to substitute BODYCONTENT in %s" % self.mediaNodeName)
         
         try:
             try:
