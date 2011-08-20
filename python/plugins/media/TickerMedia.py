@@ -162,9 +162,9 @@ class TickerMedia(BrowserMediaAnimatedBase):
                     numItems = int(self.options['numItems'])
 
                     if self.options['takeItemsFrom'] == 'start':
-                        content = content[numItems:]
-                    else:
                         content = content[:numItems]
+                    else:
+                        content = content[numItems:]
 
             except:
                 pass
