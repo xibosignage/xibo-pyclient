@@ -2013,7 +2013,7 @@ more verbose the logging</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkEntry" id="lift8TagText7">
+                              <object class="GtkEntry" id="lift15TagText">
                                 <property name="width_request">140</property>
                                 <property name="height_request">27</property>
                                 <property name="visible">True</property>
@@ -2319,7 +2319,7 @@ Colour</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkButton" id="osdBackColourButton1">
+                              <object class="GtkButton" id="osdFontColourButton">
                                 <property name="label" translatable="yes">Pick
 Colour</property>
                                 <property name="width_request">65</property>
