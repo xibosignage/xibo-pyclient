@@ -875,7 +875,7 @@ class xiboConfWindow:
 
 			self.logger7.error(_("Could not open configuration file. Cannot continue"))
 
-			self.errorDialog.set_markup(_("File path is a file. Cannot write to itCould not open the configuration application configuration file"))
+			self.errorDialog.set_markup(_("Could not open the configuration application configuration file"))
 			self.errorDialog.show()
 			return -1
 
@@ -1739,7 +1739,7 @@ if __name__ == "__main__":
 	#Grab the command line options
 	options = cmdOptions()
 	
-	#Find out of the lift option has been passed
+	#Find out if the lift option has been passed
 	lift = False
 	try:
 		options.index("lift")
