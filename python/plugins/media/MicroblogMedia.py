@@ -87,6 +87,8 @@ class MicroblogMedia(XiboMedia):
     def run(self):
         # Start the region timer so the media dies at the right time.
         self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
+
+        self.startStats()
         
         # Pointer to the currently displayed post:
         self.__pointer = -1
@@ -304,6 +306,8 @@ class MicroblogMedia(XiboMedia):
     def dispose(self):
         # Remember that we've finished running
         self.running = False
+        
+        self.returnStats()
         
         # Clean up any temporary files left
         try:

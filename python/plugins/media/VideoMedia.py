@@ -40,9 +40,12 @@ class VideoMedia(XiboMedia):
         else:
             self.p.enqueue('eofCallback',(self.mediaNodeName,self.parent.next))
 
+        self.startStats()
+
     def requiredFiles(self):
         return [str(self.options['uri'])]
     
     def dispose(self):
+        self.returnStats()
         self.p.enqueue('del',self.mediaNodeName)
         self.parent.tNext()

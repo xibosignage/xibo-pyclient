@@ -73,6 +73,7 @@ class BrowserMediaBase(XiboMedia):
         
         # Navigate the browser to the temporary file
         self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),self.finishedRendering))
+        self.startStats()
 
     def requiredFiles(self):
         return []
@@ -88,6 +89,7 @@ class BrowserMediaBase(XiboMedia):
 	
     def dispose(self):
         self.p.enqueue('del',self.mediaNodeName)
+        self.returnStats()
         try:
             os.remove(self.tmpPath)
         except:
