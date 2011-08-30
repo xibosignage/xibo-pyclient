@@ -2731,6 +2731,16 @@ class TicketCounter(Thread):
         self.__lock.release()
         log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.p.counterValue,True)
 
+    def decrement(self):
+        # Decremement the counter by one, or reset to max if hit 1
+        if self.p.counterValue == 1:
+            self.p.counterValue = self.max
+        else:
+            self.p.counterValue = self.p.counterValue - 1
+
+        self.__lock.release()
+        log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.p.counterValue,True)
+
     def reset(self):
         self.p.counterValue = 0
         self.__lock.release()
@@ -3562,6 +3572,7 @@ class XiboPlayer(Thread):
 
         self.ticketCounterNextScanCode = int(config.get('TicketCounter', 'nextScanCode'))
         self.ticketCounterResetScanCode = int(config.get('TicketCounter', 'resetScanCode'))
+        self.ticketCounterPrevScanCode = int(config.get('TicketCounter', 'prevScanCode'))
         self.counterValue = 0
         self.counterID = 0
 
@@ -3726,6 +3737,13 @@ class XiboPlayer(Thread):
                 self.parent.ticketCounter.reset()
             except:
                 pass
+
+        if e.scancode == self.ticketCounterPrevScanCode:
+            try:
+                self.parent.ticketCounter.decrement()
+            except:
+                pass
+
 
         if self.info:
             # Process key strokes that are only active when the info
