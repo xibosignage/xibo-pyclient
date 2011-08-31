@@ -1580,10 +1580,12 @@ class XiboRegionManager(Thread):
         self.oneItemOnly = False
         self.previousMedia = None
         self.currentMedia = None
+        self.regionId = None
 
         # Calculate the region ID name
         try:
             self.regionNodeName = "R" + str(self.regionNode.attributes['id'].value) + self.regionNodeNameExt
+            self.regionId = str(self.regionNode.attributes['id'].value)
         except KeyError:
             log.log(1,"error",_("Region XLF is invalid. Missing required id attribute"), True)
             self.regionExpired = True
@@ -2928,6 +2930,35 @@ class XMDS:
             raise XMDSException("XMDS could not be initialised")
 
         log.lights('RF','green')
+        return req
+
+    def GetResource(self,layoutID,regionID,mediaID):
+        """Connect to XMDS and get a resource"""
+
+        req = None
+        if self.check():
+            try:
+                req = self.server.GetResource(self.getKey(),self.getUUID(), int(layoutID), regionID, mediaID, self.__schemaVersion__)
+            except SOAPpy.Types.faultType, err:
+                raise XMDSException("GetResource: Incorrect arguments passed to XMDS.")
+            except SOAPpy.Errors.HTTPError, err:
+                log.log(0,"error",str(err))
+                raise XMDSException("GetResource: HTTP error connecting to XMDS.")
+            except socket.error, err:
+                log.log(0,"error",str(err))
+                raise XMDSException("GetResource: socket error connecting to XMDS.")
+            except AttributeError, err:
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("GetResource: webservice not initialised")
+            except KeyError, err:
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("GetResource: Webservice returned non XML content")
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            raise XMDSException("XMDS could not be initialised")
+
         return req
     
     def SubmitLog(self,logXml):
