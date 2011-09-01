@@ -26,6 +26,7 @@ from threading import Thread
 import shutil
 import math
 import os
+import codecs
 
 class DatasetviewMedia(XiboMedia):
     def add(self):
@@ -114,7 +115,7 @@ class DatasetviewMedia(XiboMedia):
             try:
                 try:
                     f = open(os.path.join(self.libraryDir,self.mediaId) + '-cache.xml','w')
-                    f.write(s)
+                    f.write(s.encode("utf-8"))
                 finally:
                     f.close()
             except:
