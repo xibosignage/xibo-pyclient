@@ -115,7 +115,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
                 js += "  var itemTime = totalDuration / itemCount;\n"
                 js += "  if (itemTime < 2000) itemTime = 2000;\n"
                 js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
-                js += "  $('#text').cycle({fx: 'fade', sync: 0, speed: 1, timeout: itemTime, cleartypeNoBg:true});\n"
+                js += "  $('#text').cycle({fx: 'fade', timeout: itemTime, cleartypeNoBg:true});\n"
                 js += "  }\n"
                 js += "</script>\n\n"
             else:
@@ -125,7 +125,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
                 js += "  var itemCount = $('.XiboRssItem').size();\n"
                 js += "  var itemTime = %d * 1000;\n" % int(self.duration)
                 js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
-                js += "  $('#text').cycle({fx: 'fade', sync: 0, speed: 1, timeout: itemTime, cleartypeNoBg:true});\n"
+                js += "  $('#text').cycle({fx: 'fade', timeout: itemTime, cleartypeNoBg:true});\n"
                 js += "  }\n"
                 js += "</script>\n\n"
                 self.duration = int(self.duration) * self.itemCount
@@ -134,7 +134,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
         else:
             js = "<script type='text/javascript'>\n\n"
             js += "function init() {\n"
-            js += "  tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "');\n"
+            js += "  tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "', 1);\n"
             js += "  var timer = 0;\n"
             js += "  timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + ");\n"
             js += "}"
