@@ -134,7 +134,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
         else:
             js = "<script type='text/javascript'>\n\n"
             js += "function init() {\n"
-            js += "  tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "', 1);\n"
+            js += "  tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "', 2);\n"
             js += "  var timer = 0;\n"
             js += "  timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + ");\n"
             js += "}"
