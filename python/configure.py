@@ -311,11 +311,13 @@ class xiboConfWindow:
 		self.osdBackColourText = self.builder.get_object("osdBackColourText")
 		self.osdBackOpacitySpin = self.builder.get_object("osdBackOpacitySpin")
 		self.osdFontSizeSpin = self.builder.get_object("osdFontSizeSpin")
-#		self.osdFontSizeText = self.builder.get_object("osdFontSizeText
+		self.osdFontColourText = self.builder.get_object("osdFontColourText")
 		self.osdWidthSpin = self.builder.get_object("osdWidthSpin")
 		self.osdTimeoutSpin = self.builder.get_object("osdTimeoutSpin")
 		self.osdBackColourButton = self.builder.get_object("osdBackColourButton")
 		self.osdFontColourButton = self.builder.get_object("osdFontColourButton")
+
+		self.scanCodePrevText = self.builder.get_object("scanCodePrevText")
 
 		self.errorDialog = self.builder.get_object("errorDialog")
 		self.messageDialog = self.builder.get_object("infoDialog")
@@ -595,7 +597,7 @@ class xiboConfWindow:
 		self.osdFontColourLabel = self.builder.get_object("osdFontColourLabel")
 		self.osdWidthLabel = self.builder.get_object("osdWidthLabel")
 		self.osdTimeoutLabel = self.builder.get_object("osdTimeOutLabel")
-
+		self.scanCodePrevLabel = self.builder.get_object("scanCodePrevLabel")
 
 		#Now set the text in the labels. This is useful so that we can
 		#then use this as a basis for translations on launchpad
@@ -673,6 +675,7 @@ class xiboConfWindow:
 
 		self.counterTabLabel.set_label(_("Counter"))
 		self.scanCodeNextLabel.set_label(_("Increment counter\nscan code"))
+		self.scanCodePrevLabel.set_label(_("Decrement counter\nscan code"))
 		self.scanCodeResetLabel.set_label(_("Reset counter\nscan code"))
 		self.maxCounterLabel.set_label(_("Maximum counter\nscan code"))
 
@@ -1074,9 +1077,13 @@ class xiboConfWindow:
 		self.thirdSerialText.set_text("")
 		self.fourthSerialText.set_text("")
 
+		self.osdFontColourText.set_text("")
+
 		self.mediaInventoryCombo.set_active(0)
 
 		self.scanCodeNextText.set_text("")
+		self.scanCodePrevText.set_text("")
+
 		self.scanCodeResetText.set_text("")
 		self.counterMaxSpin.set_value(0)
 
@@ -1534,6 +1541,102 @@ class xiboConfWindow:
 		except:
 			self.confValErr("liftEnabled",logger)
 
+
+		#Now do the new options (extra lift and counter specifically)
+
+#		try:
+#			self.mediaInventoryCombo.set_value(int(config.get("Main","mediaInventory")))
+#		except:
+#			self.confValErr("mediaInventory",logger)
+
+		try:
+			self.scanCodePrevText.set_text(config.get("TicketCounter","prevScanCode"))
+		except:
+			self.confValErr("nextScanCode",logger)
+
+		try:
+			self.scanCodeNextText.set_text(config.get("TicketCounter","nextScanCode"))
+		except:
+			self.confValErr("prevScanCode",logger)
+
+		try:
+			self.scanCodeResetText.set_text(config.get("TicketCounter","resetScanCode"))
+		except:
+			self.confValErr("resetScanCode",logger)
+
+		try:
+			self.osdBackColourText.set_text(config.get("TicketCounter","osdBackColour"))
+		except:
+			self.confValErr("osdBackColour",logger)
+
+		try:
+			self.osdFontColourText.set_text(config.get("TicketCounter","osdFontColour"))
+		except:
+			self.confValErr("osdFontColour",logger)
+
+		try:
+			self.lift8TagText.set_text(config.get("LiftTags","lift8"))
+		except:
+			self.confValErr("lift8",logger)
+
+		try:
+			self.lift9TagText.set_text(config.get("LiftTags","lift9"))
+		except:
+			self.confValErr("lift9",logger)
+
+		try:
+			self.lift10TagText.set_text(config.get("LiftTags","lift10"))
+		except:
+			self.confValErr("lift10",logger)
+
+		try:
+			self.lift11TagText.set_text(config.get("LiftTags","lift11"))
+		except:
+			self.confValErr("lift11",logger)
+
+		try:
+			self.lift12TagText.set_text(config.get("LiftTags","lift12"))
+		except:
+			self.confValErr("lift12",logger)
+
+		try:
+			self.lift13TagText.set_text(config.get("LiftTags","lift13"))
+		except:
+			self.confValErr("lift13",logger)
+
+		try:
+			self.lift14TagText.set_text(config.get("LiftTags","lift14"))
+		except:
+			self.confValErr("lift14",logger)
+
+		try:
+			self.lift15TagText.set_text(config.get("LiftTags","lift15"))
+		except:
+			self.confValErr("lift15",logger)
+
+		try:
+			self.thirdSerialText.set_text(config.get("Lift","serial2"))
+		except:
+			self.confValErr("3rdSerial",logger)
+
+		try:
+			self.fourthSerialText.set_text(config.get("Lift","serial3"))
+		except:
+			self.confValErr("4thSerial",logger)
+
+		try:
+			self.counterMaxSpin.set_value(int(config.get("TicketCounter","maxCount")))
+		except:
+			self.confValErr("maxCount",logger)
+
+
+#			self.osdBackOpacitySpin
+#			self.osdFontSizeSpin
+#			self.osdWidthSpin
+#			self.osdTimeoutSpin
+
+
+
 	def saveConfigSignal(self,widget,data=None):
 		a = self.getConfValues()
 		self.logger11.info("Config Values to process: %s"%a)
@@ -1681,6 +1784,8 @@ class xiboConfWindow:
 		self.mediaInventoryCombo.set_tooltip_text(_("Set whether media is added to the inventory"))
 
 		self.scanCodeNextText.set_tooltip_text(_("Set a scancode for incrementing the counter"))
+		self.scanCodePrevText.set_tooltip_text(_("Set a scancode for decrementing the counter"))
+
 		self.scanCodeResetText.set_tooltip_text(_("Set a scancode to reset the counter"))
 		self.counterMaxSpin.set_tooltip_text(_("Set the maximum value for the counter"))
 

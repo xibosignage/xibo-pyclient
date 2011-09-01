@@ -2106,8 +2106,8 @@ scan code</property>
 value</property>
                   </object>
                   <packing>
-                    <property name="x">333</property>
-                    <property name="y">23</property>
+                    <property name="x">305</property>
+                    <property name="y">75</property>
                   </packing>
                 </child>
                 <child>
@@ -2252,7 +2252,7 @@ colour</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkEntry" id="osdFontSizeText">
+                              <object class="GtkEntry" id="osdFontColourText">
                                 <property name="width_request">100</property>
                                 <property name="height_request">27</property>
                                 <property name="visible">True</property>
@@ -2365,7 +2365,7 @@ Colour</property>
                     <property name="secondary_icon_sensitive">True</property>
                   </object>
                   <packing>
-                    <property name="x">170</property>
+                    <property name="x">155</property>
                     <property name="y">30</property>
                   </packing>
                 </child>
@@ -2382,7 +2382,7 @@ Colour</property>
                     <property name="secondary_icon_sensitive">True</property>
                   </object>
                   <packing>
-                    <property name="x">170</property>
+                    <property name="x">155</property>
                     <property name="y">82</property>
                   </packing>
                 </child>
@@ -2399,8 +2399,40 @@ Colour</property>
                     <property name="secondary_icon_sensitive">True</property>
                   </object>
                   <packing>
-                    <property name="x">484</property>
+                    <property name="x">445</property>
+                    <property name="y">82</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="scanCodePrevText">
+                    <property name="width_request">140</property>
+                    <property name="height_request">27</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="invisible_char">•</property>
+                    <property name="invisible_char_set">True</property>
+                    <property name="primary_icon_activatable">False</property>
+                    <property name="secondary_icon_activatable">False</property>
+                    <property name="primary_icon_sensitive">True</property>
+                    <property name="secondary_icon_sensitive">True</property>
+                  </object>
+                  <packing>
+                    <property name="x">445</property>
                     <property name="y">30</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="scanCodePrevLabel">
+                    <property name="width_request">135</property>
+                    <property name="height_request">40</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Decrement counter
+scan code</property>
+                  </object>
+                  <packing>
+                    <property name="x">305</property>
+                    <property name="y">24</property>
                   </packing>
                 </child>
               </object>
