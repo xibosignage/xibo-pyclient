@@ -1877,6 +1877,14 @@ class xiboConfWindow:
 			liftEnableText = model[index][0].lower()
 
 			liftDefaultTag = [configType1,self.liftDefaultTagText.get_text()]
+			lift15Tag = [configType1, self.lift15TagText.get_text()]
+			lift14Tag = [configType1, self.lift14TagText.get_text()]
+			lift13Tag = [configType1, self.lift13TagText.get_text()]
+			lift12Tag = [configType1, self.lift12TagText.get_text()]
+			lift11Tag = [configType1, self.lift11TagText.get_text()]
+			lift10Tag = [configType1, self.lif107TagText.get_text()]
+			lift9Tag = [configType1, self.lift9TagText.get_text()]
+			lift8Tag = [configType1, self.lift8TagText.get_text()]
 			lift7Tag = [configType1, self.lift7TagText.get_text()]
 			lift6Tag = [configType1, self.lift6TagText.get_text()]
 			lift5Tag = [configType1, self.lift5TagText.get_text()]
@@ -1892,6 +1900,30 @@ class xiboConfWindow:
 		
 			if liftDefaultTag[1] != "":
 				configOptions["default"] = liftDefaultTag
+
+			if lift15Tag[1] != "":
+				configOptions["lift15"] =lift15Tag
+
+			if lift14Tag[1] != "":
+				configOptions["lift14"] =lift14Tag
+
+			if lift13Tag[1] != "":
+				configOptions["lift13"] =lift13Tag
+
+			if lift12Tag[1] != "":
+				configOptions["lift12"] =lift12Tag
+
+			if lift11Tag[1] != "":
+				configOptions["lift11"] =lift11Tag
+
+			if lift10Tag[1] != "":
+				configOptions["lift10"] =lift10Tag
+
+			if lift9Tag[1] != "":
+				configOptions["lift9"] =lift9Tag
+
+			if lift8Tag[1] != "":
+				configOptions["lift8"] =lift8Tag
 
 			if lift7Tag[1] != "":
 				configOptions["lift7"] =lift7Tag
