@@ -3670,6 +3670,20 @@ class XiboPlayer(Thread):
         except ConfigParser.NoOptionError:
             pass
         
+        # Check Counter for duplicate scan codes
+        nS = int(config.get('TicketCounter', 'nextScanCode'))
+        pS = int(config.get('TicketCounter', 'prevScanCode'))
+        rS = int(config.get('TicketCounter', 'resetScanCode'))
+
+        if (nS == pS):
+            log.log(0, 'warn', _('nextScanCode is identical to prevScanCode in your configuration. You almost certainly don\'t want that'))
+
+        if (nS == rS):
+            log.log(0, 'warn', _('nextScanCode is identical to resetScanCode in your configuration. You almost certainly don\'t want that'))
+
+        if (rS == pS):
+            log.log(0, 'warn', _('resetScanCode is identical to prevScanCode in your configuration. You almost certainly don\'t want that'))
+
 
         # Load the BrowserNode plugin
         self.player.loadPlugin("libbrowsernode")
