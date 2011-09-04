@@ -1552,12 +1552,12 @@ class xiboConfWindow:
 		try:
 			self.scanCodePrevText.set_text(config.get("TicketCounter","prevScanCode"))
 		except:
-			self.confValErr("nextScanCode",logger)
+			self.confValErr("prevScanCode",logger)
 
 		try:
 			self.scanCodeNextText.set_text(config.get("TicketCounter","nextScanCode"))
 		except:
-			self.confValErr("prevScanCode",logger)
+			self.confValErr("nextScanCode",logger)
 
 		try:
 			self.scanCodeResetText.set_text(config.get("TicketCounter","resetScanCode"))
@@ -1629,12 +1629,28 @@ class xiboConfWindow:
 		except:
 			self.confValErr("maxCount",logger)
 
+		#Multiply the opacity by 100 to turn into a percentage
+#		try:
+		if 1:
+			self.osdBackOpacitySpin.set_value(float(config.get("TicketCounter","osdBackOpacity"))*100)
+#		except:
+#			self.confValErr("osdBackOpacity",logger)
 
-#			self.osdBackOpacitySpin
-#			self.osdFontSizeSpin
-#			self.osdWidthSpin
-#			self.osdTimeoutSpin
+		try:
+			self.osdFontSizeSpin.set_value(int(config.get("TicketCounter","osdFontSize")))
+		except:
+			self.confValErr("osdFontSize",logger)
 
+		try:
+			self.osdWidthSpin.set_value(int(config.get("TicketCounter","osdWidthPercent")))
+		except:
+			self.confValErr("osdWidthPercent",logger)
+	
+		#Divide by 1000 to turn the value from seconds to milliseconds
+		try:
+			self.osdTimeoutSpin.set_value(int(config.get("TicketCounter","osdTimeOut"))/1000)
+		except:
+			self.confValErr("osdTimeOut",logger)
 
 
 	def saveConfigSignal(self,widget,data=None):
@@ -1644,7 +1660,7 @@ class xiboConfWindow:
 
 		config.optionxform = str
 
-		configOptions = ["Main", "Logging", "Stats", "TickerMedia", "Lift", "LiftTags"]
+		configOptions = ["Main", "Logging", "Stats", "TickerMedia", "Lift", "LiftTags","TicketCounter"]
 
 		for configOption in configOptions:
 			#print configOption
