@@ -440,6 +440,8 @@ class xiboConfWindow:
 
 		mediaInventoryOptions = ["True","False"]
 
+		self.mediaInventoryOptions = mediaInventoryOptions
+
 		for elem in mediaInventoryOptions:
 			mediaInventoryListStore.append([elem])
 
@@ -1548,6 +1550,21 @@ class xiboConfWindow:
 #			self.mediaInventoryCombo.set_value(int(config.get("Main","mediaInventory")))
 #		except:
 #			self.confValErr("mediaInventory",logger)
+
+		try:
+			mediaInv = config.get("Main","mediaInventory")
+
+			val = 0
+			for elem in self.mediaInventoryOptions:
+				if elem.lower() == mediaInv.lower():
+					break
+				val += 1
+			logger.info("scheduler: %s"%self.mediaInventoryOptions[val])
+
+			self.mediaInventoryCombo.set_active(val)
+		except:
+			self.confValErr("mediaInventory",logger)
+
 
 		try:
 			self.scanCodePrevText.set_text(config.get("TicketCounter","prevScanCode"))
