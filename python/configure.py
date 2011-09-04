@@ -286,6 +286,39 @@ class xiboConfWindow:
 		self.colourDepthCombo = self.builder.get_object("colourDepthCombo")
 		self.notebook1 = self.builder.get_object("notebook1")
 
+		self.lift8TagText = self.builder.get_object("lift8TagText")
+		self.lift9TagText = self.builder.get_object("lift9TagText")
+		self.lift10TagText = self.builder.get_object("lift10TagText")
+		self.lift11TagText = self.builder.get_object("lift11TagText")
+		self.lift12TagText = self.builder.get_object("lift12TagText")
+		self.lift13TagText = self.builder.get_object("lift13TagText")
+		self.lift14TagText = self.builder.get_object("lift14TagText")
+		self.lift15TagText = self.builder.get_object("lift15TagText")
+
+		self.thirdSerialText = self.builder.get_object("thirdSerialText")
+		self.fourthSerialText = self.builder.get_object("fourthSerialText")
+
+		self.mediaInventoryCombo = self.builder.get_object("mediaInventoryCombo")
+
+		self.popUpSettingsFrame = self.builder.get_object("popUpSettingsFrame")
+
+		self.colourSelectdialog1 = self.builder.get_object("colourSelectdialog1")
+
+		self.scanCodeNextText = self.builder.get_object("scanCodeNextText")
+		self.scanCodeResetText = self.builder.get_object("scanCodeResetText")
+		self.counterMaxSpin = self.builder.get_object("counterMaxSpin")
+
+		self.osdBackColourText = self.builder.get_object("osdBackColourText")
+		self.osdBackOpacitySpin = self.builder.get_object("osdBackOpacitySpin")
+		self.osdFontSizeSpin = self.builder.get_object("osdFontSizeSpin")
+		self.osdFontColourText = self.builder.get_object("osdFontColourText")
+		self.osdWidthSpin = self.builder.get_object("osdWidthSpin")
+		self.osdTimeoutSpin = self.builder.get_object("osdTimeoutSpin")
+		self.osdBackColourButton = self.builder.get_object("osdBackColourButton")
+		self.osdFontColourButton = self.builder.get_object("osdFontColourButton")
+
+		self.scanCodePrevText = self.builder.get_object("scanCodePrevText")
+
 		self.errorDialog = self.builder.get_object("errorDialog")
 		self.messageDialog = self.builder.get_object("infoDialog")
 
@@ -324,9 +357,11 @@ class xiboConfWindow:
 		#Set a class instance variable for whether the advanced tab is shown or not
 		self.advancedTabVisible = False
 
-		#Now hide the tab
+		#Now hide the tab for the advanced settings and counter settings
 		advancedPage = self.notebook1.get_nth_page(3)		
+		counterPage = self.notebook1.get_nth_page(5)
 		advancedPage.hide()		
+		counterPage.hide()
 
 		#Fill in the comboboxes
 
@@ -384,8 +419,6 @@ class xiboConfWindow:
 		self.colourDepthCombo.pack_start(cell, True)
 		self.colourDepthCombo.add_attribute(cell, "text", 0)
 
-
-
 		#lift enable combobox
 		
 		liftEnableListStore = gtk.ListStore(gobject.TYPE_STRING)
@@ -400,6 +433,23 @@ class xiboConfWindow:
 
 		self.liftEnableCombo.pack_start(cell, True)
 		self.liftEnableCombo.add_attribute(cell, "text", 0)
+
+		#Media inventory combobox
+
+		mediaInventoryListStore = gtk.ListStore(gobject.TYPE_STRING)
+
+		mediaInventoryOptions = ["True","False"]
+
+		self.mediaInventoryOptions = mediaInventoryOptions
+
+		for elem in mediaInventoryOptions:
+			mediaInventoryListStore.append([elem])
+
+		self.mediaInventoryCombo.set_model(mediaInventoryListStore)
+		self.mediaInventoryCombo.set_active(0)
+
+		self.mediaInventoryCombo.pack_start(cell, True)
+		self.mediaInventoryCombo.add_attribute(cell, "text", 0)
 
 
 		#Set the range of values we accept for the spin controls
@@ -416,6 +466,20 @@ class xiboConfWindow:
 		vheight_adj = gtk.Adjustment(0, 0, 10000, 1.0, 2.0, 0.0)
 		vrotate_adj = gtk.Adjustment(0, -359, 359, 1.0, 2.0, 0.0)
 		liftTrigger_adj = gtk.Adjustment(0, 0, 100, 1.0, 2.0, 0.0)
+
+		osdBackOpacity_adj = gtk.Adjustment(70,1,100,1,2,0)
+		osdFontSize_adj = gtk.Adjustment(270,24,400,1,5,0)
+
+		osdWidth_adj = gtk.Adjustment(70,1,100,1,2,0)
+		osdTimeout_adj = gtk.Adjustment(5,1,10,1,1,0)
+
+		counterMax_adj = gtk.Adjustment(99,1,99,1,2,0)
+
+		self.osdBackOpacitySpin.configure(osdBackOpacity_adj,0,0)
+		self.osdFontSizeSpin.configure(osdFontSize_adj,0,0)
+		self.osdWidthSpin.configure(osdWidth_adj,0,0)
+		self.osdTimeoutSpin.configure(osdTimeout_adj,0,0)
+		self.counterMaxSpin.configure(counterMax_adj,0,0)
 
 		self.screenWidthText.configure(width_adj, 0, 0)
 		self.screenWidthText.set_wrap(True)
@@ -509,6 +573,33 @@ class xiboConfWindow:
 		self.onlineOpLabel = self.builder.get_object("onlineOpLabel")
 		self.offlineOpLabel  = self.builder.get_object("offlineOpLabel")
 
+		self.lift8Label = self.builder.get_object("lift8Label")
+		self.lift9Label = self.builder.get_object("lift9Label")
+		self.lift10Label = self.builder.get_object("lift10Label")
+		self.lift11Label = self.builder.get_object("lift11Label")
+		self.lift12Label = self.builder.get_object("lift12Label")
+		self.lift13Label = self.builder.get_object("lift13Label")
+		self.lift14Label = self.builder.get_object("lift14Label")
+		self.lift15Label = self.builder.get_object("lift15Label")
+
+		self.thirdSerialLabel = self.builder.get_object("thirdSerialLabel")
+		self.fourthSerialLabel = self.builder.get_object("fourthSerialLabel")
+
+		self.mediaInventoryLabel = self.builder.get_object("mediaInventoryLabel")
+
+		self.counterTabLabel = self.builder.get_object("counterTabLabel")
+		self.scanCodeNextLabel = self.builder.get_object("scanCodeNextLabel")
+		self.scanCodeResetLabel = self.builder.get_object("scanCodeResetLabel")
+		self.maxCounterLabel = self.builder.get_object("maxCounterLabel")
+
+		self.popUpSettingsLabel = self.builder.get_object("popUpSettingsLabel")
+		self.osdBackColourLabel = self.builder.get_object("osdBackColourLabel")
+		self.osdBackOpacityLabel = self.builder.get_object("osdBackOpacityLabel")
+		self.osdFontSizeLabel = self.builder.get_object("osdFontSizeLabel")
+		self.osdFontColourLabel = self.builder.get_object("osdFontColourLabel")
+		self.osdWidthLabel = self.builder.get_object("osdWidthLabel")
+		self.osdTimeoutLabel = self.builder.get_object("osdTimeOutLabel")
+		self.scanCodePrevLabel = self.builder.get_object("scanCodePrevLabel")
 
 		#Now set the text in the labels. This is useful so that we can
 		#then use this as a basis for translations on launchpad
@@ -568,6 +659,35 @@ class xiboConfWindow:
 
 		self.onlineOpLabel.set_label(_("Online operation (syncronise with Xibo server)"))
 #		self.offlineOpLabel.set_label(_("Offline operation (synchronise with USB memory stick)"))
+
+
+		self.lift8Label.set_label(_("lift8"))
+		self.lift9Label.set_label(_("lift9"))
+		self.lift10Label.set_label(_("lift10"))
+		self.lift11Label.set_label(_("lift11"))
+		self.lift12Label.set_label(_("lift12"))
+		self.lift13Label.set_label(_("lift13"))
+		self.lift14Label.set_label(_("lift14"))
+		self.lift15Label.set_label(_("lift15"))
+
+		self.thirdSerialLabel.set_label(_("3rd Serial Port"))
+		self.fourthSerialLabel.set_label(_("4th Serial Port"))
+
+		self.mediaInventoryLabel.set_label(_("Media inventory"))
+
+		self.counterTabLabel.set_label(_("Counter"))
+		self.scanCodeNextLabel.set_label(_("Increment counter\nscan code"))
+		self.scanCodePrevLabel.set_label(_("Decrement counter\nscan code"))
+		self.scanCodeResetLabel.set_label(_("Reset counter\nscan code"))
+		self.maxCounterLabel.set_label(_("Maximum counter\nscan code"))
+
+		self.popUpSettingsLabel.set_label(_("Pop-up settings"))
+		self.osdBackColourLabel.set_label(_("Background\ncolour"))
+		self.osdBackOpacityLabel.set_label(_("Opacity"))
+		self.osdFontSizeLabel.set_label(_("Fontsize"))
+		self.osdFontColourLabel.set_label(_("Font colour"))
+		self.osdWidthLabel.set_label(_("Width"))
+		self.osdTimeoutLabel.set_label(_("Timeout"))
 
 		#Set the icon for the Window
 		self.window.set_icon_from_file("xibo.ico")
@@ -757,16 +877,22 @@ class xiboConfWindow:
 		Used to hide / display the advanced notebook tab"""
 
 		advancedPage = self.notebook1.get_nth_page(3)		
+		counterPage = self.notebook1.get_nth_page(5)
 
 		if self.advancedOptionsCheck.get_active() and self.advancedTabVisible == False:
 			advancedPage.show()
+			counterPage.show()
 			self.advancedTabVisible = True
 			self.logger6.info(_("advancedTabEnabled"))
+			self.logger6.info(_("counterTabEnabled"))
+
 		
 		elif self.advancedOptionsCheck.get_active() == False and self.advancedTabVisible:
 			advancedPage.hide()
+			counterPage.hide()
 			self.advancedTabVisible = False
 			self.logger6.info(_("advancedTabDisabled"))
+			self.logger6.info(_("counterTabDisabled"))
 
 	def readConfigAppConf(self):
 		"""This reads the configuration file that is used by the configuration application"""
@@ -875,7 +1001,7 @@ class xiboConfWindow:
 
 			self.logger7.error(_("Could not open configuration file. Cannot continue"))
 
-			self.errorDialog.set_markup(_("File path is a file. Cannot write to itCould not open the configuration application configuration file"))
+			self.errorDialog.set_markup(_("Could not open the configuration application configuration file"))
 			self.errorDialog.show()
 			return -1
 
@@ -907,7 +1033,7 @@ class xiboConfWindow:
 		self.schedulerCombo.set_active(0)
 		self.downloaderCombo.set_active(0)
 		self.colourDepthCombo.set_active(0)
-		self.manualUpdateCombo.set_active(0)
+#		self.manualUpdateCombo.set_active(0)
 
 		
 		self.checksumCheckButton.set_active(False) 
@@ -941,6 +1067,36 @@ class xiboConfWindow:
 
 		self.xmdsLicenseKeyEntry.set_text("")
 		
+		self.lift8TagText.set_text("")
+		self.lift9TagText.set_text("")
+		self.lift10TagText.set_text("")
+		self.lift11TagText.set_text("")
+		self.lift12TagText.set_text("")
+		self.lift13TagText.set_text("")
+		self.lift14TagText.set_text("")
+		self.lift15TagText.set_text("")
+
+		self.thirdSerialText.set_text("")
+		self.fourthSerialText.set_text("")
+
+		self.osdFontColourText.set_text("")
+
+		self.mediaInventoryCombo.set_active(0)
+
+		self.scanCodeNextText.set_text("")
+		self.scanCodePrevText.set_text("")
+
+		self.scanCodeResetText.set_text("")
+		self.counterMaxSpin.set_value(0)
+
+		self.osdBackColourText.set_text("")
+		self.osdBackOpacitySpin.set_value(0)
+		self.osdFontSizeSpin.set_value(0)
+		self.osdWidthSpin.set_value(0)
+		self.osdTimeoutSpin.set_value(0)
+
+
+
 		self.logger9.info("Clearing form elements")
 
 	def logTypeComboChanged(self,widget,data=None):
@@ -1387,52 +1543,206 @@ class xiboConfWindow:
 		except:
 			self.confValErr("liftEnabled",logger)
 
+
+		#Now do the new options (extra lift and counter specifically)
+
+#		try:
+#			self.mediaInventoryCombo.set_value(int(config.get("Main","mediaInventory")))
+#		except:
+#			self.confValErr("mediaInventory",logger)
+
+		try:
+			mediaInv = config.get("Main","mediaInventory")
+
+			val = 0
+			for elem in self.mediaInventoryOptions:
+				if elem.lower() == mediaInv.lower():
+					break
+				val += 1
+			logger.info("scheduler: %s"%self.mediaInventoryOptions[val])
+
+			self.mediaInventoryCombo.set_active(val)
+		except:
+			self.confValErr("mediaInventory",logger)
+
+
+		try:
+			self.scanCodePrevText.set_text(config.get("TicketCounter","prevScanCode"))
+		except:
+			self.confValErr("prevScanCode",logger)
+
+		try:
+			self.scanCodeNextText.set_text(config.get("TicketCounter","nextScanCode"))
+		except:
+			self.confValErr("nextScanCode",logger)
+
+		try:
+			self.scanCodeResetText.set_text(config.get("TicketCounter","resetScanCode"))
+		except:
+			self.confValErr("resetScanCode",logger)
+
+		try:
+			self.osdBackColourText.set_text(config.get("TicketCounter","osdBackColour"))
+		except:
+			self.confValErr("osdBackColour",logger)
+
+		try:
+			self.osdFontColourText.set_text(config.get("TicketCounter","osdFontColour"))
+		except:
+			self.confValErr("osdFontColour",logger)
+
+		try:
+			self.lift8TagText.set_text(config.get("LiftTags","lift8"))
+		except:
+			self.confValErr("lift8",logger)
+
+		try:
+			self.lift9TagText.set_text(config.get("LiftTags","lift9"))
+		except:
+			self.confValErr("lift9",logger)
+
+		try:
+			self.lift10TagText.set_text(config.get("LiftTags","lift10"))
+		except:
+			self.confValErr("lift10",logger)
+
+		try:
+			self.lift11TagText.set_text(config.get("LiftTags","lift11"))
+		except:
+			self.confValErr("lift11",logger)
+
+		try:
+			self.lift12TagText.set_text(config.get("LiftTags","lift12"))
+		except:
+			self.confValErr("lift12",logger)
+
+		try:
+			self.lift13TagText.set_text(config.get("LiftTags","lift13"))
+		except:
+			self.confValErr("lift13",logger)
+
+		try:
+			self.lift14TagText.set_text(config.get("LiftTags","lift14"))
+		except:
+			self.confValErr("lift14",logger)
+
+		try:
+			self.lift15TagText.set_text(config.get("LiftTags","lift15"))
+		except:
+			self.confValErr("lift15",logger)
+
+		try:
+			self.thirdSerialText.set_text(config.get("Lift","serial2"))
+		except:
+			self.confValErr("3rdSerial",logger)
+
+		try:
+			self.fourthSerialText.set_text(config.get("Lift","serial3"))
+		except:
+			self.confValErr("4thSerial",logger)
+
+		try:
+			self.counterMaxSpin.set_value(int(config.get("TicketCounter","maxCount")))
+		except:
+			self.confValErr("maxCount",logger)
+
+		#Multiply the opacity by 100 to turn into a percentage
+#		try:
+		if 1:
+			self.osdBackOpacitySpin.set_value(float(config.get("TicketCounter","osdBackOpacity"))*100)
+#		except:
+#			self.confValErr("osdBackOpacity",logger)
+
+		try:
+			self.osdFontSizeSpin.set_value(int(config.get("TicketCounter","osdFontSize")))
+		except:
+			self.confValErr("osdFontSize",logger)
+
+		try:
+			self.osdWidthSpin.set_value(int(config.get("TicketCounter","osdWidthPercent")))
+		except:
+			self.confValErr("osdWidthPercent",logger)
+	
+		#Divide by 1000 to turn the value from seconds to milliseconds
+		try:
+			self.osdTimeoutSpin.set_value(int(config.get("TicketCounter","osdTimeOut"))/1000)
+		except:
+			self.confValErr("osdTimeOut",logger)
+
+
+	def checkDataSensible(self,configValues):
+
+		scanCodes = []
+
+		scanCodes.append(configValues["nextScanCode"][1])
+		scanCodes.append(configValues["prevScanCode"][1])
+		scanCodes.append(configValues["resetScanCode"][1])
+
+		if scanCodes[0] == scanCodes[1] or scanCodes[1] == scanCodes[2] or scanCodes[0] == scanCodes[2]:
+	
+			return "scanCodes"
+		else:
+			return True
+
 	def saveConfigSignal(self,widget,data=None):
 		a = self.getConfValues()
 		self.logger11.info("Config Values to process: %s"%a)
-		config = ConfigParser.RawConfigParser()
 
-		config.optionxform = str
+		#Before we write the data to the file, we want to check to see if these data make sense.
+		#Invoke a function to check the data entered is sensible. True indicates correct data
 
-		configOptions = ["Main", "Logging", "Stats", "TickerMedia", "Lift", "LiftTags"]
+		dataCheck = self.checkDataSensible(a)
 
-		for configOption in configOptions:
-			#print configOption
-			config.add_section(configOption)
+		if dataCheck != True:
+			#Make a note and warn the user
+			if dataCheck == "scanCodes":
+				self.messageDialog.set_markup(_("Two or more scan codes are the same. Please correct this before saving"))
+				self.messageDialog.show()
+		
+		else:
+			config = ConfigParser.RawConfigParser()
 
-			for elem in a:
-				#print elem, a[elem][1], configOption
-				if a[elem][0] == configOption:
-					print elem, a[elem][1],configOption
-					try:
+			config.optionxform = str
 
-						config.set(configOption, elem, str(a[elem][1]))
-						self.logger11.info("Value: %s %s %s"%(configOption,elem,str(a[elem][1])))		
-					except:
-						print "Error setting option:"
-						print "Element:", elem
-						print "Data:", a[elem]
-						print "Error setting: %s, %s"%(elem,a[elem][1])
-						print a[elem][1]
-						print str(a[elem][1])
-						self.logger11.error("Error setting value: %s %s %s"%(configOption,elem,str(a[elem][1])))
-					finally:
-						#Write everything, barring the error item
+			configOptions = ["Main", "Logging", "Stats", "TickerMedia", "Lift", "LiftTags","TicketCounter"]
 
-					#	with open(self.pyClientConfName, 'wb') as configfile:
-					#		config.write(configfile)
+			for configOption in configOptions:
+				#print configOption
+				config.add_section(configOption)
 
+				for elem in a:
+					#print elem, a[elem][1], configOption
+					if a[elem][0] == configOption:
+						print elem, a[elem][1],configOption
 						try:
-							configfile = open(self.pyClientConfName,"wb")
-							config.write(configfile)
-							self.logger11.info("Data successfully written")
-							self.messageDialog.set_markup(_("Successfully written configuration file"))
-							self.messageDialog.show()
 
+							config.set(configOption, elem, str(a[elem][1]))
+							self.logger11.info("Value: %s %s %s"%(configOption,elem,str(a[elem][1])))		
 						except:
-							self.logger11.error("Data could not be written")
-							self.errorDialog.set_markup(_("Could not open / write to configuration file. Cannot continue"))
-							self.errorDialog.show()
+							print "Error setting option:"
+							print "Element:", elem
+							print "Data:", a[elem]
+							print "Error setting: %s, %s"%(elem,a[elem][1])
+							print a[elem][1]
+							print str(a[elem][1])
+							self.logger11.error("Error setting value: %s %s %s"%(configOption,elem,str(a[elem][1])))
+						finally:
+							#Write everything, barring the error item
+
+						#	with open(self.pyClientConfName, 'wb') as configfile:
+						#		config.write(configfile)
+
+							try:
+								configfile = open(self.pyClientConfName,"wb")
+								config.write(configfile)
+								self.logger11.info("Data successfully written")
+								self.messageDialog.set_markup(_("Successfully written configuration file"))
+								self.messageDialog.show()
+
+							except:
+								self.logger11.error("Data could not be written")
+								self.errorDialog.set_markup(_("Could not open / write to configuration file. Cannot continue"))
+								self.errorDialog.show()
 
 #		#Read in the existing configuration file as a string
 #		#we can then replace every instance of %s with one of the
@@ -1519,6 +1829,35 @@ class xiboConfWindow:
 		self.xmdsLicenseKeyEntry.set_tooltip_text(_("Sets license key value to use when syncronising from memory stick"))
 #		self.manualUpdateCombo.set_tooltip_text(_("Sets whether update from memory stick is enabled"))
 
+		self.lift8TagText.set_tooltip_text(_("Tag associated with lift input"))
+		self.lift9TagText.set_tooltip_text(_("Tag associated with lift input"))
+		self.lift10TagText.set_tooltip_text(_("Tag associated with lift input"))
+		self.lift11TagText.set_tooltip_text(_("Tag associated with lift input"))
+		self.lift12TagText.set_tooltip_text(_("Tag associated with lift input"))
+		self.lift13TagText.set_tooltip_text(_("Tag associated with lift input"))
+		self.lift14TagText.set_tooltip_text(_("Tag associated with lift input"))
+		self.lift15TagText.set_tooltip_text(_("Tag associated with lift input"))
+
+		self.thirdSerialText.set_tooltip_text(_("Third serial port to use for lift purposes"))
+		self.fourthSerialText.set_tooltip_text(_("Fourth serial port to use for lift purposes"))
+
+		self.mediaInventoryCombo.set_tooltip_text(_("Set whether media is added to the inventory"))
+
+		self.scanCodeNextText.set_tooltip_text(_("Set a scancode for incrementing the counter"))
+		self.scanCodePrevText.set_tooltip_text(_("Set a scancode for decrementing the counter"))
+
+		self.scanCodeResetText.set_tooltip_text(_("Set a scancode to reset the counter"))
+		self.counterMaxSpin.set_tooltip_text(_("Set the maximum value for the counter"))
+
+		self.osdBackColourText.set_tooltip_text(_("Set the background colour (RGB)"))
+		self.osdBackOpacitySpin.set_tooltip_text(_("Set a value for the pop-up opacity (0-100%)"))
+		self.osdFontSizeSpin.set_tooltip_text(_("Set a value for the font size of the counter text in the pop-up"))
+
+		self.osdWidthSpin.set_tooltip_text(_("Set a value for the width of the counter pop-up (0-100%)"))
+		self.osdTimeoutSpin.set_tooltip_text(_("Set a value for the counter pop-up timeout (seconds)"))
+		self.osdBackColourButton.set_tooltip_text(_("Open a colour chooser to select the background colour"))
+		self.osdFontColourButton.set_tooltip_text(_("Open a colour chooser to select the font colour"))
+
 	def getConfValues(self):
 
 		model = self.logTypeCombo.get_model()
@@ -1526,7 +1865,12 @@ class xiboConfWindow:
 #		logTypeText = model[index][0]
 
 		logTypeText = self.logWriterTypes[index]
-		
+
+		#Media inventory combobox	
+		mediaInvModel = self.mediaInventoryCombo.get_model()	
+		mediaInvIndex = self.mediaInventoryCombo.get_active()
+		mediaInvText = mediaInvModel[mediaInvIndex][0]
+
 		configType = "Main"
 
 		serverUrl = [configType,self.serverURLText.get_text()]
@@ -1542,6 +1886,8 @@ class xiboConfWindow:
 		logType = ["Logging", logTypeText]
 		logVal = ["Logging",self.logLevelSpin.get_value_as_int()]
 		xmdsClientName = ["Main",self.clientNameText.get_text()]
+		mediaInventory = ["Main",mediaInvText.lower()]
+
 
 		self.logger5.info("ServerURL: %s"%serverUrl)
 		self.logger5.info("clientID: %s"%clientId)
@@ -1559,7 +1905,7 @@ class xiboConfWindow:
 		
 		#Take the boolean values and make them lower case.
 
-		configOptions = {"xmdsUrl": serverUrl, "xmdsClientID": clientId,"xmdsKey":serverKey,"xmdsUpdateInterval":refresh,"requireXMDS":serverConn,"fullScreen":fullScreen,"width":screenWidth,"height":screenHeight,"collect":captureStats,"queueSize":queueSize,"logWriter":logType,"logLevel":logVal,"xmdsClientName":xmdsClientName}
+		configOptions = {"xmdsUrl": serverUrl, "xmdsClientID": clientId,"xmdsKey":serverKey,"xmdsUpdateInterval":refresh,"requireXMDS":serverConn,"fullScreen":fullScreen,"width":screenWidth,"height":screenHeight,"collect":captureStats,"queueSize":queueSize,"logWriter":logType,"logLevel":logVal,"xmdsClientName":xmdsClientName,"mediaInventory":mediaInventory}
 
 		#GET THE LIFT OPTIONS
 		
@@ -1582,6 +1928,14 @@ class xiboConfWindow:
 			liftEnableText = model[index][0].lower()
 
 			liftDefaultTag = [configType1,self.liftDefaultTagText.get_text()]
+			lift15Tag = [configType1, self.lift15TagText.get_text()]
+			lift14Tag = [configType1, self.lift14TagText.get_text()]
+			lift13Tag = [configType1, self.lift13TagText.get_text()]
+			lift12Tag = [configType1, self.lift12TagText.get_text()]
+			lift11Tag = [configType1, self.lift11TagText.get_text()]
+			lift10Tag = [configType1, self.lift10TagText.get_text()]
+			lift9Tag = [configType1, self.lift9TagText.get_text()]
+			lift8Tag = [configType1, self.lift8TagText.get_text()]
 			lift7Tag = [configType1, self.lift7TagText.get_text()]
 			lift6Tag = [configType1, self.lift6TagText.get_text()]
 			lift5Tag = [configType1, self.lift5TagText.get_text()]
@@ -1592,11 +1946,37 @@ class xiboConfWindow:
 			lift0Tag = [configType1, self.lift0TagText.get_text()]
 			firstSerial = [configType, self.firstSerialText.get_text()]
 			secondSerial = [configType, self.secondSerialText.get_text()]
+			thirdSerial = [configType, self.thirdSerialText.get_text()]
+			fourthSerial = [configType, self.fourthSerialText.get_text()]
 			liftTrigger = [configType, self.liftTriggerValue.get_text()]
 			liftEnable = [configType, liftEnableText]
 		
 			if liftDefaultTag[1] != "":
 				configOptions["default"] = liftDefaultTag
+
+			if lift15Tag[1] != "":
+				configOptions["lift15"] =lift15Tag
+
+			if lift14Tag[1] != "":
+				configOptions["lift14"] =lift14Tag
+
+			if lift13Tag[1] != "":
+				configOptions["lift13"] =lift13Tag
+
+			if lift12Tag[1] != "":
+				configOptions["lift12"] =lift12Tag
+
+			if lift11Tag[1] != "":
+				configOptions["lift11"] =lift11Tag
+
+			if lift10Tag[1] != "":
+				configOptions["lift10"] =lift10Tag
+
+			if lift9Tag[1] != "":
+				configOptions["lift9"] =lift9Tag
+
+			if lift8Tag[1] != "":
+				configOptions["lift8"] =lift8Tag
 
 			if lift7Tag[1] != "":
 				configOptions["lift7"] =lift7Tag
@@ -1627,6 +2007,13 @@ class xiboConfWindow:
 
 			if secondSerial[1] != "":
 				configOptions["serial1"] =secondSerial
+
+			if thirdSerial[1] != "":
+				configOptions["serial2"] =thirdSerial
+
+			if fourthSerial[1] != "":
+				configOptions["serial3"] =fourthSerial
+
 
 			if liftEnable[1] != "false":
 				configOptions["enabled"] =liftEnable
@@ -1723,6 +2110,55 @@ class xiboConfWindow:
 			if colourDepth[1] != "":
 				configOptions["bpp"] = colourDepth 
 
+		#Now all the counter options
+
+		if 1:
+			
+			configType = "TicketCounter"
+
+			scanCodePrev = [configType,self.scanCodePrevText.get_text()]
+			scanCodeNext = [configType,self.scanCodeNextText.get_text()]
+			scanCodeReset = [configType,self.scanCodeResetText.get_text()]
+			counterMax = [configType,self.counterMaxSpin.get_text()]
+
+			osdBackColour = [configType,self.osdBackColourText.get_text()]
+			osdBackOpacity = [configType,str(self.osdBackOpacitySpin.get_value()/100)]
+			osdFontSize = [configType,self.osdFontSizeSpin.get_text()]
+			osdWidth = [configType,self.osdWidthSpin.get_text()]
+			osdTimeout = [configType,str(int(self.osdTimeoutSpin.get_value()*1000))]
+			osdFontColour = [configType,self.osdFontColourText.get_text()]
+
+			if scanCodePrev[1] != "":
+				configOptions["prevScanCode"] = scanCodePrev
+
+			if scanCodeNext[1] != "":
+				configOptions["nextScanCode"] = scanCodeNext
+
+			if scanCodeReset[1] != "":
+				configOptions["resetScanCode"] = scanCodeReset
+
+			if counterMax[1] != "0":
+				configOptions["maxCount"] = counterMax
+
+			if osdBackColour != "":
+				configOptions["osdBackColour"] = osdBackColour
+
+			if osdBackOpacity != "":
+				configOptions["osdBackOpacity"] = osdBackOpacity
+
+			if osdFontSize != "":
+				configOptions["osdFontSize"] = osdFontSize
+
+			if osdWidth != "":
+				configOptions["osdWidthPercent"] = osdWidth
+
+			if osdTimeout != "":
+				configOptions["osdTimeOut"] = osdTimeout
+
+			if osdFontColour != "":
+				configOptions["osdFontColour"] = osdFontColour
+
+
 		return configOptions
 def cmdOptions():
 	options = sys.argv[1:]
@@ -1739,7 +2175,7 @@ if __name__ == "__main__":
 	#Grab the command line options
 	options = cmdOptions()
 	
-	#Find out of the lift option has been passed
+	#Find out if the lift option has been passed
 	lift = False
 	try:
 		options.index("lift")
