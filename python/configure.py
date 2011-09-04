@@ -1821,7 +1821,12 @@ class xiboConfWindow:
 #		logTypeText = model[index][0]
 
 		logTypeText = self.logWriterTypes[index]
-		
+
+		#Media inventory combobox	
+		mediaInvModel = self.mediaInventoryCombo.get_model()	
+		mediaInvIndex = self.mediaInventoryCombo.get_active()
+		mediaInvText = mediaInvModel[mediaInvIndex][0]
+
 		configType = "Main"
 
 		serverUrl = [configType,self.serverURLText.get_text()]
@@ -1837,6 +1842,8 @@ class xiboConfWindow:
 		logType = ["Logging", logTypeText]
 		logVal = ["Logging",self.logLevelSpin.get_value_as_int()]
 		xmdsClientName = ["Main",self.clientNameText.get_text()]
+		mediaInventory = ["Main",mediaInvText.lower()]
+
 
 		self.logger5.info("ServerURL: %s"%serverUrl)
 		self.logger5.info("clientID: %s"%clientId)
@@ -1854,7 +1861,7 @@ class xiboConfWindow:
 		
 		#Take the boolean values and make them lower case.
 
-		configOptions = {"xmdsUrl": serverUrl, "xmdsClientID": clientId,"xmdsKey":serverKey,"xmdsUpdateInterval":refresh,"requireXMDS":serverConn,"fullScreen":fullScreen,"width":screenWidth,"height":screenHeight,"collect":captureStats,"queueSize":queueSize,"logWriter":logType,"logLevel":logVal,"xmdsClientName":xmdsClientName}
+		configOptions = {"xmdsUrl": serverUrl, "xmdsClientID": clientId,"xmdsKey":serverKey,"xmdsUpdateInterval":refresh,"requireXMDS":serverConn,"fullScreen":fullScreen,"width":screenWidth,"height":screenHeight,"collect":captureStats,"queueSize":queueSize,"logWriter":logType,"logLevel":logVal,"xmdsClientName":xmdsClientName,"mediaInventory":mediaInventory}
 
 		#GET THE LIFT OPTIONS
 		
@@ -1882,7 +1889,7 @@ class xiboConfWindow:
 			lift13Tag = [configType1, self.lift13TagText.get_text()]
 			lift12Tag = [configType1, self.lift12TagText.get_text()]
 			lift11Tag = [configType1, self.lift11TagText.get_text()]
-			lift10Tag = [configType1, self.lif107TagText.get_text()]
+			lift10Tag = [configType1, self.lift10TagText.get_text()]
 			lift9Tag = [configType1, self.lift9TagText.get_text()]
 			lift8Tag = [configType1, self.lift8TagText.get_text()]
 			lift7Tag = [configType1, self.lift7TagText.get_text()]
@@ -1895,6 +1902,8 @@ class xiboConfWindow:
 			lift0Tag = [configType1, self.lift0TagText.get_text()]
 			firstSerial = [configType, self.firstSerialText.get_text()]
 			secondSerial = [configType, self.secondSerialText.get_text()]
+			thirdSerial = [configType, self.thirdSerialText.get_text()]
+			fourthSerial = [configType, self.fourthSerialText.get_text()]
 			liftTrigger = [configType, self.liftTriggerValue.get_text()]
 			liftEnable = [configType, liftEnableText]
 		
@@ -1954,6 +1963,13 @@ class xiboConfWindow:
 
 			if secondSerial[1] != "":
 				configOptions["serial1"] =secondSerial
+
+			if thirdSerial[1] != "":
+				configOptions["serial2"] =thirdSerial
+
+			if fourthSerial[1] != "":
+				configOptions["serial3"] =fourthSerial
+
 
 			if liftEnable[1] != "false":
 				configOptions["enabled"] =liftEnable
@@ -2049,6 +2065,55 @@ class xiboConfWindow:
 
 			if colourDepth[1] != "":
 				configOptions["bpp"] = colourDepth 
+
+		#Now all the counter options
+
+		if 1:
+			
+			configType = "TicketCounter"
+
+			scanCodePrev = [configType,self.scanCodePrevText.get_text()]
+			scanCodeNext = [configType,self.scanCodeNextText.get_text()]
+			scanCodeReset = [configType,self.scanCodeResetText.get_text()]
+			counterMax = [configType,self.counterMaxSpin.get_text()]
+
+			osdBackColour = [configType,self.osdBackColourText.get_text()]
+			osdBackOpacity = [configType,str(self.osdBackOpacitySpin.get_value()/100)]
+			osdFontSize = [configType,self.osdFontSizeSpin.get_text()]
+			osdWidth = [configType,self.osdWidthSpin.get_text()]
+			osdTimeout = [configType,str(int(self.osdTimeoutSpin.get_value()*1000))]
+			osdFontColour = [configType,self.osdFontColourText.get_text()]
+
+			if scanCodePrev[1] != "":
+				configOptions["prevScanCode"] = scanCodePrev
+
+			if scanCodeNext[1] != "":
+				configOptions["nextScanCode"] = scanCodeNext
+
+			if scanCodeReset[1] != "":
+				configOptions["resetScanCode"] = scanCodeReset
+
+			if counterMax[1] != "0":
+				configOptions["maxCount"] = counterMax
+
+			if osdBackColour != "":
+				configOptions["osdBackColour"] = osdBackColour
+
+			if osdBackOpacity != "":
+				configOptions["osdBackOpacity"] = osdBackOpacity
+
+			if osdFontSize != "":
+				configOptions["osdFontSize"] = osdFontSize
+
+			if osdWidth != "":
+				configOptions["osdWidthPercent"] = osdWidth
+
+			if osdTimeout != "":
+				configOptions["osdTimeOut"] = osdTimeout
+
+			if osdFontColour != "":
+				configOptions["osdFontColour"] = osdFontColour
+
 
 		return configOptions
 def cmdOptions():
