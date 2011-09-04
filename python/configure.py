@@ -1670,52 +1670,79 @@ class xiboConfWindow:
 			self.confValErr("osdTimeOut",logger)
 
 
+	def checkDataSensible(self,configValues):
+
+		scanCodes = []
+
+		scanCodes.append(configValues["nextScanCode"][1])
+		scanCodes.append(configValues["prevScanCode"][1])
+		scanCodes.append(configValues["resetScanCode"][1])
+
+		if scanCodes[0] == scanCodes[1] or scanCodes[1] == scanCodes[2] or scanCodes[0] == scanCodes[2]:
+	
+			return "scanCodes"
+		else:
+			return True
+
 	def saveConfigSignal(self,widget,data=None):
 		a = self.getConfValues()
 		self.logger11.info("Config Values to process: %s"%a)
-		config = ConfigParser.RawConfigParser()
 
-		config.optionxform = str
+		#Before we write the data to the file, we want to check to see if these data make sense.
+		#Invoke a function to check the data entered is sensible. True indicates correct data
 
-		configOptions = ["Main", "Logging", "Stats", "TickerMedia", "Lift", "LiftTags","TicketCounter"]
+		dataCheck = self.checkDataSensible(a)
 
-		for configOption in configOptions:
-			#print configOption
-			config.add_section(configOption)
+		if dataCheck != True:
+			#Make a note and warn the user
+			if dataCheck == "scanCodes":
+				self.messageDialog.set_markup(_("Two or more scan codes are the same. Please correct this before saving"))
+				self.messageDialog.show()
+		
+		else:
+			config = ConfigParser.RawConfigParser()
 
-			for elem in a:
-				#print elem, a[elem][1], configOption
-				if a[elem][0] == configOption:
-					print elem, a[elem][1],configOption
-					try:
+			config.optionxform = str
 
-						config.set(configOption, elem, str(a[elem][1]))
-						self.logger11.info("Value: %s %s %s"%(configOption,elem,str(a[elem][1])))		
-					except:
-						print "Error setting option:"
-						print "Element:", elem
-						print "Data:", a[elem]
-						print "Error setting: %s, %s"%(elem,a[elem][1])
-						print a[elem][1]
-						print str(a[elem][1])
-						self.logger11.error("Error setting value: %s %s %s"%(configOption,elem,str(a[elem][1])))
-					finally:
-						#Write everything, barring the error item
+			configOptions = ["Main", "Logging", "Stats", "TickerMedia", "Lift", "LiftTags","TicketCounter"]
 
-					#	with open(self.pyClientConfName, 'wb') as configfile:
-					#		config.write(configfile)
+			for configOption in configOptions:
+				#print configOption
+				config.add_section(configOption)
 
+				for elem in a:
+					#print elem, a[elem][1], configOption
+					if a[elem][0] == configOption:
+						print elem, a[elem][1],configOption
 						try:
-							configfile = open(self.pyClientConfName,"wb")
-							config.write(configfile)
-							self.logger11.info("Data successfully written")
-							self.messageDialog.set_markup(_("Successfully written configuration file"))
-							self.messageDialog.show()
 
+							config.set(configOption, elem, str(a[elem][1]))
+							self.logger11.info("Value: %s %s %s"%(configOption,elem,str(a[elem][1])))		
 						except:
-							self.logger11.error("Data could not be written")
-							self.errorDialog.set_markup(_("Could not open / write to configuration file. Cannot continue"))
-							self.errorDialog.show()
+							print "Error setting option:"
+							print "Element:", elem
+							print "Data:", a[elem]
+							print "Error setting: %s, %s"%(elem,a[elem][1])
+							print a[elem][1]
+							print str(a[elem][1])
+							self.logger11.error("Error setting value: %s %s %s"%(configOption,elem,str(a[elem][1])))
+						finally:
+							#Write everything, barring the error item
+
+						#	with open(self.pyClientConfName, 'wb') as configfile:
+						#		config.write(configfile)
+
+							try:
+								configfile = open(self.pyClientConfName,"wb")
+								config.write(configfile)
+								self.logger11.info("Data successfully written")
+								self.messageDialog.set_markup(_("Successfully written configuration file"))
+								self.messageDialog.show()
+
+							except:
+								self.logger11.error("Data could not be written")
+								self.errorDialog.set_markup(_("Could not open / write to configuration file. Cannot continue"))
+								self.errorDialog.show()
 
 #		#Read in the existing configuration file as a string
 #		#we can then replace every instance of %s with one of the
