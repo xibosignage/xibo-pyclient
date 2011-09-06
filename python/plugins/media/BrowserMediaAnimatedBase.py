@@ -109,7 +109,8 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
         
         # Multiply out the duration if duration is per item.
         if not self.options['durationIsPerItem'] == '0':
-            self.duration = int(self.duration) * self.itemCount
+            if self.itemCount > 0:
+                self.duration = int(self.duration) * self.itemCount
         
         if self.options['direction'] == "single":
             js = "<script type='text/javascript'>\n\n"
