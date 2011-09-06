@@ -2734,8 +2734,8 @@ class TicketCounter(Thread):
         log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.p.counterValue,True)
 
     def decrement(self):
-        # Decremement the counter by one, or reset to max if hit 1
-        if self.p.counterValue == 1:
+        # Decremement the counter by one, or reset to max if hit 1 or is reset to 0
+        if self.p.counterValue < 2:
             self.p.counterValue = self.max
         else:
             self.p.counterValue = self.p.counterValue - 1
