@@ -115,6 +115,6 @@ class BrowserMediaBase(XiboMedia):
         bo = self.browserOptions()
         optionsTuple = (self.mediaNodeName,bo[0],bo[1])
         self.p.enqueue('browserOptions',optionsTuple)
-        self.p.enqueue('setOpacity',(self.mediaNodeName,1))
         # TODO: This next line should really callback self.parent.next. See timerElapsed function
         self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
+        self.p.enqueue('setOpacity',(self.mediaNodeName,1))
