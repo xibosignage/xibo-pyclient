@@ -28,6 +28,7 @@ import simplejson
 import urllib2
 import urllib
 import cPickle
+import inspect
 
 # Define costants to represent each service
 TWITTER = 0
@@ -522,6 +523,7 @@ class MicroblogMediaDisplayThread(Thread):
     def nextPost(self):
         # Release the lock so next can run
         self.log.log(9,'info','MicroblogMediaDisplayThread: nextPost')
+        self.log.log(9,'info', 'Called by ' + inspect.getframeinfo(inspect.currentframe().f_back)[2])
         self.__lock.release()
         
     def dispose(self):
