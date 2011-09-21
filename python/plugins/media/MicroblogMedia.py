@@ -84,6 +84,10 @@ class MicroblogMedia(XiboMedia):
             self.nocontent = ""
         
     def run(self):
+        # Kickoff the display output thread
+        self.displayThread = MicroblogMediaDisplayThread(self.log,self.p,self.__posts,self)
+        self.displayThread.start()
+    
         # Start the region timer so the media dies at the right time.
         self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
         
@@ -119,7 +123,7 @@ class MicroblogMedia(XiboMedia):
             self.log.log(5,"audit","Unable to read serialised representation of the posts array or this media has never run before.")
             self.__lock.release()
         
-        self.nextPost()
+        self.displayThread.nextPost()
                 
         # Check that the updateInterval we've been given is sane
         try:
@@ -249,81 +253,9 @@ class MicroblogMedia(XiboMedia):
         # End While loop
         self.log.log(0,"audit","%s: Media has completed. Stopping updating." % self.mediaId)
     
-    def nextPost(self):
-        tmpPost = None
-        # If the media has been disposed, do nothing.
-        if not self.running:
-            return
-        
-        # Move the pointer on one. If we hit the end then start back at 0
-        # Take the next post from the posts array and display it
-        self.log.log(9,'info','%s acquiring lock for nextPost.' % self.mediaId)
-        self.__lock.acquire()
-        self.log.log(9,'info','%s acquired lock for nextPost.' % self.mediaId)
-        if len(self.__posts) > 0:
-            self.__pointer = (self.__pointer + 1) % len(self.__posts)
-            tmpPost = self.__posts[self.__pointer]
-        self.__lock.release()
-        self.log.log(9,'info','%s released lock for nextPost.' % self.mediaId)
-        
-        # Get the template we get from the server and insert appropriate fields
-        # If there's no posts then show the no content template, otherwise show the content template
-        if tmpPost == None:
-            # TODO: Get no content template
-            tmpHtml = self.nocontent
-        else:
-            service = ''
-            if tmpPost['xibo_src'] == TWITTER:
-                tmpPost['service'] = "Twitter"
-            elif tmpPost['xibo_src'] == IDENTICA:
-                tmpPost['service'] = "Identica"
-
-            tmpHtml = self.template
-        
-            # Replace [tag] values with data
-            for key, value in tmpPost.items():
-                tmpHtml = tmpHtml.replace("[%s]" % key, "%s" % value)
-
-        self.log.log(9,'info','Mid nextPost')
-        
-        try:
-            try:
-                f = codecs.open(self.tmpPath,mode='w',encoding="utf-8")
-                f.write(tmpHtml)
-                tmpHtml = None
-            finally:
-                f.close()
-        except:
-            self.log.log(0,"error","Unable to write " + self.tmpPath)
-            self.parent.next()
-            return
-
-        self.log.log(9,'info','Mid nextPost 2')
-              
-        self.log.log(9,'info','nextPost post add')
-        self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),self.fadeIn))
-        # self.p.enqueue('timer',(1,self.fadeIn))
-        self.log.log(9,'info','Finished nextPost')
-    
-    def fadeIn(self):
-        self.log.log(9,'info','Starting fadeIn')
-        # Once the next post has finished rendering, fade it in
-        self.p.enqueue('browserOptions',(self.mediaNodeName, True, False))
-        self.p.enqueue('anim',('fadeIn',self.mediaNodeName, self.options['fadeInterval'] * 1000, None))
-        
-        # Set a timer to force the post to change
-        self.p.enqueue('timer',((self.options['speedInterval'] + self.options['fadeInterval']) * 1000,self.fadeOut))
-        self.log.log(9,'info','Finished fadeIn')
-    
-    def fadeOut(self):
-        self.log.log(9,'info','Starting fadeOut')
-        # After the current post times out it calls this function which fades out the current node and then starts the next node
-        # fading in.
-        self.p.enqueue('anim',('fadeOut',self.mediaNodeName, self.options['fadeInterval'] * 1000, self.nextPost))
-        self.log.log(9,'info','Finished fadeOut')
-        
     def dispose(self):
         # Remember that we've finished running
+        self.displayThread.dispose()
         self.running = False
         
         self.returnStats()
@@ -335,6 +267,15 @@ class MicroblogMedia(XiboMedia):
             self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))
             
         self.parent.tNext()
+        
+    def getLock(self):
+        self.__lock.acquire()
+        
+    def releaseLock(self):
+        self.__lock.release()
+        
+    def posts(self):
+        return self.__posts
     
     def timerElapsed(self):
         # TODO: This function should not be necessary.
@@ -518,3 +459,87 @@ class MicroblogMedia(XiboMedia):
             pass
         
         return text
+
+class MicroblogMediaDisplayThread(Thread):
+    def __init__(self,log,player,parent):
+        Thread.__init__(self)
+        self.parent = parent
+        self.p = player
+        self.log = log
+        self.__lock = Semaphore()
+        self.__running = True
+        self.__pointer = 0
+        
+    def run(self):
+        self.__lock.acquire()
+        while self.__running:
+            self.__lock.acquire()
+            if self.__running:
+                # Do stuff
+                self.parent.getLock()
+                if len(self.parent.posts) > 0:
+                    self.__pointer = (self.__pointer + 1) % len(self.parent.posts)
+                    tmpPost = self.parent.posts[self.__pointer]
+                self.parent.releaseLock()
+                
+                # Get the template we get from the server and insert appropriate fields
+                # If there's no posts then show the no content template, otherwise show the content template
+                if tmpPost == None:
+                    # TODO: Get no content template
+                    tmpHtml = self.parent.nocontent
+                else:
+                    service = ''
+                    if tmpPost['xibo_src'] == TWITTER:
+                        tmpPost['service'] = "Twitter"
+                    elif tmpPost['xibo_src'] == IDENTICA:
+                        tmpPost['service'] = "Identica"
+
+                    tmpHtml = self.parent.template
+                
+                    # Replace [tag] values with data
+                    for key, value in tmpPost.items():
+                        tmpHtml = tmpHtml.replace("[%s]" % key, "%s" % value)
+
+                self.log.log(9,'info','Mid nextPost')
+                
+                try:
+                    try:
+                        f = codecs.open(self.parent.tmpPath,mode='w',encoding="utf-8")
+                        f.write(tmpHtml)
+                        tmpHtml = None
+                    finally:
+                        f.close()
+                except:
+                    self.log.log(0,"error","Unable to write " + self.parent.tmpPath)
+                    self.parent.parent.next()
+                    return
+
+                self.log.log(9,'info','Mid nextPost 2')
+                      
+                self.log.log(9,'info','nextPost post add')
+                self.p.enqueue('browserNavigate',(self.parent.mediaNodeName,"file://" + os.path.abspath(self.parent.tmpPath),self.fadeIn))
+                self.log.log(9,'info','Finished nextPost')
+        
+    def nextPost(self):
+        # Release the lock so next can run
+        self.__lock.release()
+        
+    def dispose(self):
+        self.__running = False
+         
+    def fadeIn(self):
+        self.log.log(9,'info','Starting fadeIn')
+        # Once the next post has finished rendering, fade it in
+        self.p.enqueue('browserOptions',(self.parent.mediaNodeName, True, False))
+        self.p.enqueue('anim',('fadeIn',self.parent.mediaNodeName, self.parent.options['fadeInterval'] * 1000, None))
+        
+        # Set a timer to force the post to change
+        self.p.enqueue('timer',((self.parent.options['speedInterval'] + self.parent.options['fadeInterval']) * 1000,self.fadeOut))
+        self.log.log(9,'info','Finished fadeIn')
+    
+    def fadeOut(self):
+        self.log.log(9,'info','Starting fadeOut')
+        # After the current post times out it calls this function which fades out the current node and then starts the next node
+        # fading in.
+        self.p.enqueue('anim',('fadeOut',self.parent.mediaNodeName, self.parent.options['fadeInterval'] * 1000, self.nextPost))
+        self.log.log(9,'info','Finished fadeOut')
