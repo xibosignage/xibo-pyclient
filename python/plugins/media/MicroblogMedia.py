@@ -36,7 +36,6 @@ IDENTICA = 1
 class MicroblogMedia(XiboMedia):
     def add(self):
         self.running = True
-        self.seq = 0
         self.tmpPath = os.path.join(self.libraryDir,self.mediaNodeName + "-tmp.html")
         
         self.opener =  urllib2.build_opener()
@@ -87,6 +86,9 @@ class MicroblogMedia(XiboMedia):
     def run(self):
         # Start the region timer so the media dies at the right time.
         self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
+        
+        tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + '"/>'
+        self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
         self.startStats()
         
@@ -97,20 +99,25 @@ class MicroblogMedia(XiboMedia):
         # Lock the semaphore as we write to __posts to avoid changing the array as the display thread reads it.
         try:
             try:
+                self.log.log(9,'info','%s acquiring lock to read pickled file.' % self.mediaId)
                 self.__lock.acquire()
+                self.log.log(9,'info','%s acquired lock to read pickled file.' % self.mediaId)
                 tmpFile = open(os.path.join(self.libraryDir,self.mediaId + ".pickled"), 'rb')
                 self.__posts = cPickle.load(tmpFile)
                 tmpFile.close()
             finally:
                 self.__lock.release()
+                self.log.log(9,'info','%s releasing lock after reading pickled file.' % self.mediaId)
         except:
             # Erase any pickle file that may be existing but corrupted  
             try:
                 os.remove(os.path.join(self.libraryDir,self.mediaId + ".pickled"))
+                self.log.log(9,'info','%s erasing corrupt pickled file.' % self.mediaId)
             except:
-                pass
+                self.log.log(9,'info','%s unable to erase corrupt pickled file.' % self.mediaId)
 
             self.log.log(5,"audit","Unable to read serialised representation of the posts array or this media has never run before.")
+            self.__lock.release()
         
         self.nextPost()
                 
@@ -181,7 +188,9 @@ class MicroblogMedia(XiboMedia):
                 # but allow an overflow if there are more new posts than we can handle
                 # Lock the __posts list while we work on it.
                 self.log.log(0,"audit","%s: Got %s new posts" % (self.mediaId,len(tmpPosts)))
+                self.log.log(9,'info','%s acquiring lock to process posts.' % self.mediaId)
                 self.__lock.acquire()
+                self.log.log(9,'info','%s acquired lock to process posts.' % self.mediaId)
                 
                 if len(tmpPosts) >= self.options['historySize']:
                     # There are more new posts than length.
@@ -211,16 +220,20 @@ class MicroblogMedia(XiboMedia):
                 
                 # Unlock the list now we've finished writing to it
                 self.__lock.release()
+                self.log.log(9,'info','%s releasing lock after processing posts.' % self.mediaId)
                 
                 # Serialize self.__posts for next time
                 try:
                     try:
+                        self.log.log(9,'info','%s acquiring lock to write pickled file.' % self.mediaId)
                         self.__lock.acquire()
+                        self.log.log(9,'info','%s acquired lock to write pickled file.' % self.mediaId)
                         f = open(os.path.join(self.libraryDir,self.mediaId + ".pickled"),mode='wb')
                         cPickle.dump(self.__posts, f, True)
                     finally:
                         f.close()
                         self.__lock.release()
+                        self.log.log(9,'info','%s releasing lock to write pickled file.' % self.mediaId)
                 except IOError:
                     self.log.log(0,"error","Unable to write serialised representation of the posts array")
                 except:
@@ -244,11 +257,14 @@ class MicroblogMedia(XiboMedia):
         
         # Move the pointer on one. If we hit the end then start back at 0
         # Take the next post from the posts array and display it
+        self.log.log(9,'info','%s acquiring lock for nextPost.' % self.mediaId)
         self.__lock.acquire()
+        self.log.log(9,'info','%s acquired lock for nextPost.' % self.mediaId)
         if len(self.__posts) > 0:
             self.__pointer = (self.__pointer + 1) % len(self.__posts)
             tmpPost = self.__posts[self.__pointer]
         self.__lock.release()
+        self.log.log(9,'info','%s released lock for nextPost.' % self.mediaId)
         
         # Get the template we get from the server and insert appropriate fields
         # If there's no posts then show the no content template, otherwise show the content template
@@ -267,6 +283,8 @@ class MicroblogMedia(XiboMedia):
             # Replace [tag] values with data
             for key, value in tmpPost.items():
                 tmpHtml = tmpHtml.replace("[%s]" % key, "%s" % value)
+
+        self.log.log(9,'info','Mid nextPost')
         
         try:
             try:
@@ -279,29 +297,30 @@ class MicroblogMedia(XiboMedia):
             self.log.log(0,"error","Unable to write " + self.tmpPath)
             self.parent.next()
             return
-        
-        # Increment the unique identifier for the browsernodes - but within a sensible limit.
-        if self.seq < 1000:
-            self.seq += 1
-        else:
-            self.seq = 1
 
-        tmpXML = '<browser id="' + self.mediaNodeName + '-' + str(self.seq) + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + '"/>'
-        self.p.enqueue('add',(tmpXML,self.regionNodeName))
-        self.p.enqueue('browserNavigate',(self.mediaNodeName + '-' + str(self.seq),"file://" + os.path.abspath(self.tmpPath),self.fadeIn))
+        self.log.log(9,'info','Mid nextPost 2')
+              
+        self.log.log(9,'info','nextPost post add')
+        self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),self.fadeIn))
+        # self.p.enqueue('timer',(1,self.fadeIn))
+        self.log.log(9,'info','Finished nextPost')
     
     def fadeIn(self):
+        self.log.log(9,'info','Starting fadeIn')
         # Once the next post has finished rendering, fade it in
-        self.p.enqueue('browserOptions',(self.mediaNodeName + '-' + str(self.seq), True, False))
-        self.p.enqueue('anim',('fadeIn',self.mediaNodeName + '-' + str(self.seq), self.options['fadeInterval'] * 1000, None))
+        self.p.enqueue('browserOptions',(self.mediaNodeName, True, False))
+        self.p.enqueue('anim',('fadeIn',self.mediaNodeName, self.options['fadeInterval'] * 1000, None))
         
         # Set a timer to force the post to change
         self.p.enqueue('timer',((self.options['speedInterval'] + self.options['fadeInterval']) * 1000,self.fadeOut))
+        self.log.log(9,'info','Finished fadeIn')
     
     def fadeOut(self):
+        self.log.log(9,'info','Starting fadeOut')
         # After the current post times out it calls this function which fades out the current node and then starts the next node
         # fading in.
-        self.p.enqueue('anim',('fadeOut',self.mediaNodeName + '-' + str(self.seq), self.options['fadeInterval'] * 1000, self.nextPost))
+        self.p.enqueue('anim',('fadeOut',self.mediaNodeName, self.options['fadeInterval'] * 1000, self.nextPost))
+        self.log.log(9,'info','Finished fadeOut')
         
     def dispose(self):
         # Remember that we've finished running
