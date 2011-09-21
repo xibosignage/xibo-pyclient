@@ -85,7 +85,7 @@ class MicroblogMedia(XiboMedia):
         
     def run(self):
         # Kickoff the display output thread
-        self.displayThread = MicroblogMediaDisplayThread(self.log,self.p,self.__posts,self)
+        self.displayThread = MicroblogMediaDisplayThread(self.log,self.p,self)
         self.displayThread.start()
     
         # Start the region timer so the media dies at the right time.
@@ -477,9 +477,9 @@ class MicroblogMediaDisplayThread(Thread):
             if self.__running:
                 # Do stuff
                 self.parent.getLock()
-                if len(self.parent.posts) > 0:
-                    self.__pointer = (self.__pointer + 1) % len(self.parent.posts)
-                    tmpPost = self.parent.posts[self.__pointer]
+                if len(self.parent.posts()) > 0:
+                    self.__pointer = (self.__pointer + 1) % len(self.parent.posts())
+                    tmpPost = self.parent.posts()[self.__pointer]
                 self.parent.releaseLock()
                 
                 # Get the template we get from the server and insert appropriate fields
