@@ -530,6 +530,7 @@ class MicroblogMediaDisplayThread(Thread):
          
     def fadeIn(self):
         self.log.log(9,'info','Starting fadeIn')
+        self.log.log(9,'info', 'MicroblogMediaDisplayThread: fadeIn called by ' + inspect.getframeinfo(inspect.currentframe().f_back)[2])
         # Once the next post has finished rendering, fade it in
         self.p.enqueue('browserOptions',(self.parent.mediaNodeName, True, False))
         self.p.enqueue('anim',('fadeIn',self.parent.mediaNodeName, self.parent.options['fadeInterval'] * 1000, None))
@@ -540,6 +541,7 @@ class MicroblogMediaDisplayThread(Thread):
     
     def fadeOut(self):
         self.log.log(9,'info','Starting fadeOut')
+        self.log.log(9,'info', 'MicroblogMediaDisplayThread: fadeOut called by ' + inspect.getframeinfo(inspect.currentframe().f_back)[2])
         # After the current post times out it calls this function which fades out the current node and then starts the next node
         # fading in.
         self.p.enqueue('anim',('fadeOut',self.parent.mediaNodeName, self.parent.options['fadeInterval'] * 1000, self.nextPost))
