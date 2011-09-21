@@ -473,7 +473,9 @@ class MicroblogMediaDisplayThread(Thread):
     def run(self):
         self.__lock.acquire()
         while self.__running:
+            self.log.log(9,'info', 'MicroblogMediaDisplayThread: Sleeping')
             self.__lock.acquire()
+            self.log.log(9,'info', 'MicroblogMediaDisplayThread: Wake Up')
             if self.__running:
                 # Do stuff
                 self.parent.getLock()
@@ -500,8 +502,6 @@ class MicroblogMediaDisplayThread(Thread):
                     for key, value in tmpPost.items():
                         tmpHtml = tmpHtml.replace("[%s]" % key, "%s" % value)
 
-                self.log.log(9,'info','Mid nextPost')
-                
                 try:
                     try:
                         f = codecs.open(self.parent.tmpPath,mode='w',encoding="utf-8")
@@ -514,14 +514,14 @@ class MicroblogMediaDisplayThread(Thread):
                     self.parent.parent.next()
                     return
 
-                self.log.log(9,'info','Mid nextPost 2')
-                      
-                self.log.log(9,'info','nextPost post add')
                 self.p.enqueue('browserNavigate',(self.parent.mediaNodeName,"file://" + os.path.abspath(self.parent.tmpPath),self.fadeIn))
-                self.log.log(9,'info','Finished nextPost')
+                self.log.log(9,'info','MicroblogMediaDisplayThread: Finished Loop')
+        
+        self.log.log(9,'info', 'MicroblogMediaDisplayThread: Exit')
         
     def nextPost(self):
         # Release the lock so next can run
+        self.log.log(9,'info','MicroblogMediaDisplayThread: nextPost')
         self.__lock.release()
         
     def dispose(self):
