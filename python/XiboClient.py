@@ -3940,7 +3940,8 @@ class XiboPlayer(Thread):
                     currentNode.angle = data[1]
                 elif cmd == "browserNavigate":
                     currentNode = self.player.getElementByID(data[0])
-                    currentNode.onFinishLoading = data[2]
+                    if data[2] != None:
+                        currentNode.onFinishLoading = data[2]
                     currentNode.loadUrl(data[1])
                 elif cmd == "browserOptions":
                     currentNode = self.player.getElementByID(data[0])

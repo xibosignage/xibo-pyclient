@@ -473,6 +473,7 @@ class MicroblogMediaDisplayThread(Thread):
         
     def run(self):
         self.__lock.acquire()
+        signal = 0
         while self.__running:
             self.log.log(9,'info', 'MicroblogMediaDisplayThread: Sleeping')
             self.__lock.acquire()
@@ -515,7 +516,11 @@ class MicroblogMediaDisplayThread(Thread):
                     self.parent.parent.next()
                     return
 
-                self.p.enqueue('browserNavigate',(self.parent.mediaNodeName,"file://" + os.path.abspath(self.parent.tmpPath),self.fadeIn))
+                if signal == 0:
+                    self.p.enqueue('browserNavigate',(self.parent.mediaNodeName,"file://" + os.path.abspath(self.parent.tmpPath),self.fadeIn))
+                    signal = 1
+                else:
+                    self.p.enqueue('browserNavigate',(self.parent.mediaNodeName,"file://" + os.path.abspath(self.parent.tmpPath),None))
                 self.log.log(9,'info','MicroblogMediaDisplayThread: Finished Loop')
         
         self.log.log(9,'info', 'MicroblogMediaDisplayThread: Exit')
