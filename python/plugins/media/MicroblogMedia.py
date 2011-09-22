@@ -473,6 +473,7 @@ class MicroblogMediaDisplayThread(Thread):
         
     def run(self):
         self.__lock.acquire()
+        tmpPost = None
         signal = 0
         while self.__running:
             self.log.log(9,'info', 'MicroblogMediaDisplayThread: Sleeping')
