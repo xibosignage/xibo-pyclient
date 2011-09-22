@@ -258,6 +258,7 @@ class MicroblogMedia(XiboMedia):
         # Remember that we've finished running
         self.displayThread.dispose()
         self.running = False
+        self.p.enqueue('del', self.mediaNodeName)
         
         self.returnStats()
         
@@ -287,6 +288,8 @@ class MicroblogMedia(XiboMedia):
         self.returnStats()
         self.displayThread.dispose()
         
+        self.p.enqueue('del', self.mediaNodeName)
+        
         # Clean up any temporary files left
         try:
             os.remove(self.tmpPath)
@@ -294,7 +297,7 @@ class MicroblogMedia(XiboMedia):
             self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))
         
         # Tell our parent we're finished
-        self.parent.next()
+        self.parent.tNext()
         
     def updateTwitter(self):
         """ Pull new posts from Twitter and return new posts in a list """
@@ -519,9 +522,9 @@ class MicroblogMediaDisplayThread(Thread):
                     self.parent.parent.next()
                     return
 
-                self.p.enqueue('del', self.parent.mediaNodeName)
-                tmpXML = '<browser id="' + self.parent.mediaNodeName + '" opacity="0" width="' + str(self.parent.width) + '" height="' + str(self.parent.height) + '"/>'
-                self.p.enqueue('add',(tmpXML,self.parent.regionNodeName))
+                # self.p.enqueue('del', self.parent.mediaNodeName)
+                # tmpXML = '<browser id="' + self.parent.mediaNodeName + '" opacity="0" width="' + str(self.parent.width) + '" height="' + str(self.parent.height) + '"/>'
+                # self.p.enqueue('add',(tmpXML,self.parent.regionNodeName))
                 self.p.enqueue('browserNavigate',(self.parent.mediaNodeName,"file://" + os.path.abspath(self.parent.tmpPath),self.fadeIn))
                     
                 self.log.log(9,'info','MicroblogMediaDisplayThread: Finished Loop')
@@ -540,7 +543,7 @@ class MicroblogMediaDisplayThread(Thread):
         self.log.log(9,'info','Starting fadeIn')
         self.log.log(9,'info', 'MicroblogMediaDisplayThread: fadeIn called by ' + inspect.getframeinfo(inspect.currentframe().f_back)[2] + '.' + str(inspect.getframeinfo(inspect.currentframe().f_back)[1]))
         # Once the next post has finished rendering, fade it in
-        # self.p.enqueue('browserOptions',(self.parent.mediaNodeName, True, False))
+        self.p.enqueue('browserOptions',(self.parent.mediaNodeName, True, False))
         self.p.enqueue('anim',('fadeIn',self.parent.mediaNodeName, self.parent.options['fadeInterval'] * 1000, None))
         
         # Set a timer to force the post to change
