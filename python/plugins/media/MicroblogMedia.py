@@ -519,8 +519,8 @@ class MicroblogMediaDisplayThread(Thread):
                     self.parent.parent.next()
                     return
 
-                self.p.enqueue('del', self.mediaNodeName)
-                tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.parent.width) + '" height="' + str(self.parent.height) + '"/>'
+                self.p.enqueue('del', self.parent.mediaNodeName)
+                tmpXML = '<browser id="' + self.parent.mediaNodeName + '" opacity="0" width="' + str(self.parent.width) + '" height="' + str(self.parent.height) + '"/>'
                 self.p.enqueue('add',(tmpXML,self.parent.regionNodeName))
                 self.p.enqueue('browserNavigate',(self.parent.mediaNodeName,"file://" + os.path.abspath(self.parent.tmpPath),self.fadeIn))
                     
