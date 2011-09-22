@@ -540,7 +540,7 @@ class MicroblogMediaDisplayThread(Thread):
         self.log.log(9,'info','Starting fadeIn')
         self.log.log(9,'info', 'MicroblogMediaDisplayThread: fadeIn called by ' + inspect.getframeinfo(inspect.currentframe().f_back)[2] + '.' + str(inspect.getframeinfo(inspect.currentframe().f_back)[1]))
         # Once the next post has finished rendering, fade it in
-        self.p.enqueue('browserOptions',(self.parent.mediaNodeName, True, False))
+        # self.p.enqueue('browserOptions',(self.parent.mediaNodeName, True, False))
         self.p.enqueue('anim',('fadeIn',self.parent.mediaNodeName, self.parent.options['fadeInterval'] * 1000, None))
         
         # Set a timer to force the post to change
