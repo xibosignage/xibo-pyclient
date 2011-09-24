@@ -37,7 +37,9 @@ class TvMedia(XiboMedia):
     def run(self):
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
         self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
+        self.startStats()
 
     def dispose(self):
+        self.returnStats()
         self.p.enqueue('del',self.mediaNodeName)
         self.parent.tNext()

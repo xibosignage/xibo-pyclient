@@ -73,6 +73,7 @@ class BrowserMediaBase(XiboMedia):
         
         # Navigate the browser to the temporary file
         self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),self.finishedRendering))
+        self.startStats()
 
     def requiredFiles(self):
         return []
@@ -88,6 +89,7 @@ class BrowserMediaBase(XiboMedia):
 	
     def dispose(self):
         self.p.enqueue('del',self.mediaNodeName)
+        self.returnStats()
         try:
             os.remove(self.tmpPath)
         except:
@@ -113,6 +115,6 @@ class BrowserMediaBase(XiboMedia):
         bo = self.browserOptions()
         optionsTuple = (self.mediaNodeName,bo[0],bo[1])
         self.p.enqueue('browserOptions',optionsTuple)
-        self.p.enqueue('setOpacity',(self.mediaNodeName,1))
         # TODO: This next line should really callback self.parent.next. See timerElapsed function
         self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
+        self.p.enqueue('setOpacity',(self.mediaNodeName,1))

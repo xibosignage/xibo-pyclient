@@ -47,7 +47,7 @@ import urlparse
 import PIL.Image
 import math
 
-version = "1.3.0"
+version = "1.3.1"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -594,7 +594,7 @@ class XiboLogXmds(XiboLog):
         if osd and self.p.osLog:
             self.osLog(message)
 
-    def stat(self,statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID):
+    def stat(self, statType, fromDT, toDT, tag, layoutID, scheduleID, mediaID):
         if self.statsOn:
             self.stats.put((statType,fromDT,toDT,tag,layoutID,scheduleID,mediaID),False)
         return
@@ -1580,10 +1580,12 @@ class XiboRegionManager(Thread):
         self.oneItemOnly = False
         self.previousMedia = None
         self.currentMedia = None
+        self.regionId = None
 
         # Calculate the region ID name
         try:
             self.regionNodeName = "R" + str(self.regionNode.attributes['id'].value) + self.regionNodeNameExt
+            self.regionId = str(self.regionNode.attributes['id'].value)
         except KeyError:
             log.log(1,"error",_("Region XLF is invalid. Missing required id attribute"), True)
             self.regionExpired = True
@@ -2731,6 +2733,16 @@ class TicketCounter(Thread):
         self.__lock.release()
         log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.p.counterValue,True)
 
+    def decrement(self):
+        # Decremement the counter by one, or reset to max if hit 1 or is reset to 0
+        if self.p.counterValue < 2:
+            self.p.counterValue = self.max
+        else:
+            self.p.counterValue = self.p.counterValue - 1
+
+        self.__lock.release()
+        log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.p.counterValue,True)
+
     def reset(self):
         self.p.counterValue = 0
         self.__lock.release()
@@ -2752,7 +2764,7 @@ class XMDSException(Exception):
 
 class XMDS:
     def __init__(self):
-        self.__schemaVersion__ = "2"
+        self.__schemaVersion__ = "3"
 
         # Semaphore to allow only one XMDS call to run check simultaneously
         self.checkLock = Semaphore()
@@ -2918,6 +2930,35 @@ class XMDS:
             raise XMDSException("XMDS could not be initialised")
 
         log.lights('RF','green')
+        return req
+
+    def GetResource(self,layoutID,regionID,mediaID):
+        """Connect to XMDS and get a resource"""
+
+        req = None
+        if self.check():
+            try:
+                req = self.server.GetResource(self.getKey(),self.getUUID(), int(layoutID), regionID, mediaID, self.__schemaVersion__)
+            except SOAPpy.Types.faultType, err:
+                raise XMDSException("GetResource: Incorrect arguments passed to XMDS.")
+            except SOAPpy.Errors.HTTPError, err:
+                log.log(0,"error",str(err))
+                raise XMDSException("GetResource: HTTP error connecting to XMDS.")
+            except socket.error, err:
+                log.log(0,"error",str(err))
+                raise XMDSException("GetResource: socket error connecting to XMDS.")
+            except AttributeError, err:
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("GetResource: webservice not initialised")
+            except KeyError, err:
+                log.log(0,"error",str(err))
+                self.hasInitialised = False
+                raise XMDSException("GetResource: Webservice returned non XML content")
+        else:
+            log.log(0,"error","XMDS could not be initialised")
+            raise XMDSException("XMDS could not be initialised")
+
         return req
     
     def SubmitLog(self,logXml):
@@ -3562,6 +3603,7 @@ class XiboPlayer(Thread):
 
         self.ticketCounterNextScanCode = int(config.get('TicketCounter', 'nextScanCode'))
         self.ticketCounterResetScanCode = int(config.get('TicketCounter', 'resetScanCode'))
+        self.ticketCounterPrevScanCode = int(config.get('TicketCounter', 'prevScanCode'))
         self.counterValue = 0
         self.counterID = 0
 
@@ -3628,6 +3670,20 @@ class XiboPlayer(Thread):
         except ConfigParser.NoOptionError:
             pass
         
+        # Check Counter for duplicate scan codes
+        nS = int(config.get('TicketCounter', 'nextScanCode'))
+        pS = int(config.get('TicketCounter', 'prevScanCode'))
+        rS = int(config.get('TicketCounter', 'resetScanCode'))
+
+        if (nS == pS):
+            log.log(0, 'warn', _('nextScanCode is identical to prevScanCode in your configuration. You almost certainly don\'t want that'))
+
+        if (nS == rS):
+            log.log(0, 'warn', _('nextScanCode is identical to resetScanCode in your configuration. You almost certainly don\'t want that'))
+
+        if (rS == pS):
+            log.log(0, 'warn', _('resetScanCode is identical to prevScanCode in your configuration. You almost certainly don\'t want that'))
+
 
         # Load the BrowserNode plugin
         self.player.loadPlugin("libbrowsernode")
@@ -3726,6 +3782,13 @@ class XiboPlayer(Thread):
                 self.parent.ticketCounter.reset()
             except:
                 pass
+
+        if e.scancode == self.ticketCounterPrevScanCode:
+            try:
+                self.parent.ticketCounter.decrement()
+            except:
+                pass
+
 
         if self.info:
             # Process key strokes that are only active when the info
@@ -3877,7 +3940,8 @@ class XiboPlayer(Thread):
                     currentNode.angle = data[1]
                 elif cmd == "browserNavigate":
                     currentNode = self.player.getElementByID(data[0])
-                    currentNode.onFinishLoading = data[2]
+                    if data[2] != None:
+                        currentNode.onFinishLoading = data[2]
                     currentNode.loadUrl(data[1])
                 elif cmd == "browserOptions":
                     currentNode = self.player.getElementByID(data[0])

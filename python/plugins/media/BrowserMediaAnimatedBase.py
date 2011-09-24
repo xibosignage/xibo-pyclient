@@ -106,35 +106,29 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
 #            print "*** REFACTORED SCROLL SPEED FROM %s to %s ***" % (s,self.options['scrollSpeed'])
             
         js = ""
-        if self.options['direction'] == "single":
-            if self.options['durationIsPerItem'] == 0:
-                js = "<script type='text/javascript'>\n\n"
-                js += "function init() {\n"
-                js += "  var totalDuration = %d * 1000;\n" % int(self.duration)
-                js += "  var itemCount = $('.XiboRssItem').size();\n"
-                js += "  var itemTime = totalDuration / itemCount;\n"
-                js += "  if (itemTime < 2000) itemTime = 2000;\n"
-                js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
-                js += "  $('#text').cycle({fx: 'fade', sync: 0, speed: 1, timeout: itemTime, cleartypeNoBg:true});\n"
-                js += "  }\n"
-                js += "</script>\n\n"
-            else:
-                js = "<script type='text/javascript'>\n\n"
-                js += "function init() {\n"
-                js += "  var totalDuration = %d * 1000 * itemCount;\n" % int(self.duration)
-                js += "  var itemCount = $('.XiboRssItem').size();\n"
-                js += "  var itemTime = %d * 1000;\n" % int(self.duration)
-                js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
-                js += "  $('#text').cycle({fx: 'fade', sync: 0, speed: 1, timeout: itemTime, cleartypeNoBg:true});\n"
-                js += "  }\n"
-                js += "</script>\n\n"
+        
+        # Multiply out the duration if duration is per item.
+        if not self.options['durationIsPerItem'] == '0':
+            if self.itemCount > 0:
                 self.duration = int(self.duration) * self.itemCount
+        
+        if self.options['direction'] == "single":
+            js = "<script type='text/javascript'>\n\n"
+            js += "function init() {\n"
+            js += "  var totalDuration = %d * 1000;\n" % int(self.duration)
+            js += "  var itemCount = $('.XiboRssItem').size();\n"
+            js += "  var itemTime = totalDuration / itemCount;\n"
+            js += "  if (itemTime < 2000) itemTime = 2000;\n"
+            js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
+            js += "  $('#text').cycle({fx: 'fade', timeout: itemTime, cleartypeNoBg:true});\n"
+            js += "  }\n"
+            js += "</script>\n\n"
         elif self.options['direction'] == "none":
             pass
         else:
             js = "<script type='text/javascript'>\n\n"
             js += "function init() {\n"
-            js += "  tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "');\n"
+            js += "  tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "', 2);\n"
             js += "  var timer = 0;\n"
             js += "  timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + ");\n"
             js += "}"
