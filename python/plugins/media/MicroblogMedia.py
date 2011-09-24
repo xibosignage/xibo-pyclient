@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2010 Alex Harrington
+# Copyright (C) 2010-11 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -253,11 +253,13 @@ class MicroblogMedia(XiboMedia):
             
         # End While loop
         self.log.log(0,"audit","%s: Media has completed. Stopping updating." % self.mediaId)
+        self.__lock.release()
     
     def dispose(self):
         # Remember that we've finished running
         self.displayThread.dispose()
         self.running = False
+        self.__lock.release()
         self.p.enqueue('del', self.mediaNodeName)
         
         self.returnStats()
@@ -285,6 +287,7 @@ class MicroblogMedia(XiboMedia):
         
         # Remember that we've finished running
         self.running = False
+        self.__lock.release()
         self.returnStats()
         self.displayThread.dispose()
         
@@ -297,7 +300,7 @@ class MicroblogMedia(XiboMedia):
             self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))
         
         # Tell our parent we're finished
-        self.parent.tNext()
+        self.parent.next()
         
     def updateTwitter(self):
         """ Pull new posts from Twitter and return new posts in a list """
@@ -477,10 +480,10 @@ class MicroblogMediaDisplayThread(Thread):
         self.__pointer = 0
         
     def run(self):
-        self.__lock.acquire()
         tmpPost = None
 
         while self.__running:
+            self.__lock.acquire()
             self.log.log(9,'info', 'MicroblogMediaDisplayThread: Sleeping')
             self.__lock.acquire()
             self.log.log(9,'info', 'MicroblogMediaDisplayThread: Wake Up')
@@ -526,10 +529,10 @@ class MicroblogMediaDisplayThread(Thread):
                 # tmpXML = '<browser id="' + self.parent.mediaNodeName + '" opacity="0" width="' + str(self.parent.width) + '" height="' + str(self.parent.height) + '"/>'
                 # self.p.enqueue('add',(tmpXML,self.parent.regionNodeName))
                 self.p.enqueue('browserNavigate',(self.parent.mediaNodeName,"file://" + os.path.abspath(self.parent.tmpPath),self.fadeIn))
-                    
                 self.log.log(9,'info','MicroblogMediaDisplayThread: Finished Loop')
         
         self.log.log(9,'info', 'MicroblogMediaDisplayThread: Exit')
+        self.__lock.release()
         
     def nextPost(self):
         # Release the lock so next can run
@@ -538,6 +541,7 @@ class MicroblogMediaDisplayThread(Thread):
         
     def dispose(self):
         self.__running = False
+        self.__lock.release()
          
     def fadeIn(self):
         self.log.log(9,'info','Starting fadeIn')
