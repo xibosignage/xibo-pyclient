@@ -1552,6 +1552,19 @@ class XiboLayoutManager(Thread):
         # self.p.enqueue("reset","")
 
 class XiboRegionManager(Thread):
+    class ConcurrencyManager:
+        def __init__(self,parent):
+            self.parent = parent
+            self.done = False
+
+        def next(self):
+            if not self.done:
+                self.done = True
+                self.parent.next()
+
+    def getConcurrencyManager(self):
+        return self.ConcurrencyManager(self)
+
     def __init__(self,parent,player,layoutNodeName,layoutNodeNameExt,cn):
         log.log(3,"info",_("New XiboRegionManager instance created."))
         Thread.__init__(self)
@@ -1560,6 +1573,8 @@ class XiboRegionManager(Thread):
         # player thread never blocks.
         self.lock = Semaphore()
         self.tLock = Semaphore()
+        
+        self.ConcurrencyManager = ConcurrencyManager(self)
 
         # Variables
         self.p = player
