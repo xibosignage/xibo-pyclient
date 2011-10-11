@@ -1786,7 +1786,7 @@ class XiboRegionManager(Thread):
                 time.sleep(2)
                 
             self.regionExpired = True
-            print str(self.regionNodeName) + " has expired"
+            # print str(self.regionNodeName) + " has expired"
             if self.parent.regionElapsed():
                 # If regionElapsed returns True, then the layout is on its way out so stop looping
                 # Acheived by pretending to be a single item region
