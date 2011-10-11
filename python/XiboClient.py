@@ -1573,8 +1573,6 @@ class XiboRegionManager(Thread):
         # player thread never blocks.
         self.lock = Semaphore()
         self.tLock = Semaphore()
-        
-        self.ConcurrencyManager = ConcurrencyManager(self)
 
         # Variables
         self.p = player
