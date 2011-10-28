@@ -1064,7 +1064,7 @@ class XiboDownloadManager(Thread):
                     tmpNode.setAttribute("type",str(tmpFileInfo[6]))
                     cacheXmlRoot.appendChild(tmpNode)
             except RuntimeError:
-                # Happens when we delete an item from the cache it would seem.
+                # TODO: Happens when we delete an item from the cache it would seem.
                 pass
 
             # Write the cache out to disk
@@ -1181,6 +1181,7 @@ class XiboDownloadThread(Thread):
         self.parent = parent
         self.offset = long(0)
         self.chunk = 512000
+        self.resumeDownloads = config.getboolean('Main','resumeDownloads')
         
         # Server versions prior to 1.0.5 send an invalid md5sum for layouts that require
         # the client to add a newline character to the returned layout to make it validate
@@ -1209,12 +1210,27 @@ class XiboDownloadThread(Thread):
         finished = False
         tries = 0
 
-        if os.path.isfile(self.tmpPath):
-            try:
-                os.remove(self.tmpPath)
-            except:
-                log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
-                return
+        if not self.resumeDownloads:
+            if os.path.isfile(self.tmpPath):
+                try:
+                    os.remove(self.tmpPath)
+                except:
+                    log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
+
+        try:
+            # See if file is already bigger than the target size.
+            # Bin it if it is
+            self.offset = long(os.path.getsize(self.tmpPath))
+            if self.offset >= self.tmpSize:
+                try:
+                    os.remove(self.tmpPath)
+                except:
+                    log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
+
+                self.offset = long(0)
+        except:
+            # File doesn't exist. Go for 0 offset
+            self.offset = long(0)
 
         fh = None
         try:
@@ -1260,6 +1276,11 @@ class XiboDownloadThread(Thread):
             if tmpFile.isValid():
                 finished = True
                 md5Cache[self.tmpFileName] = tmpFile
+            else:
+                try:
+                    os.remove(self.tmpPath)
+                except:
+                    log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
         # End while
 
     def downloadLayout(self):
