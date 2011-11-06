@@ -2557,6 +2557,8 @@ class SwitchWatcher(Thread):
 #### Socket Listener Thread ####
 
 class SocketWatcher(Thread):
+    # Based loosely on code by Matt Holder, but adapted for a different purpose
+    # Original code here: https://code.launchpad.net/~matt-mattmole/xibo/pyclient-socketWatch
 
     def __init__(self,scheduler,displayManager):
         Thread.__init__(self)
