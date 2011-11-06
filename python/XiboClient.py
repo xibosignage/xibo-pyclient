@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim, button
+from libavg import avg, anim
 from optparse import OptionParser
 from SOAPpy import WSDL
 import SOAPpy.Types
@@ -826,6 +826,8 @@ class XiboDownloadManager(Thread):
         self.__lock = Semaphore()
         self.__lock.acquire()
         self.offline = config.getboolean('Main','manualUpdate')
+        self.nextLayoutOnComplete = False
+        self.chainScheduler = False
 
         # Store a dictionary of XiboDownloadThread objects so we know
         # which files are downloading and how many download slots
@@ -1093,11 +1095,19 @@ class XiboDownloadManager(Thread):
                 log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
                 self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
 
+            if self.nextLayoutOnComplete:
+                self.p.parent.currentLM.dispose()
+
+            if self.chainScheduler:
+                self.p.parent.scheduler.collect(True)
+
             self.__lock.acquire()
         # End While
     
-    def collect(self):
+    def collect(self,flag=False,chainScheduler=False):
         if len(self.runningDownloads) == 0:
+            self.nextLayoutOnComplete = flag
+            self.chainScheduler = chainScheduler
             self.__lock.release()
 
     def dlThreadCompleteNotify(self,tmpFileName):
@@ -2100,6 +2110,7 @@ class XmdsScheduler(XiboScheduler):
         self.__collectLock = Semaphore()
         self.__collectLock.acquire()
         self.__defaultLayout = None
+        self.nextLayoutOnComplete = False
         
         self.validTag = "default"
 
@@ -2208,10 +2219,14 @@ class XmdsScheduler(XiboScheduler):
                 log.log(3,"info",_("XmdsScheduler: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
                 self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
 
+            if self.nextLayoutOnComplete:
+                self.p.parent.currentLM.dispose()
+
             self.__collectLock.acquire()
         # End while self.running
     
-    def collect(self):
+    def collect(self,flag=False):
+        self.nextLayoutOnComplete = flag
         self.__collectLock.release()
 
     def __len__(self):
@@ -2537,8 +2552,69 @@ class SwitchWatcher(Thread):
                     
             time.sleep(0.25)
             
-    
 #### End Switch Input Watcher ####
+
+#### Socket Listener Thread ####
+
+class SocketWatcher(Thread):
+
+    def __init__(self,scheduler,displayManager):
+        Thread.__init__(self)
+        self.scheduler = scheduler
+        self.displayManager = displayManager
+        self.tags = []
+        self.liftStack = Queue.LifoQueue()
+        self.running = True
+
+    def run(self):
+        #Bind to a socket
+        self.mySocket = socket.socket ( socket.AF_INET, socket.SOCK_STREAM )
+        self.mySocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.mySocket.bind ( ( '', 2727 ) )
+        self.mySocket.listen ( 5 )
+        self.mySocket.setblocking(1)
+
+        while self.running:
+            #Try reading information from our socket.
+            value = None
+            try:
+                channel, details = self.mySocket.accept()
+#                print 'We have opened a connection with', details
+                value = channel.recv ( 100 )
+                channel.close()
+            except:
+                print "No connection received"
+     
+            #Carry on processing if we have a value
+            #Split the message we receive as the arguments are split with a ","
+            if value != None:
+#                print value
+                value = value.split(",")
+      
+                if len(value) == 2 and value[0] == config.get("Main","xmdsKey"):
+                    value[1] = value[1].rstrip()
+#                    print "Value: -%s-" % value[1]
+
+                    if str(value[1]) == "refresh":
+                        self.displayManager.downloader.collect()
+                        self.displayManager.scheduler.collect()
+
+                    if str(value[1]) == "next":
+                        self.displayManager.currentLM.dispose()
+
+                    if str(value[1]) == "fullrefresh":
+                        self.displayManager.downloader.collect(False,True)
+
+    def dispose(self):
+        self.running = False
+        try:
+            self.mySocket.close()
+            print "Closed Listening Socket OK"
+        except:
+            print "Error closing listening socket!"
+
+
+#### End Socket Listener Thread ####
 
 #### Webservice
 class XMDSException(Exception):
@@ -3294,11 +3370,26 @@ class XiboDisplayManager:
             self.liftEnabled = False
             log.log(3,"error",_("Lift->enabled not defined in configuration. Disabling lift functionality in Logger"))
 
+        try:
+            self.socketEnabled = config.getboolean('Socket','enabled')
+            if not self.socketEnabled:
+                log.log(3,"audit",_("Disabling socket functionality"))
+            else:
+                log.log(3,"audit",_("Enabling socket functionality"))
+        except:
+            self.socketEnabled = False
+            log.log(3,"error",_("Socket->enabled not defined in configuration. Disabling socket functionality."))
+
         
         # Thread to watch the switch inputs and control the scheduler
         if self.liftEnabled:
             self.switch = SwitchWatcher(self.scheduler,self)
             self.switch.start()
+
+        # Thread to watch a socket and respond accordingly
+        if self.socketEnabled:
+            self.socket = SocketWatcher(self.scheduler,self)
+            self.socket.start()
 
         # Attempt to register with the webservice.
         # The RegisterDisplay code will block here if
@@ -3495,6 +3586,8 @@ class XiboPlayer(Thread):
                 self.parent.downloader.collect()
                 self.parent.scheduler.running = False
                 self.parent.scheduler.collect()
+
+                self.parent.socket.dispose()
 
                 log.log(5,"info",_("Blocking waiting for Scheduler"))
                 self.parent.scheduler.join()
