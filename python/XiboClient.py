@@ -3589,7 +3589,11 @@ class XiboPlayer(Thread):
                 self.parent.scheduler.running = False
                 self.parent.scheduler.collect()
 
-                self.parent.socket.dispose()
+                try:
+                    self.parent.socket.dispose()
+                except:
+                    # Catch exception if SocketWatcher is disabled.
+                    pass
 
                 log.log(5,"info",_("Blocking waiting for Scheduler"))
                 self.parent.scheduler.join()
