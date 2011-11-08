@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim, button
+from libavg import avg, anim
 from optparse import OptionParser
 from SOAPpy import WSDL
 import SOAPpy.Types
@@ -763,10 +763,9 @@ class XiboFile(object):
 
         self.targetHash = targetHash
         self.mtime = mtime
-        self.paranoid = config.get('Main','checksumPreviousDownloads')
-        if self.paranoid == "true":
+        self.paranoid = config.getboolean('Main','checksumPreviousDownloads')
+        if self.paranoid:
             self.update()
-            self.paranoid = True
         else:
             self.paranoid = False
             try:
@@ -1187,11 +1186,7 @@ class XiboDownloadThread(Thread):
         # the client to add a newline character to the returned layout to make it validate
         # Should the client assume the server is pre-1.0.5?
         try:
-            self.backCompat = config.get('Main','backCompatLayoutChecksums')
-            if self.backCompat == "false":
-                self.backCompat = False
-            else:
-                self.backCompat = True
+            self.backCompat = config.getboolean('Main','backCompatLayoutChecksums')
         except:
             self.backCompat = False
 
@@ -1213,6 +1208,7 @@ class XiboDownloadThread(Thread):
         if not self.resumeDownloads:
             if os.path.isfile(self.tmpPath):
                 try:
+                    log.log(5,"debug",_("Removing invalid file - resume downloads disabled: %s" % self.tmpPath), True)
                     os.remove(self.tmpPath)
                 except:
                     log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
@@ -1223,6 +1219,7 @@ class XiboDownloadThread(Thread):
             self.offset = long(os.path.getsize(self.tmpPath))
             if self.offset >= self.tmpSize:
                 try:
+                    log.log(5,"debug",_("Removing invalid file - too large: %s" % self.tmpPath), True)
                     os.remove(self.tmpPath)
                 except:
                     log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
@@ -1234,7 +1231,7 @@ class XiboDownloadThread(Thread):
 
         fh = None
         try:
-            fh = open(self.tmpPath, 'wb')
+            fh = open(self.tmpPath, 'ab')
         except:
             log.log(0,"error",_("Unable to write file: ") + self.tmpPath, True)
             return
@@ -1278,7 +1275,11 @@ class XiboDownloadThread(Thread):
                 md5Cache[self.tmpFileName] = tmpFile
             else:
                 try:
-                    os.remove(self.tmpPath)
+                    # Only delete the file at this point if the file got to full size.
+                    # If not leave it in place for next run.
+                    if offset == tmpSize:
+                        log.log(5,"audit",_("Removing invalid file - checksum didn't match after download: %s" % self.tmpPath), True)
+                        os.remove(self.tmpPath)                        
                 except:
                     log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
         # End while
