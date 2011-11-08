@@ -834,10 +834,9 @@ class XiboFile(object):
 
         self.targetHash = targetHash
         self.mtime = mtime
-        self.paranoid = config.get('Main','checksumPreviousDownloads')
-        if self.paranoid == "true":
+        self.paranoid = config.getboolean('Main','checksumPreviousDownloads')
+        if self.paranoid:
             self.update()
-            self.paranoid = True
         else:
             self.paranoid = False
             try:
@@ -1137,7 +1136,7 @@ class XiboDownloadManager(Thread):
                     tmpNode.setAttribute("type",str(tmpFileInfo[6]))
                     cacheXmlRoot.appendChild(tmpNode)
             except RuntimeError:
-                # Happens when we delete an item from the cache it would seem.
+                # TODO: Happens when we delete an item from the cache it would seem.
                 pass
 
             # Write the cache out to disk
@@ -1262,16 +1261,13 @@ class XiboDownloadThread(Thread):
         self.parent = parent
         self.offset = long(0)
         self.chunk = 512000
+        self.resumeDownloads = config.getboolean('Main','resumeDownloads')
         
         # Server versions prior to 1.0.5 send an invalid md5sum for layouts that require
         # the client to add a newline character to the returned layout to make it validate
         # Should the client assume the server is pre-1.0.5?
         try:
-            self.backCompat = config.get('Main','backCompatLayoutChecksums')
-            if self.backCompat == "false":
-                self.backCompat = False
-            else:
-                self.backCompat = True
+            self.backCompat = config.getboolean('Main','backCompatLayoutChecksums')
         except:
             self.backCompat = False
 
@@ -1290,16 +1286,33 @@ class XiboDownloadThread(Thread):
         finished = False
         tries = 0
 
-        if os.path.isfile(self.tmpPath):
-            try:
-                os.remove(self.tmpPath)
-            except:
-                log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
-                return
+        if not self.resumeDownloads:
+            if os.path.isfile(self.tmpPath):
+                try:
+                    log.log(5,"debug",_("Removing invalid file - resume downloads disabled: %s" % self.tmpPath), True)
+                    os.remove(self.tmpPath)
+                except:
+                    log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
+
+        try:
+            # See if file is already bigger than the target size.
+            # Bin it if it is
+            self.offset = long(os.path.getsize(self.tmpPath))
+            if self.offset >= self.tmpSize:
+                try:
+                    log.log(5,"debug",_("Removing invalid file - too large: %s" % self.tmpPath), True)
+                    os.remove(self.tmpPath)
+                except:
+                    log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
+
+                self.offset = long(0)
+        except:
+            # File doesn't exist. Go for 0 offset
+            self.offset = long(0)
 
         fh = None
         try:
-            fh = open(self.tmpPath, 'wb')
+            fh = open(self.tmpPath, 'ab')
         except:
             log.log(0,"error",_("Unable to write file: ") + self.tmpPath, True)
             return
@@ -1341,6 +1354,15 @@ class XiboDownloadThread(Thread):
             if tmpFile.isValid():
                 finished = True
                 md5Cache[self.tmpFileName] = tmpFile
+            else:
+                try:
+                    # Only delete the file at this point if the file got to full size.
+                    # If not leave it in place for next run.
+                    if offset == tmpSize:
+                        log.log(5,"audit",_("Removing invalid file - checksum didn't match after download: %s" % self.tmpPath), True)
+                        os.remove(self.tmpPath)                        
+                except:
+                    log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
         # End while
 
     def downloadLayout(self):
