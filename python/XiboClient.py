@@ -2672,8 +2672,9 @@ class TicketCounter(Thread):
         self.__lock = Semaphore()
         self.__lock.acquire()
         self.p = player
-        self.p.counterValue = 0
+        self.min = int(config.get('TicketCounter', 'minCount'))
         self.max = int(config.get('TicketCounter', 'maxCount'))
+        self.p.counterValue = self.min - 1
         self.osdBackColour = config.get('TicketCounter', 'osdBackColour')
         self.osdBackOpacity = float(config.get('TicketCounter', 'osdBackOpacity'))
         self.osdFontSize = config.get('TicketCounter', 'osdFontSize')
@@ -2726,7 +2727,7 @@ class TicketCounter(Thread):
     def increment(self):
         # Incremement the counter by one, or reset to 1 if hit max
         if self.p.counterValue == self.max:
-            self.p.counterValue = 1
+            self.p.counterValue = self.min
         else:
             self.p.counterValue = self.p.counterValue + 1
 
@@ -2735,7 +2736,7 @@ class TicketCounter(Thread):
 
     def decrement(self):
         # Decremement the counter by one, or reset to max if hit 1 or is reset to 0
-        if self.p.counterValue < 2:
+        if self.p.counterValue < (self.min + 1):
             self.p.counterValue = self.max
         else:
             self.p.counterValue = self.p.counterValue - 1
@@ -2744,7 +2745,7 @@ class TicketCounter(Thread):
         log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.p.counterValue,True)
 
     def reset(self):
-        self.p.counterValue = 0
+        self.p.counterValue = (self.min - 1)
         self.__lock.release()
         log.log(1,"info",_("TicketCounter: Reset"),True)
 
