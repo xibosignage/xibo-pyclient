@@ -48,7 +48,7 @@ import urlparse
 import PIL.Image
 import math
 
-version = "1.2.2a1"
+version = "1.2.2aM"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -816,13 +816,14 @@ class XiboFile(object):
         return (self.__fileName,self.md5,self.targetHash,self.checkTime,self.mtime,self.fileId,self.fileType)
 
 class XiboDownloadManager(Thread):
-    def __init__(self,xmds,player):
+    def __init__(self,xmds,player,parent):
         Thread.__init__(self)
         log.log(3,"info",_("New XiboDownloadManager instance created."))
         self.xmds = xmds
         self.running = True
         self.dlQueue = Queue.Queue(0)
-        self.p = player
+        self.p = player             # XiboPlayer Instance
+        self.parent = parent        # Parent XiboDisplayManager Instance
         self.__lock = Semaphore()
         self.__lock.acquire()
         self.offline = config.getboolean('Main','manualUpdate')
@@ -856,6 +857,9 @@ class XiboDownloadManager(Thread):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
         while (self.running):
             self.interval = 300
+            
+            # Flag to note if on this loop we downloaded new files
+            updatedContent = False
 
             # Find out how long we should wait between updates.
             try:
@@ -1026,6 +1030,7 @@ class XiboDownloadManager(Thread):
                         # Add the running thread to the self.runningDownloads dictionary
                         self.runningDownloads[tmpFileName] = XiboDownloadThread(self,tmpType,tmpFileName,tmpSize,tmpHash,tmpId)
                         log.updateRunningDownloads(len(self.runningDownloads))
+                        updatedContent = True
 
                         if self.offline:
                             # If we're running offline, block until completed.
@@ -1092,6 +1097,11 @@ class XiboDownloadManager(Thread):
             else:
                 log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
                 self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+            
+            if config.getboolean('Main','interruptRunningMediaOnUpdate') and updatedContent:
+                # If there was new stuff downloaded and interruptRunningMediaOnUpdate is true,
+                # skip to next layout.
+                self.parent.currentLM.dispose()
 
             self.__lock.acquire()
         # End While
@@ -3251,7 +3261,7 @@ class XiboDisplayManager:
         # Load a DownloadManager and start it running in its own thread
         try:
             downloaderName = config.get('Main','downloader')
-            self.downloader = eval(downloaderName)(self.xmds,self.Player)
+            self.downloader = eval(downloaderName)(self.xmds,self.Player,self)
             self.downloader.start()
             log.log(2,"info",_("Loaded Download Manager ") + downloaderName)
         except ConfigParser.NoOptionError:
