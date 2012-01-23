@@ -3523,12 +3523,22 @@ class XMDSOffline(Thread):
 
     def GetFile(self,tmpPath,tmpType,tmpOffset,tmpChunk):
         """Connect to XMDS and download a file"""
+
+        # Decide where to download the file from (Old format USB sticks are in the client UUID folder
+        # New format are in the central library folder
+        tmpFilePath = os.path.join(self.updatePath,'library',tmpPath)
+
+        if not os.path.isfile(tmpFilePath):
+            # File not in central library
+            # Fall back to old file locations then
+            tmpFilePath = os.path.join(self.updatePath,self.uuid,tmpPath)
+
         response = None
         log.lights('GF','amber')
         if self.check():
             if tmpType == 'media':
                 try:
-                    fh = open(os.path.join(self.updatePath,self.uuid,tmpPath), 'r')
+                    fh = open(tmpFilePath, 'r')
                     fh.seek(tmpOffset)
                     response = fh.read(tmpChunk)
                     fh.close()
@@ -3537,7 +3547,7 @@ class XMDSOffline(Thread):
                     raise XMDSException("XMDS could not be initialised")
             if tmpType == 'layout':
                 try:
-                    fh = open(os.path.join(self.updatePath,self.uuid,tmpPath), 'r')
+                    fh = open(tmpFilePath, 'r')
                     response = fh.read()
                     fh.close()
                 except:
