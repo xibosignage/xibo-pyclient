@@ -1189,6 +1189,8 @@ class XiboDownloadManager(Thread):
             self.nextLayoutOnComplete = flag
             self.chainScheduler = chainScheduler
             self.__lock.release()
+        else:
+            self.p.enqueue('timer',(60000,self.collect))
 
     def dlThreadCompleteNotify(self,tmpFileName):
         # Download thread completed. Log and remove from
