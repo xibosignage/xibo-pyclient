@@ -1109,6 +1109,8 @@ class XiboDownloadManager(Thread):
     def collect(self):
         if len(self.runningDownloads) == 0:
             self.__lock.release()
+        else:
+            self.p.enqueue('timer',(60000,self.collect))
 
     def dlThreadCompleteNotify(self,tmpFileName):
         # Download thread completed. Log and remove from
