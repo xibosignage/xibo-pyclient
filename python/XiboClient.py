@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009-2010 Alex Harrington
+# Copyright (C) 2009-2012 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim, button
+from libavg import avg, anim
 from optparse import OptionParser
 from SOAPpy import WSDL
 import SOAPpy.Types
@@ -48,7 +48,7 @@ import urlparse
 import PIL.Image
 import math
 
-version = "1.2.2aM"
+version = "1.2.4a1"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -2065,7 +2065,7 @@ class DummyScheduler(XiboScheduler):
     layoutList = ['5','6']
     layoutIndex = 0
 
-    def __init__(self,xmds,player):
+    def __init__(self,xmds,player,displayManager):
         Thread.__init__(self)
 
     def run(self):
@@ -2098,7 +2098,7 @@ class DummyScheduler(XiboScheduler):
 class XmdsScheduler(XiboScheduler):
     "XMDS Scheduler. Retrieves the current schedule from XMDS."
 
-    def __init__(self,xmds,player):
+    def __init__(self,xmds,player,displayManager):
         Thread.__init__(self)
         self.xmds = xmds
         self.running = True
@@ -2107,9 +2107,16 @@ class XmdsScheduler(XiboScheduler):
         self.__lock = Semaphore()
         self.previousSchedule = "<schedule/>"
         self.p = player
+        self.__displayManager = displayManager
         self.__collectLock = Semaphore()
         self.__collectLock.acquire()
         self.__defaultLayout = None
+        
+        # Keep track of when the next layout start/finish event is, and what the ID
+        # of the next layout to finish is.
+        self.__nextLayoutStartDT = None
+        self.__nextLayoutFinishDT = None
+        self.__nextLayoutFinishID = None
         
         self.validTag = "default"
 
@@ -2189,6 +2196,16 @@ class XmdsScheduler(XiboScheduler):
                     layoutPriority = int(l.attributes['priority'].value)
                     flag = True
                     
+                    # Get the time now
+                    now = time.time()
+                    
+                    if self.__nextLayoutStartDT == None or (int(layoutFromDT) > now and int(layoutFromDT) < self.__nextLayoutStartDT):
+                        self.__nextLayoutStartDT = int(layoutFromDT)
+                    
+                    if self.__nextLayoutFinishDT == None or (int(layoutToDT) > now and int(layoutToDT) < self.__nextLayoutFinishDT):
+                        self.__nextLayoutFinishDT = int(layoutToDT)
+                        self.__nextLayoutFinishID = layoutID
+                    
                     # If the layout already exists, add this schedule to it
                     for g in newLayouts:
                         if g.layoutID == layoutID:
@@ -2203,7 +2220,12 @@ class XmdsScheduler(XiboScheduler):
                         newLayouts.append(tmpLayout)
                         scheduleText += str(layoutID) + ', '
                 # End for l in tmpLayouts
-                        
+                
+                if config.getint('Main','xmdsUpdateInterval') == 1:
+                    self.__displayManager.nextTick(self.__nextLayoutStartDT)
+                elif config.getint('Main','xmdsUpdateInterval') == 2:
+                    self.__displayManager.nextTick(self.__nextLayoutFinishDT,self.__nextLayoutFinishID)
+                
                 # Swap the newLayouts array in to the live scheduler
                 self.__lock.acquire()
                 self.__layouts = newLayouts
@@ -3214,7 +3236,7 @@ class XMDSOffline(Thread):
 
 class XiboDisplayManager:
     def __init__(self):
-        pass
+        self.__nextTickDT = None
 
     def run(self):
         # Run up a XiboLogScreen temporarily until XMDS is initialised.
@@ -3289,7 +3311,7 @@ class XiboDisplayManager:
         # Load a scheduler and start it running in its own thread
         try:
             schedulerName = config.get('Main','scheduler')
-            self.scheduler = eval(schedulerName)(self.xmds,self.Player)
+            self.scheduler = eval(schedulerName)(self.xmds,self.Player,self)
             self.scheduler.start()
             log.log(2,"info",_("Loaded Scheduler ") + schedulerName)
         except ConfigParser.NoOptionError:
@@ -3348,6 +3370,16 @@ class XiboDisplayManager:
         log.log(2,"info",_("XiboLayoutManager: nextLayout() -> Starting new XiboLayoutManager with layout ") + str(self.currentLM.l.layoutID))
         self.currentLM.start()
         self.Player.enqueue('del',tmpLayout)
+
+    def nextTick(self,nextDT,nextID=None):
+        if not nextDT == self.__nextTickDT:
+            # Work out how many seconds unti nextDT
+            # Enqueue a timer at that time  to signal next layout.
+            now = time.time()
+            interval = nextDT - now
+            # TODO: FIX THIS CALLBACK
+#            self.Player.enqueue('timer',(interval * 1000, CALLBACK HERE))
+            self.__nextTickDT = nextDT
 
 class XiboPlayer(Thread):
     "Class to handle libavg interactions"
