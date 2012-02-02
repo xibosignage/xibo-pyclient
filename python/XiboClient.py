@@ -2221,9 +2221,9 @@ class XmdsScheduler(XiboScheduler):
                         scheduleText += str(layoutID) + ', '
                 # End for l in tmpLayouts
                 
-                if config.getint('Main','xmdsUpdateInterval') == 1:
+                if config.getint('Main','layoutExpireMode') == 1:
                     self.__displayManager.nextTick(self.__nextLayoutStartDT)
-                elif config.getint('Main','xmdsUpdateInterval') == 2:
+                elif config.getint('Main','layoutExpireMode') == 2:
                     self.__displayManager.nextTick(self.__nextLayoutFinishDT,self.__nextLayoutFinishID)
                 
                 # Swap the newLayouts array in to the live scheduler
@@ -3371,7 +3371,7 @@ class XiboDisplayManager:
         self.currentLM.start()
         self.Player.enqueue('del',tmpLayout)
 
-    def nextTick(self,nextDT,nextID=None):
+    def nextTick(self,nextDT,finishID=None):
         if not nextDT == self.__nextTickDT:
             # Work out how many seconds unti nextDT
             # Enqueue a timer at that time  to signal next layout.
