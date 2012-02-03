@@ -2191,6 +2191,8 @@ class XmdsScheduler(XiboScheduler):
                         self.__defaultLayout = XiboLayout(layoutID,True)
             
                 newLayouts = []
+                self.__nextLayoutFinishID = []
+                
                 for l in tmpLayouts:
                     layoutID = str(l.attributes['file'].value)
                     layoutFromDT = str(l.attributes['fromdt'].value)
@@ -2204,9 +2206,13 @@ class XmdsScheduler(XiboScheduler):
                     if self.__nextLayoutStartDT == None or (int(layoutFromDT) > now and int(layoutFromDT) < self.__nextLayoutStartDT):
                         self.__nextLayoutStartDT = int(layoutFromDT)
                     
-                    if self.__nextLayoutFinishDT == None or (int(layoutToDT) > now and int(layoutToDT) < self.__nextLayoutFinishDT):
+                    if self.__nextLayoutFinishDT == None or (int(layoutToDT) > now and int(layoutToDT) <= self.__nextLayoutFinishDT):
                         self.__nextLayoutFinishDT = int(layoutToDT)
-                        self.__nextLayoutFinishID = layoutID
+                        
+                        if int(layoutToDT) == self.__nextLayoutFinishDT:
+                            self.__nextLayoutFinishID.append(layoutID)
+                        else:
+                            self.__nextLayoutFinishID = [layoutID]
                     
                     # If the layout already exists, add this schedule to it
                     for g in newLayouts:
@@ -2223,6 +2229,8 @@ class XmdsScheduler(XiboScheduler):
                         scheduleText += str(layoutID) + ', '
                 # End for l in tmpLayouts
                 
+                # Tell the DisplayManager when the next layour start/finish event is.
+                # This causes the DisplayManager to kill running layouts as they expire.
                 if config.getint('Main','layoutExpireMode') == 1:
                     self.__displayManager.nextTick(self.__nextLayoutStartDT)
                 elif config.getint('Main','layoutExpireMode') == 2:
@@ -3373,7 +3381,8 @@ class XiboDisplayManager:
         self.currentLM.start()
         self.Player.enqueue('del',tmpLayout)
 
-    def nextTick(self,nextDT,finishID=None):
+    def nextTick(self,nextDT,callback,finishID=[]):
+        # finishIDs: list of IDs of layouts that will expire on nextTick
         if not nextDT == self.__nextTickDT:
             # Work out how many seconds unti nextDT
             # Enqueue a timer at that time  to signal next layout.
@@ -3381,6 +3390,7 @@ class XiboDisplayManager:
             interval = nextDT - now
             # TODO: FIX THIS CALLBACK
 #            self.Player.enqueue('timer',(interval * 1000, CALLBACK HERE))
+            self.Player.nextTick(nextDT,callback)
             self.__nextTickDT = nextDT
 
 class XiboPlayer(Thread):
