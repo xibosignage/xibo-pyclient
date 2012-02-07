@@ -3744,8 +3744,13 @@ class XiboPlayer(Thread):
             self.player.clearInterval(self.__nextTickEventRef)
         except:
             pass
-            
-        self.__nextTickEventRef = self.player.setTimeout(interval,callback)
+        
+        try:    
+            self.__nextTickEventRef = self.player.setTimeout(interval,callback)
+        except OverflowError:
+            # Event is too far in the future (>24 days).
+            # Ignore it for now
+            pass
             
             
 class XiboClient:
