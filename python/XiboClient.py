@@ -3267,7 +3267,7 @@ class XiboDisplayManager:
         # Check data directory exists
         try:
             libDir = config.get('Main','libraryDir')
-            if not os.path.isdir(os.path.join(libDir,'scaled')):-1.2.2a
+            if not os.path.isdir(os.path.join(libDir,'scaled')):
                 os.makedirs(os.path.join(libDir,'scaled'))
         except os.error:
             log.log(0,"error",_("Unable to create local library directory %s") % libDir)
@@ -3316,7 +3316,7 @@ class XiboDisplayManager:
             log.log(0,"error",_("No DownloadManager specified in your configuration."))
             log.log(0,"error",_("Please check your Download Manager configuration."))
             exit(1)
-        except:-1.2.2a
+        except:
             log.log(0,"error","Unexpected Exception")
             log.log(0,"error",downloaderName + _(" does not implement the methods required to be a Xibo DownloadManager or does not exist."))
             log.log(0,"error",_("Please check your Download Manager configuration."))
