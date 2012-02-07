@@ -3494,7 +3494,14 @@ class XiboPlayer(Thread):
         
 
         # Load the BrowserNode plugin
-        self.player.loadPlugin("libbrowsernode")
+        try:
+            self.player.loadPlugin("libbrowsernode")
+        except RuntimeError:
+            print "\n*********************************************************"
+            print "The version of Awesomium installed on this system is not compatible with this version of Xibo."
+            print "Please check you have the correct version of Awesomium installed for this version of the client."
+            print "*********************************************************\n"
+            os._exit(0)
         
         self.player.showCursor(0)
         self.player.volume = 1
