@@ -3247,6 +3247,7 @@ class XMDSOffline(Thread):
 class XiboDisplayManager:
     def __init__(self):
         self.__nextTickDT = None
+        self.__nextFinishID = []
 
     def run(self):
         # Run up a XiboLogScreen temporarily until XMDS is initialised.
@@ -3387,11 +3388,34 @@ class XiboDisplayManager:
             # Work out how many seconds unti nextDT
             # Enqueue a timer at that time  to signal next layout.
             now = time.time()
-            interval = nextDT - now
-            # TODO: FIX THIS CALLBACK
-#            self.Player.enqueue('timer',(interval * 1000, CALLBACK HERE))
-            self.Player.nextTick(nextDT,callback)
+            int(interval) = nextDT - now
+
             self.__nextTickDT = nextDT
+            self.__nextFinishID = finishID
+
+            self.Player.nextTick(interval * 1000, self.tick)
+
+    def tick(self):
+        if config.getint('Main','layoutExpireMode') == 1:
+            # If the currently running layout is in self.__nextFinishID
+            # then trash it
+            try:
+                a = self.__nextFinishID.index(self.currentLM.l.layoutID)
+                log.log(2,"info",_("XiboLayoutManager: tick() (Mode1) -> Destroying current layout"))
+                self.currentLM.dispose()
+            except:
+                # Current layout wasn't in nextFinishID so exception
+                # thrown. Catch and pass.
+                log.log(6,"debug",_("XiboLayoutManager: tick() -> Skipping tick because current layout isn't removed from the schedule."))
+
+        elif config.getint('Main','layoutExpireMode') == 2:
+            # Trash what's running regardless of what it is
+            log.log(2,"info",_("XiboLayoutManager: tick() (Mode2) -> Destroying current layout"))
+            self.currentLM.dispose()
+        else:
+            # Do nothing. This should never occur
+            pass
+            
 
 class XiboPlayer(Thread):
     "Class to handle libavg interactions"
@@ -3412,7 +3436,12 @@ class XiboPlayer(Thread):
         self.dim = (int(config.get('Main', 'width')),
                     int(config.get('Main', 'height')))
         self.currentFH = None
+        
+        # Reference to the DisplayManager
         self.parent = parent
+        
+        # Reference to the nextTick event due to run
+        self.__nextTickEventRef = None
 
     def getDimensions(self):
         # NB: I don't think this is ever used.
@@ -3695,6 +3724,17 @@ class XiboPlayer(Thread):
                 log.log(0,"audit",str(cmd) + " : " + str(data))
         except AttributeError:
             log.log(0,"error","Caught that thing that makes the player crash on startup!")
+    
+    def nextTick(self,interval,callback):
+        # Clear the nextTick event timer and start a new one
+        # Used to skip layouts on starting or finishing a scheudule
+        # when layoutExpireMode is 1 or 2.
+        try: 
+            self.player.clearInterval(self.__nextTickEventRef)
+        except:
+            pass
+            
+        self.__nextTickEventRef = self.player.setTimeout(interval,callback)
             
             
 class XiboClient:
