@@ -2199,17 +2199,21 @@ class XmdsScheduler(XiboScheduler):
                     layoutToDT = str(l.attributes['todt'].value)
                     layoutPriority = int(l.attributes['priority'].value)
                     flag = True
+
+                    # Convert the date strings to seconds since the epoch for conversion
+                    layoutFromSecs = time.mktime(time.strptime(layoutFromDT, "%Y-%m-%d %H:%M:%S"))
+                    layoutToSecs = time.mktime(time.strptime(layoutToDT, "%Y-%m-%d %H:%M:%S"))
                     
                     # Get the time now
                     now = time.time()
                     
-                    if self.__nextLayoutStartDT == None or (int(layoutFromDT) > now and int(layoutFromDT) < self.__nextLayoutStartDT):
-                        self.__nextLayoutStartDT = int(layoutFromDT)
+                    if self.__nextLayoutStartDT == None or (int(layoutFromSecs) > now and int(layoutFromSecs) < self.__nextLayoutStartDT):
+                        self.__nextLayoutStartDT = int(layoutFromSecs)
                     
-                    if self.__nextLayoutFinishDT == None or (int(layoutToDT) > now and int(layoutToDT) <= self.__nextLayoutFinishDT):
-                        self.__nextLayoutFinishDT = int(layoutToDT)
+                    if self.__nextLayoutFinishDT == None or (int(layoutToSecs) > now and int(layoutToSecs) <= self.__nextLayoutFinishDT):
+                        self.__nextLayoutFinishDT = int(layoutToSecs)
                         
-                        if int(layoutToDT) == self.__nextLayoutFinishDT:
+                        if int(layoutToSecs) == self.__nextLayoutFinishDT:
                             self.__nextLayoutFinishID.append(layoutID)
                         else:
                             self.__nextLayoutFinishID = [layoutID]
@@ -2447,7 +2451,7 @@ class SwitchWatcher(Thread):
             rF=5
             rD=4
         else:
-            if ser0:
+            if ser0:-1.2.2a
                 # ie 0
                 rS=0
                 rF=1
@@ -3263,7 +3267,7 @@ class XiboDisplayManager:
         # Check data directory exists
         try:
             libDir = config.get('Main','libraryDir')
-            if not os.path.isdir(os.path.join(libDir,'scaled')):
+            if not os.path.isdir(os.path.join(libDir,'scaled')):-1.2.2a
                 os.makedirs(os.path.join(libDir,'scaled'))
         except os.error:
             log.log(0,"error",_("Unable to create local library directory %s") % libDir)
@@ -3312,7 +3316,7 @@ class XiboDisplayManager:
             log.log(0,"error",_("No DownloadManager specified in your configuration."))
             log.log(0,"error",_("Please check your Download Manager configuration."))
             exit(1)
-        except:
+        except:-1.2.2a
             log.log(0,"error","Unexpected Exception")
             log.log(0,"error",downloaderName + _(" does not implement the methods required to be a Xibo DownloadManager or does not exist."))
             log.log(0,"error",_("Please check your Download Manager configuration."))
