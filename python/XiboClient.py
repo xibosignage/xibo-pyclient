@@ -2451,7 +2451,7 @@ class SwitchWatcher(Thread):
             rF=5
             rD=4
         else:
-            if ser0:-1.2.2a
+            if ser0:
                 # ie 0
                 rS=0
                 rF=1
