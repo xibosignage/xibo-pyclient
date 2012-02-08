@@ -3396,7 +3396,7 @@ class XiboDisplayManager:
             # Work out how many seconds unti nextDT
             # Enqueue a timer at that time  to signal next layout.
             now = time.time()
-            interval = int(nextDT - now)
+            interval = int(nextDT - now) + 2
 
             self.__nextTickDT = nextDT
             self.__nextFinishID = finishID
