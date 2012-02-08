@@ -2206,6 +2206,8 @@ class XmdsScheduler(XiboScheduler):
                     
                     # Get the time now
                     now = time.time()
+
+                    log.log(6,'audit',_('XmdsScheduler: LayoutID %s: From: %s To: %s (Now: %s)') % (layoutID,layoutFromSecs,layoutToSecs,now))
                     
                     if self.__nextLayoutStartDT == None or (int(layoutFromSecs) > now and int(layoutFromSecs) < self.__nextLayoutStartDT):
                         self.__nextLayoutStartDT = int(layoutFromSecs)
@@ -2235,10 +2237,12 @@ class XmdsScheduler(XiboScheduler):
                 
                 # Tell the DisplayManager when the next layour start/finish event is.
                 # This causes the DisplayManager to kill running layouts as they expire.
-                if config.getint('Main','layoutExpireMode') == 1:
+                if config.getint('Main','layoutExpireMode') == 2:
+                    log.log(2,'audit',_('XmdsScheduler: Setting nextStartTick to %s') % self.__nextLayoutStartDT)
                     self.__displayManager.nextTick(self.__nextLayoutStartDT)
-                elif config.getint('Main','layoutExpireMode') == 2:
+                elif config.getint('Main','layoutExpireMode') == 1:
                     self.__displayManager.nextTick(self.__nextLayoutFinishDT,self.__nextLayoutFinishID)
+                    log.log(2,'audit',_('XmdsScheduler: Setting nextFinishTick to %s') % self.__nextLayoutStartDT)
                 
                 # Swap the newLayouts array in to the live scheduler
                 self.__lock.acquire()
