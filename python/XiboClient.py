@@ -2252,6 +2252,7 @@ class XmdsScheduler(XiboScheduler):
 
         # Get the time now
         now = time.time()
+        self.__nextLayoutStartDT = time.time() + 2592000
 
         for l in tmpLayouts:
             layoutID = l.layoutID
@@ -2270,7 +2271,7 @@ class XmdsScheduler(XiboScheduler):
                 if (layoutFromSecs > now and layoutFromSecs < self.__nextLayoutStartDT):
                     self.__nextLayoutStartDT = layoutFromSecs
                     
-                if (layoutToSecs > now and layoutToSecs <= self.__nextLayoutFinishDT):
+                if (layoutToSecs >= now and layoutToSecs <= self.__nextLayoutFinishDT):
                     self.__nextLayoutFinishDT = layoutToSecs
                         
                 if layoutToSecs == self.__nextLayoutFinishDT:
