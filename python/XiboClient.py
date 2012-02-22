@@ -2262,7 +2262,7 @@ class XmdsScheduler(XiboScheduler):
                 layoutToSecs = time.mktime(time.strptime(layoutToDT, "%Y-%m-%d %H:%M:%S"))
                     
 
-                log.log(6,'audit',_('XmdsScheduler: LayoutID %s: From: %s To: %s (Now: %s)')  % (layoutID,layoutFromSecs,layoutToSecs,now))
+                log.log(2,'audit',_('XmdsScheduler: LayoutID %s: From: %s To: %s (Now: %s)')  % (layoutID,layoutFromSecs,layoutToSecs,now))
                     
                 if self.__nextLayoutStartDT == None or (int(layoutFromSecs) > now and int(layoutFromSecs) < self.__nextLayoutStartDT):
                     self.__nextLayoutStartDT = int(layoutFromSecs)
@@ -2279,10 +2279,11 @@ class XmdsScheduler(XiboScheduler):
         # This causes the DisplayManager to kill running layouts as they expire.
         if config.getint('Main','layoutExpireMode') == 2:
             log.log(2,'audit',_('XmdsScheduler: Setting nextStartTick to %s') % self.__nextLayoutStartDT)
-            self.__displayManager.nextTick(self.__nextLayoutStartDT)
+            tmpList = []
+            self.__displayManager.nextTick(self.__nextLayoutStartDT,tmpList)
         elif config.getint('Main','layoutExpireMode') == 1:
             self.__displayManager.nextTick(self.__nextLayoutFinishDT,self.__nextLayoutFinishID)
-            log.log(2,'audit',_('XmdsScheduler: Setting nextFinishTick to %s') % self.__nextLayoutStartDT)
+            log.log(2,'audit',_('XmdsScheduler: Setting nextFinishTick to %s') % self.__nextLayoutFinishDT)
 
         if layouts == None:
             self.__lock.release()        
@@ -3413,10 +3414,10 @@ class XiboDisplayManager:
         self.currentLM.start()
         self.Player.enqueue('del',tmpLayout)
 
-    def nextTick(self,nextDT,finishID=[]):
+    def nextTick(self,nextDT,finishID):
         # finishID: list of IDs of layouts that will expire on nextTick
         if not nextDT == self.__nextTickDT:
-            # Work out how many seconds unti nextDT
+            # Work out how many seconds until nextDT
             # Enqueue a timer at that time  to signal next layout.
             # Pad the timer by 2 seconds to make sure we don't change too early and restart the old
             # layout by mistake!
