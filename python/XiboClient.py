@@ -2120,8 +2120,10 @@ class XmdsScheduler(XiboScheduler):
         
         # Keep track of when the next layout start/finish event is, and what the ID
         # of the next layout to finish is.
-        self.__nextLayoutStartDT = None
-        self.__nextLayoutFinishDT = None
+        # Set next start to be 30 days in the future by default
+        self.__nextLayoutStartDT = time.time() + 2592000
+        # Set next finish to be 30 seconds in the past
+        self.__nextLayoutFinishDT = time.time() - 30
         self.__nextLayoutFinishID = None
         
         self.validTag = "default"
@@ -2253,9 +2255,8 @@ class XmdsScheduler(XiboScheduler):
 
         for l in tmpLayouts:
             layoutID = l.layoutID
-            print "***** PROCESSING LAYOUT %s *****" % layoutID
+
             for sched in l.getSchedule():
-                print "---> SCHEDULE LOOP %s" % sched
                 layoutFromDT = sched[0]
                 layoutToDT = sched[1]
         
@@ -2266,10 +2267,10 @@ class XmdsScheduler(XiboScheduler):
 
                 log.log(2,'audit',_('XmdsScheduler: LayoutID %s: From: %s To: %s (Now: %s)')  % (layoutID,layoutFromSecs,layoutToSecs,now))
                     
-                if self.__nextLayoutStartDT == None or (int(layoutFromSecs) > now and int(layoutFromSecs) < self.__nextLayoutStartDT):
+                if (int(layoutFromSecs) > now and int(layoutFromSecs) < self.__nextLayoutStartDT):
                     self.__nextLayoutStartDT = int(layoutFromSecs)
                     
-                if self.__nextLayoutFinishDT == None or (int(layoutToSecs) > now and int(layoutToSecs) <= self.__nextLayoutFinishDT):
+                if (int(layoutToSecs) > now and int(layoutToSecs) <= self.__nextLayoutFinishDT):
                     self.__nextLayoutFinishDT = int(layoutToSecs)
                         
                 if int(layoutToSecs) == self.__nextLayoutFinishDT:
