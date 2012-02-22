@@ -2253,7 +2253,9 @@ class XmdsScheduler(XiboScheduler):
 
         for l in tmpLayouts:
             layoutID = l.layoutID
+            print "***** PROCESSING LAYOUT %s *****" % layoutID
             for sched in l.getSchedule():
+                print "---> SCHEDULE LOOP %s" % sched
                 layoutFromDT = sched[0]
                 layoutToDT = sched[1]
         
