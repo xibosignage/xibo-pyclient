@@ -3414,10 +3414,13 @@ class XiboDisplayManager:
         self.Player.enqueue('del',tmpLayout)
 
     def nextTick(self,nextDT,finishID=[]):
-        # finishIDs: list of IDs of layouts that will expire on nextTick
+        # finishID: list of IDs of layouts that will expire on nextTick
         if not nextDT == self.__nextTickDT:
             # Work out how many seconds unti nextDT
             # Enqueue a timer at that time  to signal next layout.
+            # Pad the timer by 2 seconds to make sure we don't change too early and restart the old
+            # layout by mistake!
+
             now = time.time()
             interval = int(nextDT - now) + 2
 
