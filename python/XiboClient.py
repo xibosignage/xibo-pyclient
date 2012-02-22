@@ -2267,13 +2267,13 @@ class XmdsScheduler(XiboScheduler):
 
                 log.log(2,'audit',_('XmdsScheduler: LayoutID %s: From: %s To: %s (Now: %s)')  % (layoutID,layoutFromSecs,layoutToSecs,now))
                     
-                if (int(layoutFromSecs) > now and int(layoutFromSecs) < self.__nextLayoutStartDT):
-                    self.__nextLayoutStartDT = int(layoutFromSecs)
+                if (layoutFromSecs > now and layoutFromSecs < self.__nextLayoutStartDT):
+                    self.__nextLayoutStartDT = layoutFromSecs
                     
-                if (int(layoutToSecs) > now and int(layoutToSecs) <= self.__nextLayoutFinishDT):
-                    self.__nextLayoutFinishDT = int(layoutToSecs)
+                if (layoutToSecs > now and layoutToSecs <= self.__nextLayoutFinishDT):
+                    self.__nextLayoutFinishDT = layoutToSecs
                         
-                if int(layoutToSecs) == self.__nextLayoutFinishDT:
+                if layoutToSecs == self.__nextLayoutFinishDT:
                     self.__nextLayoutFinishID.append(layoutID)
                 else:
                     self.__nextLayoutFinishID = [layoutID]
