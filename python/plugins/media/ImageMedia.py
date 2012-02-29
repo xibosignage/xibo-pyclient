@@ -39,10 +39,17 @@ class ImageMedia(XiboMedia):
         thumb = os.path.join(self.libraryDir,'scaled',self.options['uri']) + "-%dx%d" % (w,h)
         if not os.path.exists(thumb) or (os.path.getmtime(thumb) < os.path.getmtime(fName)):
             self.log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.mediaNodeName,self.options['uri'],w,h))
-            image = Image.open(fName)
-            image.thumbnail((w,h),Image.ANTIALIAS)
-            image.save(thumb, image.format)
-            del image
+            try:
+                image = Image.open(fName)
+                image.thumbnail((w,h),Image.ANTIALIAS)
+                image.save(thumb, image.format)
+                del image
+            except IOError:
+                self.log.log(0,'error',_("%s: Error reading image file %s. Unsupported format or Permission Denied") % (self.mediaNodeName,self.options['uri']))
+                return
+            except:
+                self.log.log(0,'error',_("%s: Unknown error with Image File %s") % (self.mediaNodeName,self.options['uri']))
+                return
 
         bitmap = avg.Bitmap(thumb)
       	self.p.enqueue('setBitmap',(self.mediaNodeName, bitmap))
