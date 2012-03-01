@@ -3953,8 +3953,8 @@ class XiboPlayer(Thread):
             self.player.loadPlugin("libbrowsernode")
         except RuntimeError:
             print "\n*********************************************************"
-            print "The version of Awesomium installed on this system is not compatible with this version of Xibo."
-            print "Please check you have the correct version of Awesomium installed for this version of the client."
+            print "The version of Berkelium installed on this system is not compatible with this version of Xibo."
+            print "Please check you have the correct version of Berkelium installed for this version of the client."
             print "*********************************************************\n"
             os._exit(0)
         
