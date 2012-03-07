@@ -47,6 +47,8 @@ import urlparse
 import PIL.Image
 import math
 
+from 3rdParty.period.period import in_period
+
 version = "1.3.2"
 
 # What layout schema version is supported
@@ -3053,6 +3055,11 @@ class XMDS:
         return str(self.key)
 
     def check(self):
+        if not in_period(config.get('Main','connectionPeriod'):
+            # If we're in an XMDS blackout period then
+            # prevent communications with the server
+            return False
+    
         if self.hasInitialised:
             return True
         else:

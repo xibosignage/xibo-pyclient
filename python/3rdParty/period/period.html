@@ -1,0 +1,246 @@
+<html>
+<!-- $Id: period.html,v 1.14 2002-01-07 14:54:09-06 annis Exp annis $ -->
+<head>
+  <title>period.py - Time Period Checking</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h1><code><b>period.py</b></code></h1>
+
+<p align=justify> This is an early version of a basic time period
+checking libary for Python.  It is in part inspired by perl's
+<a href="http://www.perl.com/CPAN-local/modules/by-module/Time/">
+Time::Period</a> module and the time class mechanism of
+<a href="http://www.iu.hio.no/cfengine/">Cfengine.</a>
+
+<p align=justify> There was a major change at version 0.5 in how the
+code works.  Previous to that you couldn't do any grouping.  In order
+to add grouping, I had to completely change how the parser and the
+logic of the system works.  All tests show that both versions give the
+same answers, at least for the test cases.
+
+<!--
+m4 excitement: 
+m4_include(period.wp)
+-->
+
+<p align=justify> The purpose of this library is simply to allow you
+to specify a time period and check to see if some time is within that
+time period.  By default, it checks against the current computer time.
+You can also check to see if a time is on a <a
+href="#holidays">holiday</a>.
+
+<h3>Time Period Specifications</h3>
+
+<p align=justify> The time period specifications are reasonably
+straightforward, but there are a few tricky bits.  It understands the
+following time units:
+
+<ul>
+  <li> Hr00 - Hr23
+  <li> Min00 - Min59
+  <li> Yr1999, Yr2000, <em>etc</em>
+  <li> January, February, <em>etc. and ranges</em> February-September
+  <li> Monday, Tuesday, <em>etc. and ranges</em> Wednesday-Saturday
+  <li> Day01 - Day31
+  <li> Week00 - Week52
+  <li> Weekday, Weekend
+  <li> Always, Never
+</ul>
+
+<p align=justify> Now if you had some Python script you didn't ever
+want to run on a weekend, you could do this:
+
+<blockquote><b><pre>
+from period import in_period
+import sys
+
+if in_period('Weekend'):
+    sys.exit(0)       # Only run on weekdays!
+</pre></b></blockquote>
+
+<p align=justify> You can negate a time unit with a bang
+(<code><b>!</b></code>), so you could also say this, a bit
+cryptically: 
+
+<blockquote><b><pre>
+from period import in_period
+import sys
+
+if in_period('!Weekday'):
+    sys.exit(0)       # Don't run on weekends!
+</pre></b></blockquote>
+
+<p align=justify> You can combine time units into more complex period
+specifications with a dot (it's confusing to call it a "period" in
+this context).  In this case, everything in the period specification
+must be true for <code><b>in_period</b></code> to return true.  So,
+<code><b>April.Weekend</b></code> will be true for every weekend in
+April.
+
+<p align=justify> In addition to these simple period units, you can
+express ranges of times for the ones that use digits.  Ranges are
+indicated with a '<code><b>-</b></code>' dash.  So,
+<code><b>Hr07-Hr21</b></code> is true from 7am to 9pm.  You can easily
+specify your normal working hours, or at something least very close to
+them: <code><b>Weekday.Hr07-Hr16</b></code>.
+
+<blockquote>
+<p align=justify> Please note very carefully: time ranges are
+<em>inclusive</em>.  So, <code><b>Hr01-Hr03</b></code> includes all of
+1:00-3:59.  If you only want to specify 1:00 to 3:00, then you need
+instead to say <code><b>Hr01-Hr02</b></code> which includes 1:00-2:59.
+
+<p align=justify> This is inclusive range behavior is true for the
+minute, day, year and week ranges as well.
+</blockquote>
+
+<p align=justify> You can also use ranges for days of the week and
+months.  These will wrap around, so if you do
+<code><b>November-March</b></code>, you'll get what you expect.  Same
+for day ranges: <code><b>Friday-Tuesday</b></code> will match on
+Friday, Saturday, Sunday, Monday and Tuesday.
+
+<p align=justify> If you want, you can omit the unit part from the
+second part of a range.  So, <code><b>Hr07-Hr16</b></code> and
+<code><b>Hr07-16</b></code> are effectively the same.
+
+<p align=justify> If you want leave your lunch hour out of the period
+above you have to use a slightly different notation.  If you said
+<code><b>Weekday.Hr07-12.Hr13-16</b></code> this will fail, because
+one or the other of the <code><b>Hr</b></code> periods will fail.  So,
+to indicate several ranges of these, you use a comma.  The correct
+period is <code><b>Weekday.Hr07-11,13-16</b></code>. Note that
+<code><b>Hr12</b></code> would everything between 12:00 and 12:59, so
+we need to get that entire hour out of the time spec.
+<code><b>Hr07-11,12-16</b></code> is exactly the same as
+<code><b>Hr07-16</b></code>.
+
+<p align=justify> In addition to logical "and" you can join periods
+with "or" with the <code><b>|</b></code> character (that's a pipe):
+<code><b>Weekday|Weekend.Hr10-22</b></code> will be true if it's a
+weekday or between 10am and 10pm on a weekend.  Note that the "and"
+operation (the dot) has higher precedence than the "or" (the pipe).
+
+<p align=justify> Finally, you may do some grouping with parentheses,
+which work as you'd expect: <code><b>(Monday|Friday).Hr11-14</b></code> 
+or more complex expressions with nested sub-expressions:
+<code><b>(Monday|(Friday.January-March)).Yr2002</b></code>
+You can also negate groups by prefixing the bang:
+<code><b>!(Monday|Friday).Hr11-14</b></code>.
+
+<p align=justify> If you wish to check some time other than the
+current computer time, just pass that time as a second argument to
+<code><b>in_period</b></code>:
+
+<blockquote><b><pre>
+from period import in_period
+import sys, time
+
+# 86400 == 60 * 60 * 24, a day of seconds
+if in_period('Weekend', time.time() + 86400):
+    sys.exit(0)       # Don't run if tomorrow is a weekend.
+</pre></b></blockquote>
+
+<p align=justify> The time specifications <code><b>Always</b></code>
+and <code><b>Never</b></code> always return true and false
+respectively. 
+
+<a name="holidays">
+<h3>Holidays</h3>
+
+<p align=justify> There is another function in the period library,
+<code><b>is_holiday</b></code>.  This will attempt to consult a SYSV
+accounting holidays file.  By default, it checks in
+<code><b>/etc/acct/holidays</b></code>, but you can specify other
+locations.
+
+<p align=justify> The format of the holidays file is fairly strict.
+All comment lines must begin with a star, <code><b>*</b></code>.  The
+first non-comment line <em>must</em> be the year, prime-time start and
+prime-time end.  All following non-comment lines take the format
+"month/day name-of-holiday" where only the single
+<code><b>month/day</b></code> token is significant.  So, here's our
+example:
+
+<blockquote>
+<pre>
+* BCG Holidays
+*
+* Curr	Prime	Non-Prime
+* Year	Start	Start
+*
+  2002	0700	1800
+*
+* only the first column (month/day) is significiant.
+*
+* month/day	Holiday name or comment.
+*
+1/1		New Years Day
+* 1/2             A holiday for testing.
+1/15		Martin Luther King, Jr. Day
+7/4		Independence Day
+11/24		Thanksgiving Day
+12/25		Christmas
+</pre>
+</blockquote>
+
+<p align=justify> If you happen to have turned on SYSV accounting on a
+system, it will start griping several days before the new year to
+remind you to update the holidays file.  So, if you aren't using SYSV
+accounting, that file may be several years out of date.  The
+<code><b>is_holiday</b></code> function will <em>ignore</em> an out of
+date holidays file, and will always report that a day is not a holiday
+until the file is fixed.
+
+<p align=justify> If you don't use a system that has SYSV accounting,
+you can specify the location of a central holidays file in that format
+just fine:
+
+<blockquote><b><pre>
+from period import is_holiday, in_period
+
+if in_period('Weekend') or is_holiday(holidays="/export/etc/holidays"):
+    sys.exit(0)       
+</pre></b></blockquote>
+
+<p align=justify> You can also specify some other time to check:
+
+<blockquote><b><pre>
+from period import in_period
+import sys, time
+
+# 86400 == 60 * 60 * 24, a day of seconds
+tomorrow = time.time() + 86400
+if in_period('Weekend', tomorrow) or is_holiday(now=tomorrow):
+    sys.exit(0)     # Don't run if tomorrow is a weekend or a holiday.
+</pre></b></blockquote>
+
+
+
+<h3>BUGS</h3>
+
+<p align=justify> Everything is case sensitive.
+
+<p align=justify> Doesn't use distutils to install.
+
+<p align=justify> Send questions and problems to
+<a href="mailto:annis@biostat.wisc.edu">William S. Annis</a>.
+
+<!-- I like a little whitespace at the end. -->
+<pre>
+
+
+
+
+
+
+
+
+
+
+</pre>
+
+</body>
+</html>
