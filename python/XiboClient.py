@@ -2253,6 +2253,10 @@ class XmdsScheduler(XiboScheduler):
         # Get the time now
         now = time.time()
         self.__nextLayoutStartDT = time.time() + 2592000
+        self.__nextLayoutFinishDT = time.time() + 2592000
+
+        tmpStartDT = self.__nextLayoutStartDT
+        tmpFinishDT = self.__nextLayoutFinishDT
 
         for l in tmpLayouts:
             layoutID = l.layoutID
@@ -2281,12 +2285,17 @@ class XmdsScheduler(XiboScheduler):
                      
         # Tell the DisplayManager when the next layour start/finish event is.
         # This causes the DisplayManager to kill running layouts as they expire.
-        log.log(2,'audit',_('XmdsScheduler: Setting nextStartTick to %s') % self.__nextLayoutStartDT)
-        self.__displayManager.nextStartTick(self.__nextLayoutStartDT)
+        if self.__nextLayoutStartDT != tmpStartDT:
+            log.log(2,'audit',_('XmdsScheduler: Setting nextStartTick to %s') % self.__nextLayoutStartDT)
+            self.__displayManager.nextStartTick(self.__nextLayoutStartDT)
+        else:
+            log.log(2,'audit',_('XmdsScheduler: Not setting a nextStartTick as no future schedule.'))
 
-        log.log(2,'audit',_('XmdsScheduler: Setting nextFinishTick to %s') % self.__nextLayoutFinishDT)
-        self.__displayManager.nextFinishTick(self.__nextLayoutFinishDT,self.__nextLayoutFinishID)
-
+        if self.__nextLayoutFinishDT != tmpFinishDT:
+            log.log(2,'audit',_('XmdsScheduler: Setting nextFinishTick to %s') % self.__nextLayoutFinishDT)
+            self.__displayManager.nextFinishTick(self.__nextLayoutFinishDT,self.__nextLayoutFinishID)
+        else:
+            log.log(2,'audit',_('XmdsScheduler: Not setting a nextFinishTick as no future schedule.'))
 
         if layouts == None:
             self.__lock.release()        
@@ -3477,8 +3486,9 @@ class XiboDisplayManager:
                 # thrown. Catch and pass.
                 log.log(6,"debug",_("XiboLayoutManager: finishTick() -> Skipping tick because current layout isn't removed from the schedule."))
 
-        elif config.getint('Main','layoutExpireMode') == 3:
+        elif config.getint('Main','layoutExpireMode') == 3  and self.__nextStartTickDT != self.__nextFinishTickDT:
             # Trash what's running regardless of what it is
+            # Unless nextStartTickDT == nextFinshTickDT are equal as the start event will take care of the switch
             log.log(2,"info",_("XiboLayoutManager: finishTick() (Mode3) -> Destroying current layout"))
             self.currentLM.dispose()
             self.scheduler.calculateNextTick()
