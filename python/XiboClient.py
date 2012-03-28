@@ -2394,6 +2394,10 @@ class XmdsScheduler(XiboScheduler):
         # Get the time now
         now = time.time()
         self.__nextLayoutStartDT = time.time() + 2592000
+        self.__nextLayoutFinishDT = time.time() + 2592000
+
+        tmpStartDT = self.__nextLayoutStartDT
+        tmpFinishDT = self.__nextLayoutFinishDT
 
         for l in tmpLayouts:
             layoutID = l.layoutID
@@ -2422,13 +2426,17 @@ class XmdsScheduler(XiboScheduler):
                      
         # Tell the DisplayManager when the next layour start/finish event is.
         # This causes the DisplayManager to kill running layouts as they expire.
-        if config.getint('Main','layoutExpireMode') == 2:
+        if self.__nextLayoutStartDT != tmpStartDT:
             log.log(2,'audit',_('XmdsScheduler: Setting nextStartTick to %s') % self.__nextLayoutStartDT)
-            tmpList = []
-            self.__displayManager.nextTick(self.__nextLayoutStartDT,tmpList)
-        elif config.getint('Main','layoutExpireMode') == 1:
-            self.__displayManager.nextTick(self.__nextLayoutFinishDT,self.__nextLayoutFinishID)
+            self.__displayManager.nextStartTick(self.__nextLayoutStartDT)
+        else:
+            log.log(2,'audit',_('XmdsScheduler: Not setting a nextStartTick as no future schedule.'))
+
+        if self.__nextLayoutFinishDT != tmpFinishDT:
             log.log(2,'audit',_('XmdsScheduler: Setting nextFinishTick to %s') % self.__nextLayoutFinishDT)
+            self.__displayManager.nextFinishTick(self.__nextLayoutFinishDT,self.__nextLayoutFinishID)
+        else:
+            log.log(2,'audit',_('XmdsScheduler: Not setting a nextFinishTick as no future schedule.'))
 
         if layouts == None:
             self.__lock.release()        
@@ -3647,7 +3655,8 @@ class XMDSOffline(Thread):
 
 class XiboDisplayManager:
     def __init__(self):
-        self.__nextTickDT = None
+        self.__nextStartTickDT = None
+        self.__nextFinishTickDT = None
         self.__nextFinishID = []
 
     def run(self):
@@ -3803,9 +3812,8 @@ class XiboDisplayManager:
         self.currentLM.start()
         self.Player.enqueue('del',tmpLayout)
 
-    def nextTick(self,nextDT,finishID):
-        # finishID: list of IDs of layouts that will expire on nextTick
-        if not nextDT == self.__nextTickDT:
+    def nextStartTick(self,nextDT):
+        if not nextDT == self.__nextStartTickDT:
             # Work out how many seconds until nextDT
             # Enqueue a timer at that time  to signal next layout.
             # Pad the timer by 2 seconds to make sure we don't change too early and restart the old
@@ -3814,34 +3822,64 @@ class XiboDisplayManager:
             now = time.time()
             interval = int(nextDT - now) + 2
 
-            self.__nextTickDT = nextDT
+            self.__nextStartTickDT = nextDT
+
+            self.Player.nextStartTick(interval * 1000, self.startTick)
+
+    def nextFinishTick(self,nextDT,finishID):
+        # finishID: list of IDs of layouts that will expire on nextTick
+        if not nextDT == self.__nextFinishTickDT:
+            # Work out how many seconds until nextDT
+            # Enqueue a timer at that time  to signal next layout.
+            # Pad the timer by 2 seconds to make sure we don't change too early and restart the old
+            # layout by mistake!
+
+            now = time.time()
+            interval = int(nextDT - now) + 2
+
+            self.__nextFinishTickDT = nextDT
             self.__nextFinishID = finishID
 
-            self.Player.nextTick(interval * 1000, self.tick)
+            self.Player.nextFinishTick(interval * 1000, self.finishTick)
 
-    def tick(self):
-        if config.getint('Main','layoutExpireMode') == 1:
-            # If the currently running layout is in self.__nextFinishID
-            # then trash it
-            try:
-                a = self.__nextFinishID.index(self.currentLM.l.layoutID)
-                log.log(2,"info",_("XiboLayoutManager: tick() (Mode1) -> Destroying current layout"))
-                self.currentLM.dispose()
-                self.scheduler.calculateNextTick()
-            except:
-                # Current layout wasn't in nextFinishID so exception
-                # thrown. Catch and pass.
-                log.log(6,"debug",_("XiboLayoutManager: tick() -> Skipping tick because current layout isn't removed from the schedule."))
-
-        elif config.getint('Main','layoutExpireMode') == 2:
+    def startTick(self):
+        if config.getint('Main','layoutExpireMode') == 2:
             # Trash what's running regardless of what it is
-            log.log(2,"info",_("XiboLayoutManager: tick() (Mode2) -> Destroying current layout"))
+            log.log(2,"info",_("XiboLayoutManager: startTick() (Mode2) -> Destroying current layout"))
+            self.currentLM.dispose()
+            self.scheduler.calculateNextTick()
+        elif config.getint('Main','layoutExpireMode') == 3:
+            # Trash what's running regardless of what it is
+            log.log(2,"info",_("XiboLayoutManager: startTick() (Mode3) -> Destroying current layout"))
             self.currentLM.dispose()
             self.scheduler.calculateNextTick()
         else:
             # Do nothing. This should never occur
             pass
             
+    def finishTick(self):
+        if config.getint('Main','layoutExpireMode') == 1:
+            # If the currently running layout is in self.__nextFinishID
+            # then trash it
+            try:
+                a = self.__nextFinishID.index(self.currentLM.l.layoutID)
+                log.log(2,"info",_("XiboLayoutManager: finishTick() (Mode1) -> Destroying current layout"))
+                self.currentLM.dispose()
+                self.scheduler.calculateNextTick()
+            except:
+                # Current layout wasn't in nextFinishID so exception
+                # thrown. Catch and pass.
+                log.log(6,"debug",_("XiboLayoutManager: finishTick() -> Skipping tick because current layout isn't removed from the schedule."))
+
+        elif config.getint('Main','layoutExpireMode') == 3  and self.__nextStartTickDT != self.__nextFinishTickDT:
+            # Trash what's running regardless of what it is
+            # Unless nextStartTickDT == nextFinshTickDT are equal as the start event will take care of the switch
+            log.log(2,"info",_("XiboLayoutManager: finishTick() (Mode3) -> Destroying current layout"))
+            self.currentLM.dispose()
+            self.scheduler.calculateNextTick()
+        else:
+            # Do nothing. This should never occur
+            pass
 
 class XiboPlayer(Thread):
     "Class to handle libavg interactions"
@@ -3867,7 +3905,8 @@ class XiboPlayer(Thread):
         self.parent = parent
         
         # Reference to the nextTick event due to run
-        self.__nextTickEventRef = None
+        self.__nextStartTickEventRef = None
+        self.__nextFinishTickEventRef = None
 
         self.ticketOSD = True
 
@@ -4290,17 +4329,33 @@ class XiboPlayer(Thread):
         except AttributeError:
             log.log(0,"error","Caught that thing that makes the player crash on startup!")
     
-    def nextTick(self,interval,callback):
+    def nextStartTick(self,interval,callback):
         # Clear the nextTick event timer and start a new one
         # Used to skip layouts on starting or finishing a scheudule
         # when layoutExpireMode is 1 or 2.
         try: 
-            self.player.clearInterval(self.__nextTickEventRef)
+            self.player.clearInterval(self.__nextStartTickEventRef)
         except:
             pass
         
         try:    
-            self.__nextTickEventRef = self.player.setTimeout(interval,callback)
+            self.__nextStartTickEventRef = self.player.setTimeout(interval,callback)
+        except OverflowError:
+            # Event is too far in the future (>24 days).
+            # Ignore it for now
+            pass
+
+    def nextFinishTick(self,interval,callback):
+        # Clear the nextTick event timer and start a new one
+        # Used to skip layouts on starting or finishing a scheudule
+        # when layoutExpireMode is 1 or 2.
+        try: 
+            self.player.clearInterval(self.__nextFinishTickEventRef)
+        except:
+            pass
+        
+        try:    
+            self.__nextFinishTickEventRef = self.player.setTimeout(interval,callback)
         except OverflowError:
             # Event is too far in the future (>24 days).
             # Ignore it for now
