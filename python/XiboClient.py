@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim, button
+from libavg import avg, anim
 from optparse import OptionParser
 from SOAPpy import WSDL
 import SOAPpy.Types
@@ -826,6 +826,8 @@ class XiboDownloadManager(Thread):
         self.__lock = Semaphore()
         self.__lock.acquire()
         self.offline = config.getboolean('Main','manualUpdate')
+        self.cleanup = config.getboolean('Main','cleanOldMediaFiles')
+        self.lastCleanup = 0
 
         # Store a dictionary of XiboDownloadThread objects so we know
         # which files are downloading and how many download slots
@@ -1052,7 +1054,7 @@ class XiboDownloadManager(Thread):
             try:
                 for tmpFileName, tmpFile in md5Cache.iteritems():
                     if tmpFile.isExpired() and (not tmpFileName in self.runningDownloads):
-                        del md5Cache[tmpFileName]
+                        md5Cache.pop(tmpFileName)
                         
                     # Prepare to cache out to file
                     tmpFileInfo = tmpFile.toTuple()
@@ -1064,8 +1066,10 @@ class XiboDownloadManager(Thread):
                     tmpNode.setAttribute("type",str(tmpFileInfo[6]))
                     cacheXmlRoot.appendChild(tmpNode)
             except RuntimeError:
-                # Happens when we delete an item from the cache it would seem.
-                pass
+                # Tried to remove something from cache that wasn't there?
+                # Shouldn't happen
+                # Log it and deal with it
+                log.log(1,"error",_("Attempted to remove %s from cache but an error occured") % tmpFileName)
 
             # Write the cache out to disk
             try:
@@ -1083,6 +1087,10 @@ class XiboDownloadManager(Thread):
             # Update the infoscreen.
             self.updateInfo()
             self.updateMediaInventory()
+
+            # Cleanup old files
+            if self.cleanup:
+                self.cleanOldMedia()
             
             log.log(5,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
 
@@ -1168,6 +1176,67 @@ class XiboDownloadManager(Thread):
             log.log(1,'error',_('Unable to send mediaInventory to the server via XMDS.'))
 
         inventoryXml.unlink()
+
+    def cleanOldMedia(self):
+        # Check how recently we ran. Only run infrequently
+        now = time.time()
+
+        # Reserved files - never clean these:
+        reservedFiles = ['splash.jpg', '0.xlf',
+                         'schedule.xml', 'rf.xml',
+                         'cache.xml' ]
+
+        if now < self.lastCleanup + (60 * 60 * 18):
+            # Don't run cleanup this time
+            log.log(1,'info',_('CLEANUP: Skipping cleanup of media directory as we ran recently'))
+            return
+
+        self.lastCleanup = now
+
+        # Iterate over the media library and bin anything that has expired and is no longer in md5Cache
+        expireDays = config.getint('Main','mediaFileExpiry') 
+        expireDT = now - (60 * 60 * 24 * expireDays)
+        
+        libraryDir = config.get('Main','libraryDir')
+        log.log(1,'info',_('CLEANUP: Beginning cleanup of media directory'))
+
+        for fName in os.listdir(libraryDir):
+            if not os.path.isfile(os.path.join(libraryDir, fName)):
+                # Skip this item as it's not a file
+                log.log(8,'info',_('CLEANUP: Skipping %s as it\'s not a file') % fName)
+                continue
+
+            # Check if fName is in md5Cache
+            if fName in md5Cache:
+                # Skip this item as it's in use
+                log.log(8,'info',_('CLEANUP: Skipping %s as it\'s in use') % fName)
+                continue
+
+            if fName in reservedFiles:
+                # Skip files from the splash screen
+                log.log(8,'info',_('CLEANUP: Skipping %s as it\'s reserved or system') % fName)
+                continue
+
+            # Check if atime on the file is less than expireDT
+            try:
+                fAtime = os.path.getatime(os.path.join(libraryDir, fName))
+            except OSError:
+                # File must have vanished
+                # Skip it
+                log.log(8,'info',_('CLEANUP: Skipping %s as it seems to have vanished!') % fName)
+                pass
+
+            if fAtime < expireDT:
+                try:
+                    os.remove(os.path.join(libraryDir, fName))
+                    log.log(8,'info',_('CLEANUP: Deleted %s') % fName)    
+                except:
+                    log.log(0,'error',_('CLEANUP: Error deleting file %s from library') % fName)
+            else:
+                log.log(8,'info',_('CLEANUP: Skipping %s as it was accessed recently') % fName)
+
+        log.log(1,'info',_('CLEANUP: Finished cleanup of media directory'))
+
 
 class XiboDownloadThread(Thread):
     def __init__(self,parent,tmpType,tmpFileName,tmpSize,tmpHash,tmpId):
