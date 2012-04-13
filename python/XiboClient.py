@@ -1235,6 +1235,31 @@ class XiboDownloadManager(Thread):
             else:
                 log.log(8,'info',_('CLEANUP: Skipping %s as it was accessed recently') % fName)
 
+        # Clean up the scaled directory too
+        for fName in os.listdir(os.path.join(libraryDir,'scaled')):
+            if not os.path.isfile(os.path.join(libraryDir, 'scaled', fName)):
+                # Skip this item as it's not a file
+                log.log(8,'info',_('CLEANUP: Skipping scaled/%s as it\'s not a file') % fName)
+                continue
+
+            # Check if atime on the file is less than expireDT
+            try:
+                fAtime = os.path.getatime(os.path.join(libraryDir, 'scaled', fName))
+            except OSError:
+                # File must have vanished
+                # Skip it
+                log.log(8,'info',_('CLEANUP: Skipping scaled/%s as it seems to have vanished!') % fName)
+                pass
+
+            if fAtime < expireDT:
+                try:
+                    os.remove(os.path.join(libraryDir, 'scaled', fName))
+                    log.log(8,'info',_('CLEANUP: Deleted scaled/%s') % fName)    
+                except:
+                    log.log(0,'error',_('CLEANUP: Error deleting file scaled/%s from library') % fName)
+            else:
+                log.log(8,'info',_('CLEANUP: Skipping scaled/%s as it was accessed recently') % fName)
+
         log.log(1,'info',_('CLEANUP: Finished cleanup of media directory'))
 
 
