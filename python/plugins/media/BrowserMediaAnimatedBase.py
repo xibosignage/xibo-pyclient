@@ -129,6 +129,8 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
         js += "       });"
         js += "   } "
         js += "</script>"
+
+        print js
  
         return js
     
