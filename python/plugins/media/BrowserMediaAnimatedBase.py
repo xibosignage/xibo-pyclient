@@ -47,9 +47,9 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
                 tmpItem = tmpItem.replace('</div>','')
                 tmpItem = tmpItem.replace('<div/>','')
                 
-                tmpItem = "<span class='article' style='padding-left:4px;'>%s</span>" % tmpItem
+                tmpItem = "<span class='article'>%s</span>" % tmpItem
             else:
-                tmpItem = "<div class='XiboRssItem' style='display:block;padding:4px;width:%dpx'>%s</div>" % (self.width - 10,tmpItem)
+                tmpItem = "<div class='XiboRssItem'>%s</div>" % tmpItem
             
             content += tmpItem
         
@@ -61,21 +61,17 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
         except:
             pass
         
-        textWrap = ""
         
         if self.options['direction'] == 'none':
             pass
         else:
             if self.options['direction'] == 'left' or self.options['direction'] == 'right':
-                textWrap = "white-space: nowrap";
                 content = "<nobr>%s</nobr>" % content
-            else:
-                textWrap = "width: %dpx;" % (self.width - 50);
             
             if self.options['direction'] == 'single':
                 content = "<div id='text'>%s</div>" % content
             else:
-                content = "<div id='text' style='position:relative;overflow:hidden;width:%dpx; height:%dpx;'><div id='innerText' style='position:absolute; left: 0px; top: 0px; %s'>%s</div></div>" % (self.width - 10,self.height, textWrap, content)
+                content = '<div id="contentPane" style="overflow: none; width:%spx; height:%spx;"><div id="text">%s</div></div>' % (self.width, self.height, content)
                 
         return content
     
@@ -92,49 +88,48 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             if self.options['scrollSpeed'] == "":
                 self.options['scrollSpeed'] = '30'
         else:
-            self.options['scrollSpeed'] = '30'
+            self.options['scrollSpeed'] = '0.5'
 
         if self.options.has_key('durationIsPerItem'):
             if self.options['durationIsPerItem'] == "":
                 self.options['durationIsPerItem'] = '0'
         else:
-            self.options['durationIsPerItem'] = '0';
+            self.options['durationIsPerItem'] = '0'
+
+        if not self.options.has_key('fitText'):
+            self.options['fitText'] = '1'
         
-        if not self.scaleFactor == 0:
-            s = self.options['scrollSpeed']
-            self.options['scrollSpeed'] = str(int(int(self.options['scrollSpeed']) * 2 * (1.0/self.scaleFactor)))
-#            print "*** REFACTORED SCROLL SPEED FROM %s to %s ***" % (s,self.options['scrollSpeed'])
-            
-        js = ""
+        if int(self.options['fitText']) == 0:
+            self.fitText = 'false'
+            self.scaleText = 'true'
+        else
+            self.fitTest = 'true'
+            self.scaleText = 'false'
+
         
         # Multiply out the duration if duration is per item.
         if not self.options['durationIsPerItem'] == '0':
             if self.itemCount > 0:
                 self.duration = int(self.duration) * self.itemCount
         
-        if self.options['direction'] == "single":
-            js = "<script type='text/javascript'>\n\n"
-            js += "function init() {\n"
-            js += "  var totalDuration = %d * 1000;\n" % int(self.duration)
-            js += "  var itemCount = $('.XiboRssItem').size();\n"
-            js += "  var itemTime = totalDuration / itemCount;\n"
-            js += "  if (itemTime < 2000) itemTime = 2000;\n"
-            js += "  // Try to get the itemTime from an element we expect to be in the HTML\n"
-            js += "  $('#text').cycle({fx: 'fade', timeout: itemTime, cleartypeNoBg:true});\n"
-            js += "  }\n"
-            js += "</script>\n\n"
-        elif self.options['direction'] == "none":
-            pass
-        else:
-            js = "<script type='text/javascript'>\n\n"
-            js += "function init() {\n"
-            js += "  tr = new TextRender('text', 'innerText', '" + self.options['direction'] + "', 2);\n"
-            js += "  var timer = 0;\n"
-            js += "  timer = setInterval('tr.TimerTick()', " + str(self.options['scrollSpeed']) + ");\n"
-            js += "}"
-            js += "</script>\n\n"
-        
-        js += "<style type='text/css'>body { font-size:%fem; }</style>\n\n" % self.scaleFactor
+        js = "<script type='text/javascript'>"
+        js += "   function init() { "
+        js += "       $('#text').xiboRender({ "
+        js += "           type: 'ticker',"
+        js += "           direction: '%s'," % self.options['direction']
+        js += "           duration: %s,"; % self.duration
+        js += "           durationIsPerItem: false,"
+        js += "           numItems: 0,"
+        js += "           width: %s," % self.width
+        js += "           height: %s," % self.height
+        js += "           scrollSpeed: %s," % self.options['scrollSpeed']
+        js += "           fitText: %s," % self.fitText
+        js += "           scaleText: %s," % self.scaleText
+        js += "           scaleFactor: %s" % self.scaleFactor * 0.85
+        js += "       });"
+        js += "   } "
+        js += "</script>"
+ 
         return js
     
     def browserOptions(self):
