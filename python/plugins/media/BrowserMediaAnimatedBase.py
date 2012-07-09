@@ -117,7 +117,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
         js += "       $('#text').xiboRender({ "
         js += "           type: 'ticker',"
         js += "           direction: '%s'," % self.options['direction']
-        js += "           duration: %s,"; % self.duration
+        js += "           duration: %s," % self.duration
         js += "           durationIsPerItem: false,"
         js += "           numItems: 0,"
         js += "           width: %s," % self.width
