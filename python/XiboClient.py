@@ -49,7 +49,7 @@ import math
 
 from ThirdParty.period.period import in_period
 
-version = "1.3.2"
+version = "1.3.3"
 
 # What layout schema version is supported
 schemaVersion = 1
