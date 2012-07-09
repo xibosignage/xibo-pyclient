@@ -55,7 +55,7 @@ class BrowserMediaBase(XiboMedia):
 
         try:
             tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",self.injectScript())
-        except IOError:
+        except:
             tmpHtml = tmpHtml.replace("<!--[[[HEADCONTENT]]]-->",u"")
             self.log.log(0,"error","Unable to substitute HEADCONTENT in %s" % self.mediaNodeName)
         

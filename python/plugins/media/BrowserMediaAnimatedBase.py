@@ -125,7 +125,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
         js += "           scrollSpeed: %s," % self.options['scrollSpeed']
         js += "           fitText: %s," % self.fitText
         js += "           scaleText: %s," % self.scaleText
-        js += "           scaleFactor: %s" % self.scaleFactor * 0.85
+        js += "           scaleFactor: %s" % float(self.scaleFactor) * 0.85
         js += "       });"
         js += "   } "
         js += "</script>"
