@@ -46,6 +46,7 @@ import threading
 import urlparse
 import PIL.Image
 import math
+import platform
 
 from ThirdParty.period.period import in_period
 
@@ -1237,6 +1238,13 @@ class XiboDownloadManager(Thread):
         # Get current md5Cache and send it back to the server
         inventoryXml = minidom.Document()
         inventoryXmlRoot = inventoryXml.createElement("files")
+        
+        # Add the MAC address to the MediaInventory if possible
+        try:
+            inventoryXmlRoot.setAttribute("macAddress", self.xmds.getMac())
+        except:
+            pass
+        
         inventoryXml.appendChild(inventoryXmlRoot)
 
         # Loop over the MD5 hash cache and build the inventory
@@ -3142,6 +3150,18 @@ class XMDS:
         tmpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         tmpSocket.connect((self.xmdsHost,0))
         return str(tmpSocket.getsockname()[0])
+    
+    def getMac(self):
+        # TODO: Linux Specific
+        # TODO: Needs to be made safe for Windows too
+        if platform.system() == 'Linux':
+            return '00:00:00:00:00:00'
+        elif platform.system() == 'Windows':
+            return '00:00:00:00:00:00'
+        elif platform.system() == 'Mac':
+            return '00:00:00:00:00:00'
+        
+        raise XMDSException('Unable to retrieve MAC Address')
     
     def getDisk(self):
         s = os.statvfs(config.get('Main','libraryDir'))
