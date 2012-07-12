@@ -3145,6 +3145,8 @@ class XMDS:
         tmpParse = urlparse.urlparse(self.xmdsUrl)
         self.xmdsHost = tmpParse.hostname
         del tmpParse
+
+        self.macAddress = None
         
     def getIP(self):
         tmpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -3152,16 +3154,65 @@ class XMDS:
         return str(tmpSocket.getsockname()[0])
     
     def getMac(self):
+
+        if not self.macAddress is None:
+            return self.macAddress
+
         # TODO: Linux Specific
         # TODO: Needs to be made safe for Windows too
         if platform.system() == 'Linux':
-            return '00:00:00:00:00:00'
+            import fcntl, socket, struct
+
+            # Get a list of active network interfaces
+            # read the file /proc/net/dev
+            f = open('/proc/net/dev','r')
+
+            # put the content to list
+            ifacelist = f.read().split('\n') 
+
+            # close the file
+            f.close()
+
+            # remove 2 lines header
+            ifacelist.pop(0)
+            ifacelist.pop(0)
+
+            # loop to check each line
+            for line in ifacelist:
+
+                ifacedata = line.replace(' ','').split(':')
+
+                # check the data have 2 elements
+                if len(ifacedata) == 2:
+
+                    # check the interface is up (Transmit/Receive data)
+                    if int(ifacedata[1]) > 0:
+
+                        # see if it's the same interface as we use to talk to XMDS
+                        if self.getIfIp(ifacedata[0]) == self.getIP():
+                            ifname = ifacedata[0]
+                            break
+
+            if ifname is None:
+                return "00:00:00:00:00:00"
+
+            # Get the MAC address for that interface
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', ifname[:15]))
+            self.macAddress = ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
+            return self.macAddress
+
         elif platform.system() == 'Windows':
             return '00:00:00:00:00:00'
         elif platform.system() == 'Mac':
             return '00:00:00:00:00:00'
         
         raise XMDSException('Unable to retrieve MAC Address')
+
+    def getIfIp(ifn):
+        import socket, fcntl, struct
+        sck = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        return socket.inet_ntoa(fcntl.ioctl(sck.fileno(),0x8915,struct.pack('256s', ifn[:15]))[20:24])
     
     def getDisk(self):
         s = os.statvfs(config.get('Main','libraryDir'))
