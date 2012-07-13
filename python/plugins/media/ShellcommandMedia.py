@@ -32,7 +32,10 @@ class ShellcommandMedia(XiboMedia):
     def run(self):
         self.p.enqueue('timer',(1 * 1000,self.parent.next))
         self.startStats()
-        subprocess.call(self.options['linuxCommand'])
+        try:
+            subprocess.call(self.options['linuxCommand'], shell=True)
+        except OSError:
+            self.log.log(0,"error","Error executing command: %s" % self.options['linuxCommand']) 
 
     def dispose(self):
         self.returnStats()
