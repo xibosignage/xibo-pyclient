@@ -3209,7 +3209,7 @@ class XMDS:
         
         raise XMDSException('Unable to retrieve MAC Address')
 
-    def getIfIp(ifn):
+    def getIfIp(self, ifn):
         import socket, fcntl, struct
         sck = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         return socket.inet_ntoa(fcntl.ioctl(sck.fileno(),0x8915,struct.pack('256s', ifn[:15]))[20:24])
@@ -3867,7 +3867,7 @@ class XiboDisplayManager:
         self.Player = XiboPlayer(self)
         self.Player.start()
 
-        # TODO: Display the splash screen
+        # Display the splash screen
         self.currentLM = XiboLayoutManager(self, self.Player, XiboLayout('0',False), 0, 1.0, True)
         self.currentLM.start()
 
