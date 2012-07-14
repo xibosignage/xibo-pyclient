@@ -56,6 +56,8 @@ class ShellcommandMedia(XiboMedia):
                 subprocess.call(self.options['linuxCommand'], shell=True)
             except OSError:
                 self.log.log(0,"error","Error executing command: %s" % self.options['linuxCommand']) 
+        else:
+            self.log.log(0,"error","Shell commands are disabled: %s" % self.options['linuxCommand']) 
 
     def dispose(self):
         self.returnStats()
