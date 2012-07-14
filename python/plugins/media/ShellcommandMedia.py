@@ -27,15 +27,35 @@ import subprocess
 
 class ShellcommandMedia(XiboMedia):
     def add(self):
-        pass
+        self.commandsEnabled = self.config.getboolean('ShellCommands', 'enabled')
+        self.commandWhiteList = []
+
+        if self.config.get('ShellCommands', 'whitelist') != '':
+            self.commandWhiteList = self.config.get('ShellCommands', 'whitelist').split(',')
 
     def run(self):
         self.p.enqueue('timer',(1 * 1000,self.parent.next))
         self.startStats()
-        try:
-            subprocess.call(self.options['linuxCommand'], shell=True)
-        except OSError:
-            self.log.log(0,"error","Error executing command: %s" % self.options['linuxCommand']) 
+
+        if self.commandsEnabled:
+            flag = True
+
+            if self.commandWhiteList != []:
+                flag = False
+
+                for cmd in self.commandWhiteList:
+                    if self.options['linuxCommand'].startswith(cmd):
+                        flag = True
+                        break
+
+            if not flag:
+                self.log.log(0,"error","Shellcommand not in command whitelist: %s" % self.options['linuxCommand']) 
+                return
+
+            try:
+                subprocess.call(self.options['linuxCommand'], shell=True)
+            except OSError:
+                self.log.log(0,"error","Error executing command: %s" % self.options['linuxCommand']) 
 
     def dispose(self):
         self.returnStats()
