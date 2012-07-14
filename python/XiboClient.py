@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009-2011 Alex Harrington
+# Copyright (C) 2009-2012 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -46,8 +46,11 @@ import threading
 import urlparse
 import PIL.Image
 import math
+import platform
 
-version = "1.3.1"
+from ThirdParty.period.period import in_period
+
+version = "1.3.3"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -834,10 +837,9 @@ class XiboFile(object):
 
         self.targetHash = targetHash
         self.mtime = mtime
-        self.paranoid = config.get('Main','checksumPreviousDownloads')
-        if self.paranoid == "true":
+        self.paranoid = config.getboolean('Main','checksumPreviousDownloads')
+        if self.paranoid:
             self.update()
-            self.paranoid = True
         else:
             self.paranoid = False
             try:
@@ -887,16 +889,21 @@ class XiboFile(object):
         return (self.__fileName,self.md5,self.targetHash,self.checkTime,self.mtime,self.fileId,self.fileType)
 
 class XiboDownloadManager(Thread):
-    def __init__(self,xmds,player):
+    def __init__(self,xmds,player,parent):
         Thread.__init__(self)
         log.log(3,"info",_("New XiboDownloadManager instance created."))
         self.xmds = xmds
         self.running = True
         self.dlQueue = Queue.Queue(0)
-        self.p = player
+        self.p = player             # XiboPlayer Instance
+        self.parent = parent        # Parent XiboDisplayManager Instance
         self.__lock = Semaphore()
         self.__lock.acquire()
         self.offline = config.getboolean('Main','manualUpdate')
+        self.nextLayoutOnComplete = False
+        self.chainScheduler = False
+        self.cleanup = config.getboolean('Main','cleanOldMediaFiles')
+        self.lastCleanup = 0
 
         # Store a dictionary of XiboDownloadThread objects so we know
         # which files are downloading and how many download slots
@@ -927,6 +934,9 @@ class XiboDownloadManager(Thread):
         log.log(2,"info",_("New XiboDownloadManager instance started."))
         while (self.running):
             self.interval = 300
+            
+            # Flag to note if on this loop we downloaded new files
+            updatedContent = False
 
             # Find out how long we should wait between updates.
             try:
@@ -1097,6 +1107,7 @@ class XiboDownloadManager(Thread):
                         # Add the running thread to the self.runningDownloads dictionary
                         self.runningDownloads[tmpFileName] = XiboDownloadThread(self,tmpType,tmpFileName,tmpSize,tmpHash,tmpId)
                         log.updateRunningDownloads(len(self.runningDownloads))
+                        updatedContent = True
 
                         if self.offline:
                             # If we're running offline, block until completed.
@@ -1123,7 +1134,7 @@ class XiboDownloadManager(Thread):
             try:
                 for tmpFileName, tmpFile in md5Cache.iteritems():
                     if tmpFile.isExpired() and (not tmpFileName in self.runningDownloads):
-                        del md5Cache[tmpFileName]
+                        md5Cache.pop(tmpFileName)
                         
                     # Prepare to cache out to file
                     tmpFileInfo = tmpFile.toTuple()
@@ -1135,8 +1146,10 @@ class XiboDownloadManager(Thread):
                     tmpNode.setAttribute("type",str(tmpFileInfo[6]))
                     cacheXmlRoot.appendChild(tmpNode)
             except RuntimeError:
-                # Happens when we delete an item from the cache it would seem.
-                pass
+                # Tried to remove something from cache that wasn't there?
+                # Shouldn't happen
+                # Log it and deal with it
+                log.log(1,"error",_("Attempted to remove %s from cache but an error occured") % tmpFileName)
 
             # Write the cache out to disk
             try:
@@ -1154,6 +1167,10 @@ class XiboDownloadManager(Thread):
             # Update the infoscreen.
             self.updateInfo()
             self.updateMediaInventory()
+
+            # Cleanup old files
+            if self.cleanup:
+                self.cleanOldMedia()
             
             log.log(5,"audit",_("There are ") + str(threading.activeCount()) + _(" running threads."))
 
@@ -1163,13 +1180,28 @@ class XiboDownloadManager(Thread):
             else:
                 log.log(3,"audit",_("XiboDownloadManager: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
                 self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
+            
+            if config.getboolean('Main','interruptRunningMediaOnUpdate') and updatedContent:
+                # If there was new stuff downloaded and interruptRunningMediaOnUpdate is true,
+                # skip to next layout.
+                self.parent.currentLM.dispose()
+
+            if self.nextLayoutOnComplete:
+                self.p.parent.currentLM.dispose()
+
+            if self.chainScheduler:
+                self.p.parent.scheduler.collect(True)
 
             self.__lock.acquire()
         # End While
     
-    def collect(self):
+    def collect(self,flag=False,chainScheduler=False):
         if len(self.runningDownloads) == 0:
+            self.nextLayoutOnComplete = flag
+            self.chainScheduler = chainScheduler
             self.__lock.release()
+        else:
+            self.p.enqueue('timer',(60000,self.collect))
 
     def dlThreadCompleteNotify(self,tmpFileName):
         # Download thread completed. Log and remove from
@@ -1206,6 +1238,13 @@ class XiboDownloadManager(Thread):
         # Get current md5Cache and send it back to the server
         inventoryXml = minidom.Document()
         inventoryXmlRoot = inventoryXml.createElement("files")
+        
+        # Add the MAC address to the MediaInventory if possible
+        try:
+            inventoryXmlRoot.setAttribute("macAddress", self.xmds.getMac())
+        except:
+            pass
+        
         inventoryXml.appendChild(inventoryXmlRoot)
 
         # Loop over the MD5 hash cache and build the inventory
@@ -1240,6 +1279,92 @@ class XiboDownloadManager(Thread):
 
         inventoryXml.unlink()
 
+    def cleanOldMedia(self):
+        # Check how recently we ran. Only run infrequently
+        now = time.time()
+
+        # Reserved files - never clean these:
+        reservedFiles = ['splash.jpg', '0.xlf',
+                         'schedule.xml', 'rf.xml',
+                         'cache.xml' ]
+
+        if now < self.lastCleanup + (60 * 60 * 18):
+            # Don't run cleanup this time
+            log.log(1,'info',_('CLEANUP: Skipping cleanup of media directory as we ran recently'))
+            return
+
+        self.lastCleanup = now
+
+        # Iterate over the media library and bin anything that has expired and is no longer in md5Cache
+        expireDays = config.getint('Main','mediaFileExpiry') 
+        expireDT = now - (60 * 60 * 24 * expireDays)
+        
+        libraryDir = config.get('Main','libraryDir')
+        log.log(1,'info',_('CLEANUP: Beginning cleanup of media directory'))
+
+        for fName in os.listdir(libraryDir):
+            if not os.path.isfile(os.path.join(libraryDir, fName)):
+                # Skip this item as it's not a file
+                log.log(8,'info',_('CLEANUP: Skipping %s as it\'s not a file') % fName)
+                continue
+
+            # Check if fName is in md5Cache
+            if fName in md5Cache:
+                # Skip this item as it's in use
+                log.log(8,'info',_('CLEANUP: Skipping %s as it\'s in use') % fName)
+                continue
+
+            if fName in reservedFiles:
+                # Skip files from the splash screen
+                log.log(8,'info',_('CLEANUP: Skipping %s as it\'s reserved or system') % fName)
+                continue
+
+            # Check if atime on the file is less than expireDT
+            try:
+                fAtime = os.path.getatime(os.path.join(libraryDir, fName))
+            except OSError:
+                # File must have vanished
+                # Skip it
+                log.log(8,'info',_('CLEANUP: Skipping %s as it seems to have vanished!') % fName)
+                pass
+
+            if fAtime < expireDT:
+                try:
+                    os.remove(os.path.join(libraryDir, fName))
+                    log.log(8,'info',_('CLEANUP: Deleted %s') % fName)    
+                except:
+                    log.log(0,'error',_('CLEANUP: Error deleting file %s from library') % fName)
+            else:
+                log.log(8,'info',_('CLEANUP: Skipping %s as it was accessed recently') % fName)
+
+        # Clean up the scaled directory too
+        for fName in os.listdir(os.path.join(libraryDir,'scaled')):
+            if not os.path.isfile(os.path.join(libraryDir, 'scaled', fName)):
+                # Skip this item as it's not a file
+                log.log(8,'info',_('CLEANUP: Skipping scaled/%s as it\'s not a file') % fName)
+                continue
+
+            # Check if atime on the file is less than expireDT
+            try:
+                fAtime = os.path.getatime(os.path.join(libraryDir, 'scaled', fName))
+            except OSError:
+                # File must have vanished
+                # Skip it
+                log.log(8,'info',_('CLEANUP: Skipping scaled/%s as it seems to have vanished!') % fName)
+                pass
+
+            if fAtime < expireDT:
+                try:
+                    os.remove(os.path.join(libraryDir, 'scaled', fName))
+                    log.log(8,'info',_('CLEANUP: Deleted scaled/%s') % fName)    
+                except:
+                    log.log(0,'error',_('CLEANUP: Error deleting file scaled/%s from library') % fName)
+            else:
+                log.log(8,'info',_('CLEANUP: Skipping scaled/%s as it was accessed recently') % fName)
+
+        log.log(1,'info',_('CLEANUP: Finished cleanup of media directory'))
+
+
 class XiboDownloadThread(Thread):
     def __init__(self,parent,tmpType,tmpFileName,tmpSize,tmpHash,tmpId):
         Thread.__init__(self)
@@ -1252,16 +1377,13 @@ class XiboDownloadThread(Thread):
         self.parent = parent
         self.offset = long(0)
         self.chunk = 512000
+        self.resumeDownloads = config.getboolean('Main','resumeDownloads')
         
         # Server versions prior to 1.0.5 send an invalid md5sum for layouts that require
         # the client to add a newline character to the returned layout to make it validate
         # Should the client assume the server is pre-1.0.5?
         try:
-            self.backCompat = config.get('Main','backCompatLayoutChecksums')
-            if self.backCompat == "false":
-                self.backCompat = False
-            else:
-                self.backCompat = True
+            self.backCompat = config.getboolean('Main','backCompatLayoutChecksums')
         except:
             self.backCompat = False
 
@@ -1280,16 +1402,33 @@ class XiboDownloadThread(Thread):
         finished = False
         tries = 0
 
-        if os.path.isfile(self.tmpPath):
-            try:
-                os.remove(self.tmpPath)
-            except:
-                log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
-                return
+        if not self.resumeDownloads:
+            if os.path.isfile(self.tmpPath):
+                try:
+                    log.log(5,"debug",_("Removing invalid file - resume downloads disabled: %s" % self.tmpPath), True)
+                    os.remove(self.tmpPath)
+                except:
+                    log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
+
+        try:
+            # See if file is already bigger than the target size.
+            # Bin it if it is
+            self.offset = long(os.path.getsize(self.tmpPath))
+            if self.offset >= self.tmpSize:
+                try:
+                    log.log(5,"debug",_("Removing invalid file - too large: %s" % self.tmpPath), True)
+                    os.remove(self.tmpPath)
+                except:
+                    log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
+
+                self.offset = long(0)
+        except:
+            # File doesn't exist. Go for 0 offset
+            self.offset = long(0)
 
         fh = None
         try:
-            fh = open(self.tmpPath, 'wb')
+            fh = open(self.tmpPath, 'ab')
         except:
             log.log(0,"error",_("Unable to write file: ") + self.tmpPath, True)
             return
@@ -1331,6 +1470,15 @@ class XiboDownloadThread(Thread):
             if tmpFile.isValid():
                 finished = True
                 md5Cache[self.tmpFileName] = tmpFile
+            else:
+                try:
+                    # Only delete the file at this point if the file got to full size.
+                    # If not leave it in place for next run.
+                    if offset == tmpSize:
+                        log.log(5,"audit",_("Removing invalid file - checksum didn't match after download: %s" % self.tmpPath), True)
+                        os.remove(self.tmpPath)                        
+                except:
+                    log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
         # End while
 
     def downloadLayout(self):
@@ -1552,6 +1700,19 @@ class XiboLayoutManager(Thread):
         # self.p.enqueue("reset","")
 
 class XiboRegionManager(Thread):
+    class ConcurrencyManager:
+        def __init__(self,parent):
+            self.parent = parent
+            self.done = False
+
+        def next(self):
+            if not self.done:
+                self.done = True
+                self.parent.next()
+
+    def getConcurrencyManager(self):
+        return self.ConcurrencyManager(self)
+
     def __init__(self,parent,player,layoutNodeName,layoutNodeNameExt,cn):
         log.log(3,"info",_("New XiboRegionManager instance created."))
         Thread.__init__(self)
@@ -1771,7 +1932,7 @@ class XiboRegionManager(Thread):
                 time.sleep(2)
                 
             self.regionExpired = True
-            print str(self.regionNodeName) + " has expired"
+            # print str(self.regionNodeName) + " has expired"
             if self.parent.regionElapsed():
                 # If regionElapsed returns True, then the layout is on its way out so stop looping
                 # Acheived by pretending to be a single item region
@@ -2103,6 +2264,10 @@ class XiboLayout:
         log.log(3,"info",_("Added schdule information for layout %s: f:%s t:%s p:%d") % (self.layoutID,fromDt,toDt,priority))
         self.schedule.append((fromDt,toDt,priority))
 
+    def getSchedule(self):
+        # Return the schedule for this layout
+        return self.schedule
+
     def isPriority(self):
         # Check through the schedule and see if we're priority at the moment.
         for sc in self.schedule:
@@ -2144,7 +2309,7 @@ class DummyScheduler(XiboScheduler):
     layoutList = ['5','6']
     layoutIndex = 0
 
-    def __init__(self,xmds,player):
+    def __init__(self,xmds,player,displayManager):
         Thread.__init__(self)
 
     def run(self):
@@ -2177,7 +2342,7 @@ class DummyScheduler(XiboScheduler):
 class XmdsScheduler(XiboScheduler):
     "XMDS Scheduler. Retrieves the current schedule from XMDS."
 
-    def __init__(self,xmds,player):
+    def __init__(self,xmds,player,displayManager):
         Thread.__init__(self)
         self.xmds = xmds
         self.running = True
@@ -2186,9 +2351,19 @@ class XmdsScheduler(XiboScheduler):
         self.__lock = Semaphore()
         self.previousSchedule = "<schedule/>"
         self.p = player
+        self.__displayManager = displayManager
         self.__collectLock = Semaphore()
         self.__collectLock.acquire()
         self.__defaultLayout = None
+        self.nextLayoutOnComplete = False
+        
+        # Keep track of when the next layout start/finish event is, and what the ID
+        # of the next layout to finish is.
+        # Set next start to be 30 days in the future by default
+        self.__nextLayoutStartDT = time.time() + 2592000
+        # Set next finish to be 30 seconds in the past
+        self.__nextLayoutFinishDT = time.time() - 30
+        self.__nextLayoutFinishID = None
         
         self.validTag = "default"
 
@@ -2261,13 +2436,15 @@ class XmdsScheduler(XiboScheduler):
                         self.__defaultLayout = XiboLayout(layoutID,True)
             
                 newLayouts = []
+                self.__nextLayoutFinishID = []
+                
                 for l in tmpLayouts:
                     layoutID = str(l.attributes['file'].value)
                     layoutFromDT = str(l.attributes['fromdt'].value)
                     layoutToDT = str(l.attributes['todt'].value)
                     layoutPriority = int(l.attributes['priority'].value)
                     flag = True
-                    
+                
                     # If the layout already exists, add this schedule to it
                     for g in newLayouts:
                         if g.layoutID == layoutID:
@@ -2282,7 +2459,9 @@ class XmdsScheduler(XiboScheduler):
                         newLayouts.append(tmpLayout)
                         scheduleText += str(layoutID) + ', '
                 # End for l in tmpLayouts
-                        
+
+                self.calculateNextTick(newLayouts)
+                         
                 # Swap the newLayouts array in to the live scheduler
                 self.__lock.acquire()
                 self.__layouts = newLayouts
@@ -2297,11 +2476,72 @@ class XmdsScheduler(XiboScheduler):
                 log.log(3,"info",_("XmdsScheduler: Sleeping") + " " + str(self.interval) + " " + _("seconds"))
                 self.p.enqueue('timer',(int(self.interval) * 1000,self.collect))
 
+            if self.nextLayoutOnComplete:
+                self.p.parent.currentLM.dispose()
+
             self.__collectLock.acquire()
         # End while self.running
     
-    def collect(self):
+    def collect(self,flag=False):
+        self.nextLayoutOnComplete = flag
         self.__collectLock.release()
+
+    def calculateNextTick(self, layouts=None):
+        if layouts == None:
+            self.__lock.acquire()
+            tmpLayouts = self.__layouts
+        else:
+            tmpLayouts = layouts
+
+        # Get the time now
+        now = time.time()
+        self.__nextLayoutStartDT = time.time() + 2592000
+        self.__nextLayoutFinishDT = time.time() + 2592000
+
+        tmpStartDT = self.__nextLayoutStartDT
+        tmpFinishDT = self.__nextLayoutFinishDT
+
+        for l in tmpLayouts:
+            layoutID = l.layoutID
+
+            for sched in l.getSchedule():
+                layoutFromDT = sched[0]
+                layoutToDT = sched[1]
+        
+                # Convert the date strings to seconds since the epoch for conversion
+                layoutFromSecs = time.mktime(time.strptime(layoutFromDT, "%Y-%m-%d %H:%M:%S"))
+                layoutToSecs = time.mktime(time.strptime(layoutToDT, "%Y-%m-%d %H:%M:%S"))
+                    
+
+                log.log(2,'audit',_('XmdsScheduler: LayoutID %s: From: %s To: %s (Now: %s)')  % (layoutID,layoutFromSecs,layoutToSecs,now))
+                    
+                if (layoutFromSecs > now and layoutFromSecs < self.__nextLayoutStartDT):
+                    self.__nextLayoutStartDT = layoutFromSecs
+                    
+                if (layoutToSecs >= now and layoutToSecs <= self.__nextLayoutFinishDT):
+                    self.__nextLayoutFinishDT = layoutToSecs
+                        
+                if layoutToSecs == self.__nextLayoutFinishDT:
+                    self.__nextLayoutFinishID.append(layoutID)
+                else:
+                    self.__nextLayoutFinishID = [layoutID]
+                     
+        # Tell the DisplayManager when the next layour start/finish event is.
+        # This causes the DisplayManager to kill running layouts as they expire.
+        if self.__nextLayoutStartDT != tmpStartDT:
+            log.log(2,'audit',_('XmdsScheduler: Setting nextStartTick to %s') % self.__nextLayoutStartDT)
+            self.__displayManager.nextStartTick(self.__nextLayoutStartDT)
+        else:
+            log.log(2,'audit',_('XmdsScheduler: Not setting a nextStartTick as no future schedule.'))
+
+        if self.__nextLayoutFinishDT != tmpFinishDT:
+            log.log(2,'audit',_('XmdsScheduler: Setting nextFinishTick to %s') % self.__nextLayoutFinishDT)
+            self.__displayManager.nextFinishTick(self.__nextLayoutFinishDT,self.__nextLayoutFinishID)
+        else:
+            log.log(2,'audit',_('XmdsScheduler: Not setting a nextFinishTick as no future schedule.'))
+
+        if layouts == None:
+            self.__lock.release()        
 
     def __len__(self):
         log.log(8,'audit',_('There are %s layouts in the scheduler.') % len(self.__layouts))
@@ -2661,8 +2901,71 @@ class SwitchWatcher(Thread):
                     
             time.sleep(0.25)
             
-    
 #### End Switch Input Watcher ####
+
+#### Socket Listener Thread ####
+
+class SocketWatcher(Thread):
+    # Based loosely on code by Matt Holder, but adapted for a different purpose
+    # Original code here: https://code.launchpad.net/~matt-mattmole/xibo/pyclient-socketWatch
+
+    def __init__(self,scheduler,displayManager):
+        Thread.__init__(self)
+        self.scheduler = scheduler
+        self.displayManager = displayManager
+        self.tags = []
+        self.liftStack = Queue.LifoQueue()
+        self.running = True
+
+    def run(self):
+        #Bind to a socket
+        self.mySocket = socket.socket ( socket.AF_INET, socket.SOCK_STREAM )
+        self.mySocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.mySocket.bind ( ( '', 2727 ) )
+        self.mySocket.listen ( 5 )
+        self.mySocket.setblocking(1)
+
+        while self.running:
+            #Try reading information from our socket.
+            value = None
+            try:
+                channel, details = self.mySocket.accept()
+#                print 'We have opened a connection with', details
+                value = channel.recv ( 100 )
+                channel.close()
+            except:
+                print "No connection received"
+     
+            #Carry on processing if we have a value
+            #Split the message we receive as the arguments are split with a ","
+            if value != None:
+#                print value
+                value = value.split(",")
+      
+                if len(value) == 2 and value[0] == config.get("Main","xmdsKey"):
+                    value[1] = value[1].rstrip()
+#                    print "Value: -%s-" % value[1]
+
+                    if str(value[1]) == "refresh":
+                        self.displayManager.downloader.collect()
+                        self.displayManager.scheduler.collect()
+
+                    if str(value[1]) == "next":
+                        self.displayManager.currentLM.dispose()
+
+                    if str(value[1]) == "fullrefresh":
+                        self.displayManager.downloader.collect(False,True)
+
+    def dispose(self):
+        self.running = False
+        try:
+            self.mySocket.close()
+            print "Closed Listening Socket OK"
+        except:
+            print "Error closing listening socket!"
+
+
+#### End Socket Listener Thread ####
 
 #### Ticket Counter ####
 class TicketCounter(Thread):
@@ -2672,8 +2975,9 @@ class TicketCounter(Thread):
         self.__lock = Semaphore()
         self.__lock.acquire()
         self.p = player
-        self.p.counterValue = 0
+        self.min = int(config.get('TicketCounter', 'minCount'))
         self.max = int(config.get('TicketCounter', 'maxCount'))
+        self.p.counterValue = self.min - 1
         self.osdBackColour = config.get('TicketCounter', 'osdBackColour')
         self.osdBackOpacity = float(config.get('TicketCounter', 'osdBackOpacity'))
         self.osdFontSize = config.get('TicketCounter', 'osdFontSize')
@@ -2726,7 +3030,7 @@ class TicketCounter(Thread):
     def increment(self):
         # Incremement the counter by one, or reset to 1 if hit max
         if self.p.counterValue == self.max:
-            self.p.counterValue = 1
+            self.p.counterValue = self.min
         else:
             self.p.counterValue = self.p.counterValue + 1
 
@@ -2735,7 +3039,7 @@ class TicketCounter(Thread):
 
     def decrement(self):
         # Decremement the counter by one, or reset to max if hit 1 or is reset to 0
-        if self.p.counterValue < 2:
+        if self.p.counterValue < (self.min + 1):
             self.p.counterValue = self.max
         else:
             self.p.counterValue = self.p.counterValue - 1
@@ -2744,7 +3048,7 @@ class TicketCounter(Thread):
         log.log(1,"info",_("TicketCounter: Next Customer Please %s") % self.p.counterValue,True)
 
     def reset(self):
-        self.p.counterValue = 0
+        self.p.counterValue = (self.min - 1)
         self.__lock.release()
         log.log(1,"info",_("TicketCounter: Reset"),True)
 
@@ -2841,11 +3145,74 @@ class XMDS:
         tmpParse = urlparse.urlparse(self.xmdsUrl)
         self.xmdsHost = tmpParse.hostname
         del tmpParse
+
+        self.macAddress = None
         
     def getIP(self):
         tmpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         tmpSocket.connect((self.xmdsHost,0))
         return str(tmpSocket.getsockname()[0])
+    
+    def getMac(self):
+
+        if not self.macAddress is None:
+            return self.macAddress
+
+        # TODO: Linux Specific
+        # TODO: Needs to be made safe for Windows too
+        if platform.system() == 'Linux':
+            import fcntl, socket, struct
+
+            # Get a list of active network interfaces
+            # read the file /proc/net/dev
+            f = open('/proc/net/dev','r')
+
+            # put the content to list
+            ifacelist = f.read().split('\n') 
+
+            # close the file
+            f.close()
+
+            # remove 2 lines header
+            ifacelist.pop(0)
+            ifacelist.pop(0)
+
+            # loop to check each line
+            for line in ifacelist:
+
+                ifacedata = line.replace(' ','').split(':')
+
+                # check the data have 2 elements
+                if len(ifacedata) == 2:
+
+                    # check the interface is up (Transmit/Receive data)
+                    if int(ifacedata[1]) > 0:
+
+                        # see if it's the same interface as we use to talk to XMDS
+                        if self.getIfIp(ifacedata[0]) == self.getIP():
+                            ifname = ifacedata[0]
+                            break
+
+            if ifname is None:
+                return "00:00:00:00:00:00"
+
+            # Get the MAC address for that interface
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', ifname[:15]))
+            self.macAddress = ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
+            return self.macAddress
+
+        elif platform.system() == 'Windows':
+            return '00:00:00:00:00:00'
+        elif platform.system() == 'Mac':
+            return '00:00:00:00:00:00'
+        
+        raise XMDSException('Unable to retrieve MAC Address')
+
+    def getIfIp(self, ifn):
+        import socket, fcntl, struct
+        sck = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        return socket.inet_ntoa(fcntl.ioctl(sck.fileno(),0x8915,struct.pack('256s', ifn[:15]))[20:24])
     
     def getDisk(self):
         s = os.statvfs(config.get('Main','libraryDir'))
@@ -2861,6 +3228,11 @@ class XMDS:
         return str(self.key)
 
     def check(self):
+        if not in_period(config.get('Main','connectionPeriod')):
+            # If we're in an XMDS blackout period then
+            # prevent communications with the server
+            return False
+    
         if self.hasInitialised:
             return True
         else:
@@ -3399,12 +3771,22 @@ class XMDSOffline(Thread):
 
     def GetFile(self,tmpPath,tmpType,tmpOffset,tmpChunk):
         """Connect to XMDS and download a file"""
+
+        # Decide where to download the file from (Old format USB sticks are in the client UUID folder
+        # New format are in the central library folder
+        tmpFilePath = os.path.join(self.updatePath,'library',tmpPath)
+
+        if not os.path.isfile(tmpFilePath):
+            # File not in central library
+            # Fall back to old file locations then
+            tmpFilePath = os.path.join(self.updatePath,self.uuid,tmpPath)
+
         response = None
         log.lights('GF','amber')
         if self.check():
             if tmpType == 'media':
                 try:
-                    fh = open(os.path.join(self.updatePath,self.uuid,tmpPath), 'r')
+                    fh = open(tmpFilePath, 'r')
                     fh.seek(tmpOffset)
                     response = fh.read(tmpChunk)
                     fh.close()
@@ -3413,7 +3795,7 @@ class XMDSOffline(Thread):
                     raise XMDSException("XMDS could not be initialised")
             if tmpType == 'layout':
                 try:
-                    fh = open(os.path.join(self.updatePath,self.uuid,tmpPath), 'r')
+                    fh = open(tmpFilePath, 'r')
                     response = fh.read()
                     fh.close()
                 except:
@@ -3438,7 +3820,9 @@ class XMDSOffline(Thread):
 
 class XiboDisplayManager:
     def __init__(self):
-        pass
+        self.__nextStartTickDT = None
+        self.__nextFinishTickDT = None
+        self.__nextFinishID = []
 
     def run(self):
         # Run up a XiboLogScreen temporarily until XMDS is initialised.
@@ -3483,7 +3867,7 @@ class XiboDisplayManager:
         self.Player = XiboPlayer(self)
         self.Player.start()
 
-        # TODO: Display the splash screen
+        # Display the splash screen
         self.currentLM = XiboLayoutManager(self, self.Player, XiboLayout('0',False), 0, 1.0, True)
         self.currentLM.start()
 
@@ -3495,7 +3879,7 @@ class XiboDisplayManager:
         # Load a DownloadManager and start it running in its own thread
         try:
             downloaderName = config.get('Main','downloader')
-            self.downloader = eval(downloaderName)(self.xmds,self.Player)
+            self.downloader = eval(downloaderName)(self.xmds,self.Player,self)
             self.downloader.start()
             log.log(2,"info",_("Loaded Download Manager ") + downloaderName)
         except ConfigParser.NoOptionError:
@@ -3513,7 +3897,7 @@ class XiboDisplayManager:
         # Load a scheduler and start it running in its own thread
         try:
             schedulerName = config.get('Main','scheduler')
-            self.scheduler = eval(schedulerName)(self.xmds,self.Player)
+            self.scheduler = eval(schedulerName)(self.xmds,self.Player,self)
             self.scheduler.start()
             log.log(2,"info",_("Loaded Scheduler ") + schedulerName)
         except ConfigParser.NoOptionError:
@@ -3538,6 +3922,16 @@ class XiboDisplayManager:
             self.liftEnabled = False
             log.log(3,"error",_("Lift->enabled not defined in configuration. Disabling lift functionality in Logger"))
 
+        try:
+            self.socketEnabled = config.getboolean('Socket','enabled')
+            if not self.socketEnabled:
+                log.log(3,"audit",_("Disabling socket functionality"))
+            else:
+                log.log(3,"audit",_("Enabling socket functionality"))
+        except:
+            self.socketEnabled = False
+            log.log(3,"error",_("Socket->enabled not defined in configuration. Disabling socket functionality."))
+
         
         # Thread to watch the switch inputs and control the scheduler
         if self.liftEnabled:
@@ -3547,6 +3941,11 @@ class XiboDisplayManager:
         # Thread to watch Ticket Counter value and update the display as required
         self.ticketCounter = TicketCounter(self.Player)
         self.ticketCounter.start()
+
+        # Thread to watch a socket and respond accordingly
+        if self.socketEnabled:
+            self.socket = SocketWatcher(self.scheduler,self)
+            self.socket.start()
 
         # Attempt to register with the webservice.
         # The RegisterDisplay code will block here if
@@ -3578,6 +3977,75 @@ class XiboDisplayManager:
         self.currentLM.start()
         self.Player.enqueue('del',tmpLayout)
 
+    def nextStartTick(self,nextDT):
+        if not nextDT == self.__nextStartTickDT:
+            # Work out how many seconds until nextDT
+            # Enqueue a timer at that time  to signal next layout.
+            # Pad the timer by 2 seconds to make sure we don't change too early and restart the old
+            # layout by mistake!
+
+            now = time.time()
+            interval = int(nextDT - now) + 2
+
+            self.__nextStartTickDT = nextDT
+
+            self.Player.nextStartTick(interval * 1000, self.startTick)
+
+    def nextFinishTick(self,nextDT,finishID):
+        # finishID: list of IDs of layouts that will expire on nextTick
+        if not nextDT == self.__nextFinishTickDT:
+            # Work out how many seconds until nextDT
+            # Enqueue a timer at that time  to signal next layout.
+            # Pad the timer by 2 seconds to make sure we don't change too early and restart the old
+            # layout by mistake!
+
+            now = time.time()
+            interval = int(nextDT - now) + 2
+
+            self.__nextFinishTickDT = nextDT
+            self.__nextFinishID = finishID
+
+            self.Player.nextFinishTick(interval * 1000, self.finishTick)
+
+    def startTick(self):
+        if config.getint('Main','layoutExpireMode') == 2:
+            # Trash what's running regardless of what it is
+            log.log(2,"info",_("XiboLayoutManager: startTick() (Mode2) -> Destroying current layout"))
+            self.currentLM.dispose()
+            self.scheduler.calculateNextTick()
+        elif config.getint('Main','layoutExpireMode') == 3:
+            # Trash what's running regardless of what it is
+            log.log(2,"info",_("XiboLayoutManager: startTick() (Mode3) -> Destroying current layout"))
+            self.currentLM.dispose()
+            self.scheduler.calculateNextTick()
+        else:
+            # Do nothing. This should never occur
+            pass
+            
+    def finishTick(self):
+        if config.getint('Main','layoutExpireMode') == 1:
+            # If the currently running layout is in self.__nextFinishID
+            # then trash it
+            try:
+                a = self.__nextFinishID.index(self.currentLM.l.layoutID)
+                log.log(2,"info",_("XiboLayoutManager: finishTick() (Mode1) -> Destroying current layout"))
+                self.currentLM.dispose()
+                self.scheduler.calculateNextTick()
+            except:
+                # Current layout wasn't in nextFinishID so exception
+                # thrown. Catch and pass.
+                log.log(6,"debug",_("XiboLayoutManager: finishTick() -> Skipping tick because current layout isn't removed from the schedule."))
+
+        elif config.getint('Main','layoutExpireMode') == 3  and self.__nextStartTickDT != self.__nextFinishTickDT:
+            # Trash what's running regardless of what it is
+            # Unless nextStartTickDT == nextFinshTickDT are equal as the start event will take care of the switch
+            log.log(2,"info",_("XiboLayoutManager: finishTick() (Mode3) -> Destroying current layout"))
+            self.currentLM.dispose()
+            self.scheduler.calculateNextTick()
+        else:
+            # Do nothing. This should never occur
+            pass
+
 class XiboPlayer(Thread):
     "Class to handle libavg interactions"
     def __init__(self,parent):
@@ -3597,7 +4065,13 @@ class XiboPlayer(Thread):
         self.dim = (int(config.get('Main', 'width')),
                     int(config.get('Main', 'height')))
         self.currentFH = None
+        
+        # Reference to the DisplayManager
         self.parent = parent
+        
+        # Reference to the nextTick event due to run
+        self.__nextStartTickEventRef = None
+        self.__nextFinishTickEventRef = None
 
         self.ticketOSD = True
 
@@ -3686,7 +4160,14 @@ class XiboPlayer(Thread):
 
 
         # Load the BrowserNode plugin
-        self.player.loadPlugin("libbrowsernode")
+        try:
+            self.player.loadPlugin("libbrowsernode")
+        except RuntimeError:
+            print "\n*********************************************************"
+            print "The version of Berkelium installed on this system is not compatible with this version of Xibo."
+            print "Please check you have the correct version of Berkelium installed for this version of the client."
+            print "*********************************************************\n"
+            os._exit(0)
         
         self.player.showCursor(0)
         self.player.volume = 1
@@ -3829,6 +4310,12 @@ class XiboPlayer(Thread):
                 try:
                     self.parent.ticketCounter.quit()
                 except:
+                    pass
+
+                try:
+                    self.parent.socket.dispose()
+                except:
+                    # Catch exception if SocketWatcher is disabled.
                     pass
 
                 log.log(5,"info",_("Blocking waiting for Scheduler"))
@@ -4006,6 +4493,38 @@ class XiboPlayer(Thread):
                 log.log(0,"audit",_("An unspecified error occured: ") + str(cmd) + " : " + str(data))
         except AttributeError:
             log.log(0,"error","Caught that thing that makes the player crash on startup!")
+    
+    def nextStartTick(self,interval,callback):
+        # Clear the nextTick event timer and start a new one
+        # Used to skip layouts on starting or finishing a scheudule
+        # when layoutExpireMode is 1 or 2.
+        try: 
+            self.player.clearInterval(self.__nextStartTickEventRef)
+        except:
+            pass
+        
+        try:    
+            self.__nextStartTickEventRef = self.player.setTimeout(interval,callback)
+        except OverflowError:
+            # Event is too far in the future (>24 days).
+            # Ignore it for now
+            pass
+
+    def nextFinishTick(self,interval,callback):
+        # Clear the nextTick event timer and start a new one
+        # Used to skip layouts on starting or finishing a scheudule
+        # when layoutExpireMode is 1 or 2.
+        try: 
+            self.player.clearInterval(self.__nextFinishTickEventRef)
+        except:
+            pass
+        
+        try:    
+            self.__nextFinishTickEventRef = self.player.setTimeout(interval,callback)
+        except OverflowError:
+            # Event is too far in the future (>24 days).
+            # Ignore it for now
+            pass
             
             
 class XiboClient:
