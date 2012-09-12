@@ -28,5 +28,8 @@ class DefaultTransition(XiboTransition):
     "A non-transition to provide backwards compatibility with older layouts."
 
     def run(self):
+        if not self.media2 is None:
+            self.media2.start()
+
         self.callback()
 
