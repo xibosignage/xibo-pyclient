@@ -1884,7 +1884,7 @@ class XiboRegionManager(Thread):
 
                                 if (trans[1] != ""):
                                     self.currentMedia.add()
-#                                    self.currentMedia.start()
+
                                     for e in tmpEffects:
                                         e.start()
                                     try:

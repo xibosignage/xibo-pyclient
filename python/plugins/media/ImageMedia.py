@@ -33,8 +33,8 @@ class ImageMedia(XiboMedia):
         tmpXML = '<image id="' + self.mediaNodeName + '" opacity="0" />'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
         
-        w = int(self.width) + 1
-        h = int(self.height) + 1
+        w = int(self.width)
+        h = int(self.height)
         fName = os.path.join(self.libraryDir,self.options['uri'])
         thumb = os.path.join(self.libraryDir,'scaled',self.options['uri']) + "-%dx%d" % (w,h)
         if not os.path.exists(thumb) or (os.path.getmtime(thumb) < os.path.getmtime(fName)):
