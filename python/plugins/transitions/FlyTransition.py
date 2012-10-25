@@ -31,7 +31,7 @@ class FlyTransition(XiboTransition):
         self.lock.acquire()
 
         # TODO: Broken if exit and entrance transitions are both "fly".
-        if self.media1 != None:
+        if not self.media1 is None:
             if self.options1['transOutDuration'] > 0:
                 self.outDuration = int(self.options1['transOutDuration'])
             else:
@@ -40,8 +40,11 @@ class FlyTransition(XiboTransition):
             self.log.log(5,"info","Running FlyOut transition")
             self.__animate__(self.media1.getName(),self.media1.getX(),self.media1.getY(),self.media1.getWidth(),self.media1.getHeight(),self.options1["transOutDirection"],self.outDuration,self.next)
             self.lock.acquire()
+    
+        if not self.media2 is None:
+            self.media2.start()
 
-        if self.media2 != None:
+        if not self.media2 is None:
             if self.options2['transInDuration'] > 0:
                 self.inDuration = int(self.options2['transInDuration'])
             else:

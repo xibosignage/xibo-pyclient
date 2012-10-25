@@ -50,7 +50,7 @@ import platform
 
 from ThirdParty.period.period import in_period
 
-version = "1.3.3"
+version = "1.4.0"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -1797,7 +1797,7 @@ class XiboRegionManager(Thread):
             self.zindex = 1
         
         # Create a div for the region and add it
-        tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" crop="False" />'
+        tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" crop="True" />'
         self.p.enqueue('add',(tmpXML,self.layoutNodeName))
 
     def run(self):
@@ -1856,7 +1856,6 @@ class XiboRegionManager(Thread):
                             # The two transitions match. Let one plugin handle both.
                             if (trans[0] == trans[1]) and trans[0] != "":
                                 self.currentMedia.add()
-                                self.currentMedia.start()
                                 for e in tmpEffects:
                                     e.start()
                                 try:
@@ -1885,7 +1884,7 @@ class XiboRegionManager(Thread):
 
                                 if (trans[1] != ""):
                                     self.currentMedia.add()
-                                    self.currentMedia.start()
+
                                     for e in tmpEffects:
                                         e.start()
                                     try:
