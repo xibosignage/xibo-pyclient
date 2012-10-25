@@ -31,7 +31,7 @@ class FadeInTransition(XiboTransition):
         self.lock = Semaphore()
         self.lock.acquire()
 
-        if self.media1 != None:
+        if not self.media1 is None:
             if self.options1['transOutDuration'] > 0:
                 self.outDuration = int(self.options1['transOutDuration'])
             else:
@@ -41,7 +41,10 @@ class FadeInTransition(XiboTransition):
             self.p.enqueue('anim',('fadeIn',self.media1.getName(),self.outDuration,self.next))
             self.lock.acquire()
 
-        if self.media2 != None:
+        if not self.media2 is None:
+            self.media2.start()
+
+        if not self.media2 is None:
             if self.options2['transInDuration'] > 0:
                 self.inDuration = int(self.options2['transInDuration'])
             else:

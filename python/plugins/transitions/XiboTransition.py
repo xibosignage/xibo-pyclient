@@ -49,4 +49,4 @@ class XiboTransition(Thread):
 			self.options2 = None
 
     def run(self):
-	callback()
+        callback()
