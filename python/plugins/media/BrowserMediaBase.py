@@ -124,7 +124,7 @@ class BrowserMediaBase(XiboMedia):
             self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
         else:
             if self.retryCount > 3:
-                print "Giving up rendering %s. Skipping" % self.mediaNodeName
+                print "Error rendering %s. Skipping" % self.mediaNodeName
                 self.timerElapsed()
             else:
                 if self.retryCount > 1:
