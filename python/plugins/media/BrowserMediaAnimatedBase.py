@@ -103,7 +103,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             self.fitText = 'false'
             self.scaleText = 'true'
         else:
-            self.fitTest = 'true'
+            self.fitText = 'true'
             self.scaleText = 'false'
 
         
