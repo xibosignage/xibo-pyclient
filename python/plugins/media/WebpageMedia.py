@@ -34,7 +34,6 @@ class WebpageMedia(XiboMedia):
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
     def run(self):
-        self.conc = self.parent.getConcurrencyManager()
         self.p.enqueue('browserNavigate',(self.mediaNodeName,urllib.unquote(str(self.options['uri'])),self.finishedRendering))
         self.startStats()
 
@@ -75,9 +74,9 @@ class WebpageMedia(XiboMedia):
         if currentNode.painted():
             # Make the browser visible
             self.p.enqueue('setOpacity',(self.mediaNodeName,1))
-            self.p.enqueue('timer',(int(self.duration) * 1000,self.conc.next))
+            self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
         else:
-            print "**** Berkelium Error ****"
+            print "Error rendering %s. Re-rendering" % self.mediaNodeName
             self.p.enqueue('browserNavigate',(self.mediaNodeName,urllib.unquote(str(self.options['uri'])),self.finishedRendering))
             # self.p.enqueue('timer',(0,self.conc.next))
     
