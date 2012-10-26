@@ -36,7 +36,6 @@ class WebpageMedia(XiboMedia):
     def run(self):
         self.conc = self.parent.getConcurrencyManager()
         self.p.enqueue('browserNavigate',(self.mediaNodeName,urllib.unquote(str(self.options['uri'])),self.finishedRendering))
-        self.p.enqueue('timer',(int(self.duration) * 1000,self.conc.next))
         self.startStats()
 
     def requiredFiles(self):
@@ -76,6 +75,7 @@ class WebpageMedia(XiboMedia):
         if currentNode.painted():
             # Make the browser visible
             self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+            self.p.enqueue('timer',(int(self.duration) * 1000,self.conc.next))
         else:
             print "**** Berkelium Error ****"
             self.p.enqueue('browserNavigate',(self.mediaNodeName,urllib.unquote(str(self.options['uri'])),self.finishedRendering))

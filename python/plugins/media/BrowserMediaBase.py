@@ -121,6 +121,7 @@ class BrowserMediaBase(XiboMedia):
         if currentNode.painted():
             # Make the browser visible
             self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+            self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
         else:
             print "**** Berkelium Error ****"
             self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),self.finishedRendering))
