@@ -125,6 +125,8 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
         js += "           numItems: 0,\n"
         js += "           width: %s,\n" % self.width
         js += "           height: %s,\n" % self.height
+        js += "           originalWidth: %s,\n" % self.originalWidth
+        js += "           originalHeight: %s,\n" % self.originalHeight
         js += "           scrollSpeed: %s,\n" % self.options['scrollSpeed']
         js += "           fitText: %s,\n" % self.fitText
         js += "           scaleText: %s,\n" % self.scaleText
