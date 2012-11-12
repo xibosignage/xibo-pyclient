@@ -28,15 +28,14 @@ import math
 
 class WebpageMedia(XiboMedia):
     def add(self):
+        self.retryCount = 0
         zoomLevel = self.calculateZoomLevel()
         tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + \
                 '" zoomLevel="' + str(zoomLevel) + '"/>'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
     def run(self):
-        self.conc = self.parent.getConcurrencyManager()
         self.p.enqueue('browserNavigate',(self.mediaNodeName,urllib.unquote(str(self.options['uri'])),self.finishedRendering))
-        self.p.enqueue('timer',(int(self.duration) * 1000,self.conc.next))
         self.startStats()
 
     def requiredFiles(self):
@@ -76,10 +75,17 @@ class WebpageMedia(XiboMedia):
         if currentNode.painted():
             # Make the browser visible
             self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+            self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
         else:
-            print "**** Berkelium Error ****"
-            self.p.enqueue('browserNavigate',(self.mediaNodeName,urllib.unquote(str(self.options['uri'])),self.finishedRendering))
-            # self.p.enqueue('timer',(0,self.conc.next))
+            if self.retryCount > 3:
+                print "Error rendering %s. Skipping" % self.mediaNodeName
+                self.parent.next()
+            else:
+                if self.retryCount > 1:
+                    print "Error rendering %s. Re-rendering" % self.mediaNodeName
+   
+                self.retryCount = self.retryCount + 1
+                self.p.enqueue('browserNavigate',(self.mediaNodeName,urllib.unquote(str(self.options['uri'])),self.finishedRendering))
     
     def browserOptions(self):
         scroll = False

@@ -29,6 +29,7 @@ class BrowserMediaBase(XiboMedia):
         
     def add(self):
         self.itemCount = 0
+        self.retryCount = 0
         self.tmpPath = os.path.join(self.libraryDir,self.mediaNodeName + "-tmp.html")
         tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + '"/>'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
@@ -116,5 +117,18 @@ class BrowserMediaBase(XiboMedia):
         optionsTuple = (self.mediaNodeName,bo[0],bo[1])
         self.p.enqueue('browserOptions',optionsTuple)
         # TODO: This next line should really callback self.parent.next. See timerElapsed function
-        self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
-        self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+        currentNode = self.p.getElementByID(self.mediaNodeName)
+        if currentNode.painted():
+            # Make the browser visible
+            self.p.enqueue('setOpacity',(self.mediaNodeName,1))
+            self.p.enqueue('timer',(int(self.duration) * 1000,self.timerElapsed))
+        else:
+            if self.retryCount > 3:
+                print "Error rendering %s. Skipping" % self.mediaNodeName
+                self.timerElapsed()
+            else:
+                if self.retryCount > 1:
+                    print "Error rendering %s. Re-rendering" % self.mediaNodeName
+                    
+                self.retryCount = self.retryCount + 1
+                self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),self.finishedRendering))

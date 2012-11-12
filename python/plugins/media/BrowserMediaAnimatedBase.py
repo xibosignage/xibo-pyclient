@@ -68,10 +68,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             if self.options['direction'] == 'left' or self.options['direction'] == 'right':
                 content = "<nobr>%s</nobr>" % content
             
-            if self.options['direction'] == 'single':
-                content = "<div id='text'>%s</div>" % content
-            else:
-                content = '<div id="contentPane" style="overflow: none; width:%spx; height:%spx;"><div id="text">%s</div></div>' % (self.width, self.height, content)
+            content = '<div id="contentPane" style="overflow: none; width:%spx; height:%spx;"><div id="text">%s</div></div>' % (self.width, self.height, content)
                 
         return content
     
@@ -106,29 +103,35 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             self.fitText = 'true'
             self.scaleText = 'false'
 
-        
+        self.scrDuration = int(self.duration)        
+
         # Multiply out the duration if duration is per item.
         if not self.options['durationIsPerItem'] == '0':
             if self.itemCount > 0:
                 self.duration = int(self.duration) * self.itemCount
+        else:
+            self.scrDuration = int(self.duration) / self.itemCount
+            if self.scrDuration < 1:
+                self.scrDuration = 1
+		
         
-        js = "<script type='text/javascript'>"
-        js += "   function init() { "
-        js += "       $('#text').xiboRender({ "
-        js += "           type: 'ticker',"
-        js += "           direction: '%s'," % self.options['direction']
-        js += "           duration: %s," % self.duration
-        js += "           durationIsPerItem: false,"
-        js += "           numItems: 0,"
-        js += "           width: %s," % self.width
-        js += "           height: %s," % self.height
-        js += "           scrollSpeed: %s," % self.options['scrollSpeed']
-        js += "           fitText: %s," % self.fitText
-        js += "           scaleText: %s," % self.scaleText
-        js += "           scaleFactor: %s" % (float(self.scaleFactor) * 0.85)
-        js += "       });"
-        js += "   } "
-        js += "</script>"
+        js = "<script type='text/javascript'>\n"
+        js += "   function init() { \n"
+        js += "       $('#text').xiboRender({ \n"
+        js += "           type: 'ticker',\n"
+        js += "           direction: '%s',\n" % self.options['direction']
+        js += "           duration: %s,\n" % self.scrDuration
+        js += "           durationIsPerItem: false,\n"
+        js += "           numItems: 0,\n"
+        js += "           width: %s,\n" % self.width
+        js += "           height: %s,\n" % self.height
+        js += "           scrollSpeed: %s,\n" % self.options['scrollSpeed']
+        js += "           fitText: %s,\n" % self.fitText
+        js += "           scaleText: %s,\n" % self.scaleText
+        js += "           scaleFactor: %s\n" % self.scaleFactor
+        js += "       });\n"
+        js += "   } \n"
+        js += "</script>\n"
  
         return js
     
