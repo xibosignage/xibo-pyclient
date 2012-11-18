@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009 Alex Harrington
+# Copyright (C) 2009-2012 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -68,7 +68,7 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
             if self.options['direction'] == 'left' or self.options['direction'] == 'right':
                 content = "<nobr>%s</nobr>" % content
             
-            content = '<div id="contentPane" style="overflow: none; width:%spx; height:%spx;"><div id="text">%s</div></div>' % (self.width, self.height, content)
+        content = '<div id="contentPane" style="overflow: none; width:%spx; height:%spx;"><div id="text">%s</div></div>' % (self.width, self.height, content)
                 
         return content
     
@@ -112,19 +112,20 @@ class BrowserMediaAnimatedBase(BrowserMediaBase):
         else:
             self.scrDuration = int(self.duration) / self.itemCount
             if self.scrDuration < 1:
-                self.scrDuration = 1
-		
+                self.scrDuration = 1		
         
         js = "<script type='text/javascript'>\n"
         js += "   function init() { \n"
         js += "       $('#text').xiboRender({ \n"
-        js += "           type: 'ticker',\n"
+        js += "           type: '%s',\n" % self.mediaType
         js += "           direction: '%s',\n" % self.options['direction']
         js += "           duration: %s,\n" % self.scrDuration
         js += "           durationIsPerItem: false,\n"
         js += "           numItems: 0,\n"
         js += "           width: %s,\n" % self.width
         js += "           height: %s,\n" % self.height
+        js += "           originalWidth: %s,\n" % self.originalWidth
+        js += "           originalHeight: %s,\n" % self.originalHeight
         js += "           scrollSpeed: %s,\n" % self.options['scrollSpeed']
         js += "           fitText: %s,\n" % self.fitText
         js += "           scaleText: %s,\n" % self.scaleText

@@ -1757,6 +1757,7 @@ class XiboRegionManager(Thread):
         # Calculate the region width
         try:
             self.width = float(self.regionNode.attributes['width'].value) * parent.l.scaleFactor
+            self.originalWidth = self.regionNode.attributes['width'].value
         except KeyError:
             log.log(1,"error",_("Region XLF is invalid. Missing required width attribute"), True)
             self.regionExpired = True
@@ -1766,6 +1767,7 @@ class XiboRegionManager(Thread):
         # Calculate the region height
         try:
             self.height =  float(self.regionNode.attributes['height'].value) * parent.l.scaleFactor
+            self.originalHeight = self.regionNode.attributes['height'].value
         except KeyError:
             log.log(1,"error",_("Region XLF is invalid. Missing required height attribute"), True)
             self.regionExpired = True

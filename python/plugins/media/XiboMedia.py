@@ -71,12 +71,16 @@ class XiboMedia(Thread):
             self.regionNodeNameExt = 'null'
             self.width = '10'
             self.height = '10'
+            self.originalHeight = '10'
+            self.originalWidth = '10'
             self.mediaNodeNameExt = '-null'
         else:
             self.regionNodeName = self.parent.regionNodeName
             self.regionNodeNameExt = self.parent.regionNodeNameExt
             self.width = self.parent.width
             self.height = self.parent.height
+            self.originalWidth = self.parent.originalWidth
+            self.originalHeight = self.parent.originalHeight
             self.mediaNodeNameExt = "-" + str(self.p.nextUniqueId())
 
         # Calculate the media ID name
