@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009 Alex Harrington
+# Copyright (C) 2009-2012 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -30,6 +30,9 @@ import feedparser
 class TickerMedia(BrowserMediaAnimatedBase):
         
     def getContent(self):
+
+	self.mediaType = 'ticker'
+
         """ Returns a string of content items to inject in to the page """
         content = []
         

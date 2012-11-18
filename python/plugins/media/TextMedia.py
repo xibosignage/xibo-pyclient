@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2010 Alex Harrington
+# Copyright (C) 2009-2012 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -30,6 +30,8 @@ from threading import Thread
 
 class TextMedia(BrowserMediaAnimatedBase):
     def getContent(self):
+
+	self.mediaType = 'text'
         
         # Parse out the text element from the raw tag.
         try:
