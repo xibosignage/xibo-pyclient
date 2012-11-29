@@ -118,7 +118,7 @@ class XiboMedia(Thread):
 
         # Parse the options block in to the self.options[] array:
         for cn in self.optionsNode.childNodes:
-            if cn.localName != None:
+            if not cn.localName is None:
                 try:
                     self.options[str(cn.localName)] = cn.childNodes[0].nodeValue
                     log.log(5,"info","Media Options: " + str(cn.localName) + " -> " + str(cn.childNodes[0].nodeValue))
