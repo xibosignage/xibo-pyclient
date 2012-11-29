@@ -1976,7 +1976,7 @@ class XiboRegionManager(Thread):
         try:
             for cn in oNode.childNodes:
                 if not cn.localName is None:
-                    if len(cn.childNodes > 0):
+                    if len(cn.childNodes) > 0:
                         rOptions[str(cn.localName)] = cn.childNodes[0].nodeValue
                         log.log(5,"info","Region Options: " + str(cn.localName) + " -> " + str(cn.childNodes[0].nodeValue))
                     else:
