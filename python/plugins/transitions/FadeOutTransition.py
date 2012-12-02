@@ -23,12 +23,14 @@
 
 from XiboTransition import XiboTransition
 from threading import Thread, Semaphore
+import inspect
 
 class FadeOutTransition(XiboTransition):
 
     def run(self):
         self.lock = Semaphore()
         self.lock.acquire()
+        self.flag = False
 
         if not self.media1 is None:
             if self.options1['transOutDuration'] > 0:
@@ -37,6 +39,7 @@ class FadeOutTransition(XiboTransition):
                 self.outDuration = 1000
 
             self.log.log(5,"info","FadeOutTransition: Fading " + self.media1.getName() + " over " + str(self.outDuration) + "ms")
+            self.flag = False
             self.p.enqueue('anim',('fadeOut',self.media1.getName(),self.outDuration,self.next))
             self.p.enqueue('timer',(self.outDuration,self.next))
             self.lock.acquire()
@@ -59,5 +62,8 @@ class FadeOutTransition(XiboTransition):
         self.callback()
 
     def next(self):
-        self.lock.release()
+        if not self.flag:
+            self.flag = True
+            self.log.log(5,"info","FadeOutTransition: Unlocked")
+            self.lock.release()
 

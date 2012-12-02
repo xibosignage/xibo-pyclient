@@ -1975,9 +1975,12 @@ class XiboRegionManager(Thread):
 
         try:
             for cn in oNode.childNodes:
-                if cn.localName != None:
-                    rOptions[str(cn.localName)] = cn.childNodes[0].nodeValue
-                    log.log(5,"info","Region Options: " + str(cn.localName) + " -> " + str(cn.childNodes[0].nodeValue))
+                if not cn.localName is None:
+                    if len(cn.childNodes) > 0:
+                        rOptions[str(cn.localName)] = cn.childNodes[0].nodeValue
+                        log.log(5,"info","Region Options: " + str(cn.localName) + " -> " + str(cn.childNodes[0].nodeValue))
+                    else:
+                        rOptions[str(cn.localName)] = ""
         except AttributeError:
             rOptions["transOut"] = ""
 
@@ -4381,11 +4384,13 @@ class XiboPlayer(Thread):
                         animation = avg.fadeOut(currentNode,data[2],data[3])
                     if data[0] == "linear":
                         animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
+                        animation.start()
                     if data[0] == "ease":
                         animation = anim.EaseInOutAnim(currentNode,data[3],data[2],data[4],data[5],data[7],data[8],False,data[6],None)
+                        animation.start()
                     if data[0] == "continuous":
                         animation = anim.ContinuousAnim(currentNode,data[2],data[3],data[4])
-                    animation.start()
+                        animation.start()
                 elif cmd == "play":
                     currentNode = self.player.getElementByID(data)
                     currentNode.play()
