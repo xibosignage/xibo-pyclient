@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009-2012 Alex Harrington
+# Copyright (C) 2009-2013 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -50,7 +50,7 @@ import platform
 
 from ThirdParty.period.period import in_period
 
-version = "1.4.1+"
+version = "1.4.2"
 
 # What layout schema version is supported
 schemaVersion = 1
