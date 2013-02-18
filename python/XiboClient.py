@@ -1647,6 +1647,11 @@ class XiboLayoutManager(Thread):
 
         if allExpired and not self.expiring:
             log.log(2,"info",_("%s All regions have expired. Marking layout as expired") % self.layoutNodeName, True)
+            if self.hold:
+                log.log(1,"info",_("Holding the splash screen until we're told otherwise"), True)
+                self.__regionLock.release()
+                return False
+
             self.layoutExpired = True
             self.expiring = True
 
@@ -1680,13 +1685,9 @@ class XiboLayoutManager(Thread):
         if allExpired == True and not self.nextLayoutTriggered:
             log.log(2,"info",_("%s All regions have disposed. Marking layout as disposed") % self.layoutNodeName, True)
             self.layoutDisposed = True
-
-            if self.hold:
-                log.log(2,"info",_("Holding the splash screen until we're told otherwise"), True)
-            else:
-                log.log(2,"info",_("LayoutManager->parent->nextLayout()"))
-                self.nextLayoutTriggered = True
-                self.parent.nextLayout()
+            log.log(2,"info",_("LayoutManager->parent->nextLayout()"))
+            self.nextLayoutTriggered = True
+            self.parent.nextLayout()
                 
         self.__regionDisposeLock.release()
 
@@ -2513,9 +2514,12 @@ class XmdsScheduler(XiboScheduler):
                 layoutToDT = sched[1]
         
                 # Convert the date strings to seconds since the epoch for conversion
-                layoutFromSecs = time.mktime(time.strptime(layoutFromDT, "%Y-%m-%d %H:%M:%S"))
-                layoutToSecs = time.mktime(time.strptime(layoutToDT, "%Y-%m-%d %H:%M:%S"))
-                    
+                try:
+                    layoutFromSecs = time.mktime(time.strptime(layoutFromDT, "%Y-%m-%d %H:%M:%S"))
+                    layoutToSecs = time.mktime(time.strptime(layoutToDT, "%Y-%m-%d %H:%M:%S"))
+                except OverflowError:
+                    log.log(1, 'error', _('XmdsScheduler: LayoutID %s: From: %s To: %s uses a date too far in the past or future. Skipping') % (layoutID, layoutFromDT, layoutToDT))
+                    continue
 
                 log.log(2,'audit',_('XmdsScheduler: LayoutID %s: From: %s To: %s (Now: %s)')  % (layoutID,layoutFromSecs,layoutToSecs,now))
                     
@@ -3879,6 +3883,7 @@ class XiboDisplayManager:
         # and XMDS so it can send data to the webservice if it needs to.
         log.setupInfo(self.Player)
         log.setXmds(self.xmds)
+        log.updateNowPlaying("Splash Screen (Startup)")
         
         # Load a DownloadManager and start it running in its own thread
         try:
@@ -3958,6 +3963,7 @@ class XiboDisplayManager:
 
         # Done with the splash screen. Let it advance...
         self.currentLM.hold = False
+        log.updateNowPlaying("Splash Screen")
         self.currentLM.regionDisposed()
 
     def nextLayout(self):
