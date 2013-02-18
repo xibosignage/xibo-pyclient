@@ -1655,10 +1655,6 @@ class XiboLayoutManager(Thread):
             self.layoutExpired = True
             self.expiring = True
 
-            # TODO: Check that there is something else to show before killing
-            #       the layout off completely.
-
-
             # Enqueue region exit transitions by calling the dispose method on each regionManager
             for i in self.regions:
                 i.dispose()
@@ -3964,7 +3960,7 @@ class XiboDisplayManager:
         # Done with the splash screen. Let it advance...
         self.currentLM.hold = False
         log.updateNowPlaying("Splash Screen")
-        self.currentLM.regionDisposed()
+        self.currentLM.regionElapsed()
 
     def nextLayout(self):
         # TODO: Whole function is wrong. This is where layout transitions should be supported.
@@ -4141,6 +4137,9 @@ class XiboPlayer(Thread):
                 int(config.get('Main', 'bpp'))
             )
 
+        # Show a window border on the player - or not
+        self.player.setWindowFrame(config.getboolean('Main', 'windowBorder'))
+
         try:
             if int(config.get('Main', 'fps')) > 0:
                 fps = int(config.get('Main', 'fps'))
@@ -4244,7 +4243,7 @@ class XiboPlayer(Thread):
         self.player.loadString(avgContent)
         avgNode = self.player.getElementByID("main")
         avgNode.setEventHandler(avg.KEYDOWN,avg.NONE,self.keyDown)
-        self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
+        self.currentFH = self.player.setInterval(0, self.frameHandle)
         
         # Release the lock so other threads can add content
         self.__lock.release()
@@ -4349,7 +4348,7 @@ class XiboPlayer(Thread):
         self.__lock.acquire()
         self.q.put((command,data))
         if self.currentFH == None:
-            self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
+            self.currentFH = self.player.setInterval(0, self.frameHandle)
         self.__lock.release()
         log.log(3,"info",_("Queue length is now") + " " + str(self.q.qsize()))
 
