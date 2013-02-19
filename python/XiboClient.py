@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009-2012 Alex Harrington
+# Copyright (C) 2009-2013 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -50,7 +50,7 @@ import platform
 
 from ThirdParty.period.period import in_period
 
-version = "1.4.1+"
+version = "1.4.2"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -1647,12 +1647,13 @@ class XiboLayoutManager(Thread):
 
         if allExpired and not self.expiring:
             log.log(2,"info",_("%s All regions have expired. Marking layout as expired") % self.layoutNodeName, True)
+            if self.hold:
+                log.log(1,"info",_("Holding the splash screen until we're told otherwise"), True)
+                self.__regionLock.release()
+                return False
+
             self.layoutExpired = True
             self.expiring = True
-
-            # TODO: Check that there is something else to show before killing
-            #       the layout off completely.
-
 
             # Enqueue region exit transitions by calling the dispose method on each regionManager
             for i in self.regions:
@@ -1680,13 +1681,9 @@ class XiboLayoutManager(Thread):
         if allExpired == True and not self.nextLayoutTriggered:
             log.log(2,"info",_("%s All regions have disposed. Marking layout as disposed") % self.layoutNodeName, True)
             self.layoutDisposed = True
-
-            if self.hold:
-                log.log(2,"info",_("Holding the splash screen until we're told otherwise"), True)
-            else:
-                log.log(2,"info",_("LayoutManager->parent->nextLayout()"))
-                self.nextLayoutTriggered = True
-                self.parent.nextLayout()
+            log.log(2,"info",_("LayoutManager->parent->nextLayout()"))
+            self.nextLayoutTriggered = True
+            self.parent.nextLayout()
                 
         self.__regionDisposeLock.release()
 
@@ -2513,9 +2510,12 @@ class XmdsScheduler(XiboScheduler):
                 layoutToDT = sched[1]
         
                 # Convert the date strings to seconds since the epoch for conversion
-                layoutFromSecs = time.mktime(time.strptime(layoutFromDT, "%Y-%m-%d %H:%M:%S"))
-                layoutToSecs = time.mktime(time.strptime(layoutToDT, "%Y-%m-%d %H:%M:%S"))
-                    
+                try:
+                    layoutFromSecs = time.mktime(time.strptime(layoutFromDT, "%Y-%m-%d %H:%M:%S"))
+                    layoutToSecs = time.mktime(time.strptime(layoutToDT, "%Y-%m-%d %H:%M:%S"))
+                except OverflowError:
+                    log.log(1, 'error', _('XmdsScheduler: LayoutID %s: From: %s To: %s uses a date too far in the past or future. Skipping') % (layoutID, layoutFromDT, layoutToDT))
+                    continue
 
                 log.log(2,'audit',_('XmdsScheduler: LayoutID %s: From: %s To: %s (Now: %s)')  % (layoutID,layoutFromSecs,layoutToSecs,now))
                     
@@ -3879,6 +3879,7 @@ class XiboDisplayManager:
         # and XMDS so it can send data to the webservice if it needs to.
         log.setupInfo(self.Player)
         log.setXmds(self.xmds)
+        log.updateNowPlaying("Splash Screen (Startup)")
         
         # Load a DownloadManager and start it running in its own thread
         try:
@@ -3958,7 +3959,8 @@ class XiboDisplayManager:
 
         # Done with the splash screen. Let it advance...
         self.currentLM.hold = False
-        self.currentLM.regionDisposed()
+        log.updateNowPlaying("Splash Screen")
+        self.currentLM.regionElapsed()
 
     def nextLayout(self):
         # TODO: Whole function is wrong. This is where layout transitions should be supported.
@@ -4135,6 +4137,9 @@ class XiboPlayer(Thread):
                 int(config.get('Main', 'bpp'))
             )
 
+        # Show a window border on the player - or not
+        self.player.setWindowFrame(config.getboolean('Main', 'windowBorder'))
+
         try:
             if int(config.get('Main', 'fps')) > 0:
                 fps = int(config.get('Main', 'fps'))
@@ -4238,7 +4243,7 @@ class XiboPlayer(Thread):
         self.player.loadString(avgContent)
         avgNode = self.player.getElementByID("main")
         avgNode.setEventHandler(avg.KEYDOWN,avg.NONE,self.keyDown)
-        self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
+        self.currentFH = self.player.setInterval(0, self.frameHandle)
         
         # Release the lock so other threads can add content
         self.__lock.release()
@@ -4343,7 +4348,7 @@ class XiboPlayer(Thread):
         self.__lock.acquire()
         self.q.put((command,data))
         if self.currentFH == None:
-            self.currentFH = self.player.setOnFrameHandler(self.frameHandle)
+            self.currentFH = self.player.setInterval(0, self.frameHandle)
         self.__lock.release()
         log.log(3,"info",_("Queue length is now") + " " + str(self.q.qsize()))
 

@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2012 Alex Harrington
+# Copyright (C) 2012-2013 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -24,11 +24,14 @@
 from XiboMedia import XiboMedia
 from threading import Thread
 import subprocess
+import urllib
 
 class ShellcommandMedia(XiboMedia):
     def add(self):
         self.commandsEnabled = self.config.getboolean('ShellCommands', 'enabled')
         self.commandWhiteList = []
+
+        options['linuxCommand'] = urllib.unquote(str(options['linuxCommand']))
 
         if self.config.get('ShellCommands', 'whitelist') != '':
             self.commandWhiteList = self.config.get('ShellCommands', 'whitelist').split(',')
