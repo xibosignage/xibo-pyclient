@@ -4087,6 +4087,15 @@ class XiboDisplayManager:
             # Do nothing. This should never occur
             pass
 
+class XiboTerminate(Thread):
+    "Class to handle libavg interactions"
+    def __init__(self):
+        Thread.__init__(self)
+
+    def run(self):
+        time.sleep(5)
+        os._exit(0)
+
 class XiboPlayer(Thread):
     "Class to handle libavg interactions"
     def __init__(self,parent):
@@ -4337,6 +4346,11 @@ class XiboPlayer(Thread):
                 #TODO: Fully implement a proper quit function
                 # Allow threads a chance to stop nicely before finally killing
                 # the lot off.
+
+                # Set a timer to kill us in 5 seconds if there's any problem!
+                terminate = XiboTerminate()
+                terminate.start()
+
                 log.flush()
 
                 try:
@@ -4362,13 +4376,13 @@ class XiboPlayer(Thread):
                     # Catch exception if SocketWatcher is disabled.
                     pass
 
-                log.log(5,"info",_("Blocking waiting for Scheduler"))
+                log.log(2,"info",_("Blocking waiting for Scheduler"))
                 try:
                     self.parent.scheduler.join()
                 except:
                     pass
 
-                log.log(5,"info",_("Blocking waiting for DownloadManager"))
+                log.log(2,"info",_("Blocking waiting for DownloadManager"))
                 try:
                     self.parent.downloader.join()
                 except:
