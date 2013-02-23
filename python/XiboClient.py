@@ -3120,15 +3120,18 @@ class XMDS:
         
         self.socketTimeout = None
         try:
-            self.socketTimeout = int(config.get('Main','socketTimeout'))
+            self.socketTimeout = config.getint('Main','socketTimeout')
         except:
-            self.socketTimeout = 30
+            self.socketTimeout = ''
         
-        try:
-            socket.setdefaulttimeout(self.socketTimeout)
-            log.log(2,"info",_("Set socket timeout to: ") + str(self.socketTimeout))
-        except:
-            log.log(0,"warning",_("Unable to set socket timeout. Using system default"))
+        if (self.socketTimeout is None) or (self.socketTimeout == ''):
+            log.log(2,"info",_("Not setting socket timeout"))
+        else:
+            try:
+                socket.setdefaulttimeout(self.socketTimeout)
+                log.log(2,"info",_("Set socket timeout to: %s") % self.socketTimeout)
+            except:
+                log.log(0,"warning",_("Unable to set socket timeout. Using system default"))
             
         # Setup a Proxy for XMDS
         self.xmdsUrl = None
@@ -3249,17 +3252,19 @@ class XMDS:
             
             self.server = None
             tries = 0
-            while self.server == None and tries < 3:
+            while self.server is None and tries < 3:
                 tries = tries + 1
-                log.log(2,"info",_("Connecting to XMDS at ") + self.xmdsUrl + " " + _("Attempt") + " " + str(tries))
+                log.log(2,"info",_("Connecting to XMDS at URL: %s Attempt Number: %s") % (self.xmdsUrl, tries))
                 try:
                     self.server = WSDL.Proxy(self.wsdlFile)
                     self.hasInitialised = True
                     log.log(2,"info",_("Connected to XMDS via WSDL at %s") % self.wsdlFile)
                 except xml.parsers.expat.ExpatError:
                     log.log(0,"error",_("Could not connect to XMDS."))
+                except:
+                    log.log(0,"error",_("An unspecified error occured connecting to XMDS. If you're using the Python M2Crypto module, ensure socketTimeout is set to a blank value in your site.cfg file. Error: %s") % str(sys.exc_info()[0]))
             # End While
-            if self.server == None:
+            if self.server is None:
                 self.checkLock.release()
                 return False
 
@@ -3300,6 +3305,11 @@ class XMDS:
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("RequiredFiles: Webservice returned non XML content")
+            except:
+                log.lights('RF', 'red')
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("RequiredFiles: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('RF','grey')
@@ -3331,6 +3341,10 @@ class XMDS:
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("GetResource: Webservice returned non XML content")
+            except:
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("GetResource: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             raise XMDSException("XMDS could not be initialised")
@@ -3376,9 +3390,10 @@ class XMDS:
                 self.hasInitialised = False
                 raise XMDSException("SubmitLog: Webservice returned non XML content")
             except:
-                print("SubmitLog: An unexpected error occured.")
-                log.lights('Log','red')
-                raise XMDSException("SubmitLog: Unknown exception was handled.")
+                log.lights('Log', 'red')
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("SubmitLog: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('Log','grey')
@@ -3421,9 +3436,10 @@ class XMDS:
                 self.hasInitialised = False
                 raise XMDSException("SubmitStats: Webservice returned non XML content")
             except:
-                print("SubmitStats: An unexpected error occured.")
-                log.lights('Stat','red')
-                raise XMDSException("SubmitStats: Unknown exception was handled.")
+                log.lights('Stat', 'red')
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("SubmitStats: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('Stat','grey')
@@ -3462,6 +3478,11 @@ class XMDS:
                     log.log(0,"error",str(err))
                     self.hasInitialised = False
                     raise XMDSException("Schedule: Webservice returned non XML content")
+                except:
+                    log.lights('S', 'red')
+                    log.log(0,"error",str(sys.exc_info()[0]))
+                    self.hasInitialised = False
+                    raise XMDSException("Schedule: An unspecified error occured")
             except AttributeError, err:
                 # For some reason the except SOAPpy.Types line above occasionally throws an
                 # exception when the client first starts saying SOAPpy doesn't have a Types attribute
@@ -3507,6 +3528,11 @@ class XMDS:
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("GetFile: Webservice returned non XML content")
+            except:
+                log.lights('GF', 'red')
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("GetFile: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('GF','grey')
@@ -3553,6 +3579,10 @@ class XMDS:
                         log.lights('RD', 'red')
                         log.log(0,"error",str(err))
                         self.hasInitialised = False
+                    except:
+                        log.lights('RD', 'red')
+                        log.log(0,"error",str(sys.exc_info()[0]))
+                        self.hasInitialised = False
 
                 if regReturn != regOK:
                     # We're not licensed. Sleep 20 * tries seconds and try again.
@@ -3582,6 +3612,10 @@ class XMDS:
                 except KeyError, err:
                     log.lights('RD', 'red')
                     log.log(0,"error",str(err))
+                    self.hasInitialised = False
+                except:
+                    log.lights('RD', 'red')
+                    log.log(0,"error",str(sys.exc_info()[0]))
                     self.hasInitialised = False
 
     def MediaInventory(self,inventoryXml):
@@ -3622,9 +3656,10 @@ class XMDS:
                 self.hasInitialised = False
                 raise XMDSException("MediaInventory: Webservice returned non XML content")
             except:
-                print("MediaInventory: An unexpected error occured.")
-                log.lights('Log','red')
-                raise XMDSException("MediaInventory: Unknown exception was handled.")
+                log.lights('Log', 'red')
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("MediaInventory: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('Log','grey')
