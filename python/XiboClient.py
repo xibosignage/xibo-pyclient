@@ -607,7 +607,7 @@ class XiboLogXmds(XiboLog):
     
     def flush(self):
         # TODO: Seems to cause the client to hang on quit?
-        if not self.worker.xmds == None:
+        if not self.worker.xmds is None:
             self.worker.flush = True
             self.worker.process()
 
@@ -634,7 +634,7 @@ class XiboLogXmdsWorker(Thread):
     
     def run(self):
         # Wait for XMDS to be initialised and available to us
-        while self.xmds == None:
+        while self.xmds is None:
             time.sleep(60)
             
         while self.running:
@@ -2488,7 +2488,7 @@ class XmdsScheduler(XiboScheduler):
         self.__collectLock.release()
 
     def calculateNextTick(self, layouts=None):
-        if layouts == None:
+        if layouts is None:
             self.__lock.acquire()
             tmpLayouts = self.__layouts
         else:
@@ -2544,7 +2544,7 @@ class XmdsScheduler(XiboScheduler):
         else:
             log.log(2,'audit',_('XmdsScheduler: Not setting a nextFinishTick as no future schedule.'))
 
-        if layouts == None:
+        if layouts is None:
             self.__lock.release()        
 
     def __len__(self):
@@ -3106,7 +3106,7 @@ class XMDS:
         except:
             pass
 
-        if self.name == None or self.name == "":
+        if self.name is None or self.name == "":
             import platform
             self.name = platform.node()
 
@@ -3709,7 +3709,7 @@ class XMDSOffline(Thread):
         except:
             pass
 
-        if self.name == None or self.name == "":
+        if self.name is None or self.name == "":
             import platform
             self.name = platform.node()
 
@@ -4382,7 +4382,7 @@ class XiboPlayer(Thread):
         log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
         self.__lock.acquire()
         self.q.put((command,data))
-        if self.currentFH == None:
+        if self.currentFH is None:
             self.currentFH = self.player.setInterval(0, self.frameHandle)
         self.__lock.release()
         log.log(3,"info",_("Queue length is now") + " " + str(self.q.qsize()))
@@ -4478,9 +4478,9 @@ class XiboPlayer(Thread):
                     currentNode.loadUrl(data[1])
                 elif cmd == "browserOptions":
                     currentNode = self.player.getElementByID(data[0])
-                    if not data[1] == None:
+                    if not data[1] is None:
                         currentNode.transparent = data[1]
-                    if not data[2] == None:
+                    if not data[2] is None:
                         if data[2] == False:
                             currentNode.executeJavascript("document.body.style.overflow='hidden';")
                 elif cmd == "executeJavascript":
