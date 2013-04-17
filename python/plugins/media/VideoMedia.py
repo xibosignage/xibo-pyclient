@@ -28,7 +28,13 @@ import os
 class VideoMedia(XiboMedia):
     def add(self):
         video = os.path.join(self.libraryDir,self.options['uri'])
-        tmpXML = str('<video href="%s" id="%s" opacity="0" />' % (video,self.mediaNodeName))
+        
+        if self.config.getboolean('VideoMedia','loop'):
+            loop = "1"
+        else:
+            loop = "0"
+            
+        tmpXML = str('<video href="%s" id="%s" opacity="0" loop="%d" />' % (video,self.mediaNodeName,loop))
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
     def run(self):
