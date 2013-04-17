@@ -48,7 +48,7 @@ import urlparse
 import PIL.Image
 import math
 
-version = "1.2.4a1"
+version = "1.2.5"
 
 # What layout schema version is supported
 schemaVersion = 1
