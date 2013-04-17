@@ -34,7 +34,7 @@ class VideoMedia(XiboMedia):
         else:
             loop = "0"
             
-        tmpXML = str('<video href="%s" id="%s" opacity="0" loop="%d" />' % (video,self.mediaNodeName,loop))
+        tmpXML = str('<video href="%s" id="%s" opacity="0" loop="%s" />' % (video,self.mediaNodeName,loop))
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
     def run(self):
