@@ -1521,6 +1521,7 @@ class XiboRegionManager(Thread):
         self.oneItemOnly = False
         self.previousMedia = None
         self.currentMedia = None
+        self.numNodes = 0
 
         # Calculate the region ID name
         try:
@@ -1573,6 +1574,10 @@ class XiboRegionManager(Thread):
             self.zindex = int(float(self.regionNode.attributes['zindex'].value))
         except KeyError:
             self.zindex = 1
+        
+        # Work out how many media nodes there are
+        for cn in self.regionNode.childNodes:
+            self.numNodes += 1
         
         # Create a div for the region and add it
         tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" crop="False" />'
@@ -3789,9 +3794,6 @@ class XiboPlayer(Thread):
                 elif cmd == "setBitmap":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.setBitmap(data[1])
-                elif cmd == "seek":
-                    currentNode = self.player.getElementByID(data[0])
-                    currentNode.seekToFrame(data[1])
                 self.q.task_done()
                 # Call ourselves again to action any remaining queued items
                 # This does not make an infinite loop since when all queued
