@@ -3789,6 +3789,9 @@ class XiboPlayer(Thread):
                 elif cmd == "setBitmap":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.setBitmap(data[1])
+                elif cmd == "seek":
+                    currentNode = self.player.getElementByID(data[0])
+                    currentNode.seekToFrame(data[1])
                 self.q.task_done()
                 # Call ourselves again to action any remaining queued items
                 # This does not make an infinite loop since when all queued

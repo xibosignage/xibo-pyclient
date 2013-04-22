@@ -28,13 +28,8 @@ import os
 class VideoMedia(XiboMedia):
     def add(self):
         video = os.path.join(self.libraryDir,self.options['uri'])
-        
-        if self.config.getboolean('VideoMedia','loop'):
-            loop = "1"
-        else:
-            loop = "0"
-            
-        tmpXML = str('<video href="%s" id="%s" opacity="0" loop="%s" />' % (video,self.mediaNodeName,loop))
+                 
+        tmpXML = str('<video href="%s" id="%s" opacity="0" />' % (video,self.mediaNodeName))
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
     def run(self):
@@ -42,9 +37,18 @@ class VideoMedia(XiboMedia):
         self.p.enqueue('resize',(self.mediaNodeName, self.width, self.height,'centre','centre'))
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
         if int(self.duration) > 0:
-            self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
+            self.p.enqueue('timer',(int(self.duration) * 1000,self.eofReached))
         else:
-            self.p.enqueue('eofCallback',(self.mediaNodeName,self.parent.next))
+            self.p.enqueue('eofCallback',(self.mediaNodeName,self.eofReached))
+
+    def eofReached(self):
+        self.parent.next()
+        
+        # If this is the only video in the region and we're enabled to do so,
+        # loop it
+        if self.config.getboolean('VideoMedia','loop') and self.parent.oneItemOnly and not self.parent.disposing:
+            self.p.enqueue('stop',self.mediaNodeName)
+            self.p.enqueue('play',self.mediaNodeName)
 
     def requiredFiles(self):
         return [str(self.options['uri'])]
