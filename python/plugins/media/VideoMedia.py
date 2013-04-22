@@ -47,7 +47,7 @@ class VideoMedia(XiboMedia):
         # If this is the only video in the region and we're enabled to do so,
         # loop it
         if self.config.getboolean('VideoMedia','loop') and self.parent.oneItemOnly and not self.parent.disposing:
-            self.p.enqueue('stop',self.mediaNodeName)
+            self.p.enqueue('seek',(self.mediaNodeName,0))
             self.p.enqueue('play',self.mediaNodeName)
 
     def requiredFiles(self):
