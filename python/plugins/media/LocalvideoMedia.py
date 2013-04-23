@@ -29,10 +29,13 @@ class LocalvideoMedia(VideoMedia):
     def add(self):
         video = self.options['uri']
         
-        if self.config.getboolean('LocalVideoMedia','loop'):
-            loop = "1"
+        if self.parent.numNodes == 1:
+            if self.config.getboolean('VideoMedia', 'loop'): 
+                loop = '1'
+            else:
+                loop = '0'
         else:
-            loop = "0"
+            loop = '0'
         
         tmpXML = str('<video href="%s" id="%s" opacity="0" loop="%s" />' % (video,self.mediaNodeName,loop))
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
