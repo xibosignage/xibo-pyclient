@@ -28,7 +28,7 @@ import urllib
 
 class LocalvideoMedia(VideoMedia):
     def add(self):
-        video = urllib.unquote_plus(self.options['uri'])
+        video = urllib.unquote(self.options['uri'])
         tmpXML = str('<video href="%s" id="%s" opacity="0" />' % (video,self.mediaNodeName))
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
