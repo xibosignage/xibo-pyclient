@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009 Alex Harrington
+# Copyright (C) 2009-13 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -24,11 +24,21 @@
 from VideoMedia import VideoMedia
 from threading import Thread
 import os
+import urllib
 
 class LocalvideoMedia(VideoMedia):
     def add(self):
-        video = self.options['uri']
-        tmpXML = str('<video href="%s" id="%s" opacity="0" />' % (video,self.mediaNodeName))
+        video = urllib.unquote_plus(self.options['uri'])
+        
+        if self.parent.numNodes == 1:
+            if self.config.getboolean('VideoMedia', 'loop'): 
+                loop = '1'
+            else:
+                loop = '0'
+        else:
+            loop = '0'
+        
+        tmpXML = str('<video href="%s" id="%s" opacity="0" loop="%s" />' % (video,self.mediaNodeName,loop))
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
 
     def requiredFiles(self):

@@ -50,7 +50,7 @@ import platform
 
 from ThirdParty.period.period import in_period
 
-version = "1.5.0"
+version = "1.5.2"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -607,7 +607,7 @@ class XiboLogXmds(XiboLog):
     
     def flush(self):
         # TODO: Seems to cause the client to hang on quit?
-        if not self.worker.xmds == None:
+        if not self.worker.xmds is None:
             self.worker.flush = True
             self.worker.process()
 
@@ -634,7 +634,7 @@ class XiboLogXmdsWorker(Thread):
     
     def run(self):
         # Wait for XMDS to be initialised and available to us
-        while self.xmds == None:
+        while self.xmds is None:
             time.sleep(60)
             
         while self.running:
@@ -1739,6 +1739,7 @@ class XiboRegionManager(Thread):
         self.previousMedia = None
         self.currentMedia = None
         self.regionId = None
+        self.numNodes = 0
 
         # Calculate the region ID name
         try:
@@ -1794,6 +1795,10 @@ class XiboRegionManager(Thread):
             self.zindex = int(float(self.regionNode.attributes['zindex'].value))
         except KeyError:
             self.zindex = 1
+        
+        # Work out how many media nodes there are
+        for cn in self.regionNode.childNodes:
+            self.numNodes += 1
         
         # Create a div for the region and add it
         tmpXML = '<div id="' + self.regionNodeName + '" width="' + str(self.width) + '" height="' + str(self.height) + '" x="' + str(self.left) + '" y="' + str(self.top) + '" opacity="1.0" crop="True" />'
@@ -2488,7 +2493,7 @@ class XmdsScheduler(XiboScheduler):
         self.__collectLock.release()
 
     def calculateNextTick(self, layouts=None):
-        if layouts == None:
+        if layouts is None:
             self.__lock.acquire()
             tmpLayouts = self.__layouts
         else:
@@ -2544,7 +2549,7 @@ class XmdsScheduler(XiboScheduler):
         else:
             log.log(2,'audit',_('XmdsScheduler: Not setting a nextFinishTick as no future schedule.'))
 
-        if layouts == None:
+        if layouts is None:
             self.__lock.release()        
 
     def __len__(self):
@@ -3106,7 +3111,7 @@ class XMDS:
         except:
             pass
 
-        if self.name == None or self.name == "":
+        if self.name is None or self.name == "":
             import platform
             self.name = platform.node()
 
@@ -3120,15 +3125,18 @@ class XMDS:
         
         self.socketTimeout = None
         try:
-            self.socketTimeout = int(config.get('Main','socketTimeout'))
+            self.socketTimeout = config.getint('Main','socketTimeout')
         except:
-            self.socketTimeout = 30
+            self.socketTimeout = ''
         
-        try:
-            socket.setdefaulttimeout(self.socketTimeout)
-            log.log(2,"info",_("Set socket timeout to: ") + str(self.socketTimeout))
-        except:
-            log.log(0,"warning",_("Unable to set socket timeout. Using system default"))
+        if (self.socketTimeout is None) or (self.socketTimeout == ''):
+            log.log(2,"info",_("Not setting socket timeout"))
+        else:
+            try:
+                socket.setdefaulttimeout(self.socketTimeout)
+                log.log(2,"info",_("Set socket timeout to: %s") % self.socketTimeout)
+            except:
+                log.log(0,"warning",_("Unable to set socket timeout. Using system default"))
             
         # Setup a Proxy for XMDS
         self.xmdsUrl = None
@@ -3249,17 +3257,19 @@ class XMDS:
             
             self.server = None
             tries = 0
-            while self.server == None and tries < 3:
+            while self.server is None and tries < 3:
                 tries = tries + 1
-                log.log(2,"info",_("Connecting to XMDS at ") + self.xmdsUrl + " " + _("Attempt") + " " + str(tries))
+                log.log(2,"info",_("Connecting to XMDS at URL: %s Attempt Number: %s") % (self.xmdsUrl, tries))
                 try:
                     self.server = WSDL.Proxy(self.wsdlFile)
                     self.hasInitialised = True
                     log.log(2,"info",_("Connected to XMDS via WSDL at %s") % self.wsdlFile)
                 except xml.parsers.expat.ExpatError:
                     log.log(0,"error",_("Could not connect to XMDS."))
+                except:
+                    log.log(0,"error",_("An unspecified error occured connecting to XMDS. If you're using the Python M2Crypto module, ensure socketTimeout is set to a blank value in your site.cfg file. Error: %s") % str(sys.exc_info()[0]))
             # End While
-            if self.server == None:
+            if self.server is None:
                 self.checkLock.release()
                 return False
 
@@ -3300,6 +3310,11 @@ class XMDS:
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("RequiredFiles: Webservice returned non XML content")
+            except:
+                log.lights('RF', 'red')
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("RequiredFiles: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('RF','grey')
@@ -3331,6 +3346,10 @@ class XMDS:
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("GetResource: Webservice returned non XML content")
+            except:
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("GetResource: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             raise XMDSException("XMDS could not be initialised")
@@ -3376,9 +3395,10 @@ class XMDS:
                 self.hasInitialised = False
                 raise XMDSException("SubmitLog: Webservice returned non XML content")
             except:
-                print("SubmitLog: An unexpected error occured.")
-                log.lights('Log','red')
-                raise XMDSException("SubmitLog: Unknown exception was handled.")
+                log.lights('Log', 'red')
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("SubmitLog: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('Log','grey')
@@ -3421,9 +3441,10 @@ class XMDS:
                 self.hasInitialised = False
                 raise XMDSException("SubmitStats: Webservice returned non XML content")
             except:
-                print("SubmitStats: An unexpected error occured.")
-                log.lights('Stat','red')
-                raise XMDSException("SubmitStats: Unknown exception was handled.")
+                log.lights('Stat', 'red')
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("SubmitStats: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('Stat','grey')
@@ -3462,6 +3483,11 @@ class XMDS:
                     log.log(0,"error",str(err))
                     self.hasInitialised = False
                     raise XMDSException("Schedule: Webservice returned non XML content")
+                except:
+                    log.lights('S', 'red')
+                    log.log(0,"error",str(sys.exc_info()[0]))
+                    self.hasInitialised = False
+                    raise XMDSException("Schedule: An unspecified error occured")
             except AttributeError, err:
                 # For some reason the except SOAPpy.Types line above occasionally throws an
                 # exception when the client first starts saying SOAPpy doesn't have a Types attribute
@@ -3507,6 +3533,11 @@ class XMDS:
                 log.log(0,"error",str(err))
                 self.hasInitialised = False
                 raise XMDSException("GetFile: Webservice returned non XML content")
+            except:
+                log.lights('GF', 'red')
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("GetFile: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('GF','grey')
@@ -3553,6 +3584,10 @@ class XMDS:
                         log.lights('RD', 'red')
                         log.log(0,"error",str(err))
                         self.hasInitialised = False
+                    except:
+                        log.lights('RD', 'red')
+                        log.log(0,"error",str(sys.exc_info()[0]))
+                        self.hasInitialised = False
 
                 if regReturn != regOK:
                     # We're not licensed. Sleep 20 * tries seconds and try again.
@@ -3582,6 +3617,10 @@ class XMDS:
                 except KeyError, err:
                     log.lights('RD', 'red')
                     log.log(0,"error",str(err))
+                    self.hasInitialised = False
+                except:
+                    log.lights('RD', 'red')
+                    log.log(0,"error",str(sys.exc_info()[0]))
                     self.hasInitialised = False
 
     def MediaInventory(self,inventoryXml):
@@ -3622,9 +3661,10 @@ class XMDS:
                 self.hasInitialised = False
                 raise XMDSException("MediaInventory: Webservice returned non XML content")
             except:
-                print("MediaInventory: An unexpected error occured.")
-                log.lights('Log','red')
-                raise XMDSException("MediaInventory: Unknown exception was handled.")
+                log.lights('Log', 'red')
+                log.log(0,"error",str(sys.exc_info()[0]))
+                self.hasInitialised = False
+                raise XMDSException("MediaInventory: An unspecified error occured")
         else:
             log.log(0,"error","XMDS could not be initialised")
             log.lights('Log','grey')
@@ -3674,7 +3714,7 @@ class XMDSOffline(Thread):
         except:
             pass
 
-        if self.name == None or self.name == "":
+        if self.name is None or self.name == "":
             import platform
             self.name = platform.node()
 
@@ -4052,6 +4092,15 @@ class XiboDisplayManager:
             # Do nothing. This should never occur
             pass
 
+class XiboTerminate(Thread):
+    "Class to handle libavg interactions"
+    def __init__(self):
+        Thread.__init__(self)
+
+    def run(self):
+        time.sleep(5)
+        os._exit(0)
+
 class XiboPlayer(Thread):
     "Class to handle libavg interactions"
     def __init__(self,parent):
@@ -4302,6 +4351,11 @@ class XiboPlayer(Thread):
                 #TODO: Fully implement a proper quit function
                 # Allow threads a chance to stop nicely before finally killing
                 # the lot off.
+
+                # Set a timer to kill us in 5 seconds if there's any problem!
+                terminate = XiboTerminate()
+                terminate.start()
+
                 log.flush()
 
                 try:
@@ -4327,13 +4381,13 @@ class XiboPlayer(Thread):
                     # Catch exception if SocketWatcher is disabled.
                     pass
 
-                log.log(5,"info",_("Blocking waiting for Scheduler"))
+                log.log(2,"info",_("Blocking waiting for Scheduler"))
                 try:
                     self.parent.scheduler.join()
                 except:
                     pass
 
-                log.log(5,"info",_("Blocking waiting for DownloadManager"))
+                log.log(2,"info",_("Blocking waiting for DownloadManager"))
                 try:
                     self.parent.downloader.join()
                 except:
@@ -4347,7 +4401,7 @@ class XiboPlayer(Thread):
         log.log(3,"info","Enqueue: " + str(command) + " " + str(data))
         self.__lock.acquire()
         self.q.put((command,data))
-        if self.currentFH == None:
+        if self.currentFH is None:
             self.currentFH = self.player.setInterval(0, self.frameHandle)
         self.__lock.release()
         log.log(3,"info",_("Queue length is now") + " " + str(self.q.qsize()))
@@ -4443,9 +4497,9 @@ class XiboPlayer(Thread):
                     currentNode.loadUrl(data[1])
                 elif cmd == "browserOptions":
                     currentNode = self.player.getElementByID(data[0])
-                    if not data[1] == None:
+                    if not data[1] is None:
                         currentNode.transparent = data[1]
-                    if not data[2] == None:
+                    if not data[2] is None:
                         if data[2] == False:
                             currentNode.executeJavascript("document.body.style.overflow='hidden';")
                 elif cmd == "executeJavascript":
