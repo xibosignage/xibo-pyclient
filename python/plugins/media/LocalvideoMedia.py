@@ -28,7 +28,7 @@ import urllib
 
 class LocalvideoMedia(VideoMedia):
     def add(self):
-        video = urllib.unquote_plus(self.options['uri'])
+        video = urllib.unquote(self.options['uri'])
         
         if self.parent.numNodes == 1:
             if self.config.getboolean('VideoMedia', 'loop'): 
