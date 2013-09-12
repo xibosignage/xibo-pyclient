@@ -3261,8 +3261,6 @@ class XMDS:
                 tries = tries + 1
                 log.log(2,"info",_("Connecting to XMDS at URL: %s Attempt Number: %s") % (self.xmdsUrl, tries))
                 try:
-                    self.server = WSDL.Proxy(self.wsdlFile)
-                    
                     if os.environ.has_key('http_proxy'):
                         http_proxy_conf = os.environ['http_proxy'].replace('http://', '')
                     elif os.environ.has_key('HTTP_PROXY'):
@@ -3270,7 +3268,7 @@ class XMDS:
                     else:
                         http_proxy_conf = None
                     
-                    self.server.soapproxy.http_proxy = http_proxy_conf
+                    self.server = WSDL.Proxy(self.wsdlFile, http_proxy=http_proxy_conf)
                     
                     self.hasInitialised = True
                     log.log(2,"info",_("Connected to XMDS via WSDL at %s") % self.wsdlFile)
