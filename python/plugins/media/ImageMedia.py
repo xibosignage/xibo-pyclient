@@ -26,6 +26,7 @@ from threading import Thread
 import os
 from libavg import avg
 from PIL import Image
+import shutil
 
 class ImageMedia(XiboMedia):
     def add(self):
@@ -41,8 +42,14 @@ class ImageMedia(XiboMedia):
             self.log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.mediaNodeName,self.options['uri'],w,h))
             try:
                 image = Image.open(fName)
-                image.thumbnail((w,h),Image.ANTIALIAS)
-                image.save(thumb, image.format)
+                
+                if image.size == (w,h):
+                    # Image is already the correct size
+                    # Just copy it over
+                    shutil.copyfile(fName, thumb)
+                else:
+                    image.thumbnail((w,h),Image.ANTIALIAS)
+                    image.save(thumb, image.format, quality=95)
                 del image
             except IOError:
                 self.log.log(0,'error',_("%s: Error reading image file %s. Unsupported format or Permission Denied") % (self.mediaNodeName,self.options['uri']))

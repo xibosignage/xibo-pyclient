@@ -50,7 +50,7 @@ import platform
 
 from ThirdParty.period.period import in_period
 
-version = "1.5.2"
+version = "1.6.0"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -1603,13 +1603,16 @@ class XiboLayoutManager(Thread):
                 log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.layoutNodeName,fName,w,h))
                 image = PIL.Image.open(fName)
                 
-                if config.get('Main','lowTextureMemory') == "true":
-                    image.thumbnail((w,h),PIL.Image.ANTIALIAS)
+                if image.size == (w,h):
+                    shutil.copyfile(fName, thumb)
                 else:
-                    image.resize((w,h),PIL.Image.ANTIALIAS)
-                    
-                image.save(thumb, image.format)
-                del image
+                    if config.get('Main','lowTextureMemory') == "true":
+                        image.thumbnail((w,h),PIL.Image.ANTIALIAS)
+                    else:
+                        image.resize((w,h),PIL.Image.ANTIALIAS)
+                        
+                    image.save(thumb, image.format, quality=95)
+                    del image
             
             tmpXML = str('<image width="%d" height="%d" id="bg%s" opacity="1.0" />' % (self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt))
             self.p.enqueue('add',(tmpXML,self.layoutNodeName))
