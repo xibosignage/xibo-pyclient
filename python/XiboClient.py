@@ -1743,6 +1743,7 @@ class XiboRegionManager(Thread):
         self.currentMedia = None
         self.regionId = None
         self.numNodes = 0
+        self.textError = False
 
         # Calculate the region ID name
         try:
@@ -1946,8 +1947,11 @@ class XiboRegionManager(Thread):
 
             # If there's only one item, render it and leave it alone!
             if mediaCount == 1:
-                self.oneItemOnly = True
-                log.log(3,"info",_("Region has only one media: ") + self.regionNodeName)
+                if not self.textError:
+                    self.oneItemOnly = True
+                    log.log(3,"info",_("Region has only one media: ") + self.regionNodeName)
+                    
+                self.textError = False
         # End while loop
 
     def next(self):
@@ -1966,6 +1970,10 @@ class XiboRegionManager(Thread):
             return
 
         self.tLock.release()
+    
+    def textError(self):
+        # Flag that the text rendering for the child media failed
+        self.textError = True
 
     def dispose(self):
         self.disposing = True
