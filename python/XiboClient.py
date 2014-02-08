@@ -47,6 +47,7 @@ import urlparse
 import PIL.Image
 import math
 import platform
+import shutil
 
 from ThirdParty.period.period import in_period
 
