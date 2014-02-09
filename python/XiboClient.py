@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009-2013 Alex Harrington
+# Copyright (C) 2009-2014 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim
+from libavg import *
 from SOAPpy import WSDL
 import SOAPpy.Types
 import SOAPpy.Errors
@@ -4454,13 +4454,13 @@ class XiboPlayer(Thread):
                     if data[0] == "fadeOut":
                         animation = avg.fadeOut(currentNode,data[2],data[3])
                     if data[0] == "linear":
-                        animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
+                        animation = LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
                         animation.start()
                     if data[0] == "ease":
-                        animation = anim.EaseInOutAnim(currentNode,data[3],data[2],data[4],data[5],data[7],data[8],False,data[6],None)
+                        animation = EaseInOutAnim(currentNode,data[3],data[2],data[4],data[5],data[7],data[8],False,data[6],None)
                         animation.start()
                     if data[0] == "continuous":
-                        animation = anim.ContinuousAnim(currentNode,data[2],data[3],data[4])
+                        animation = ContinuousAnim(currentNode,data[2],data[3],data[4])
                         animation.start()
                 elif cmd == "play":
                     currentNode = self.player.getElementByID(data)
@@ -4495,7 +4495,7 @@ class XiboPlayer(Thread):
                     self.player.setTimeout(data[0],data[1])
                 elif cmd == "eofCallback":
                     currentNode = self.player.getElementByID(data[0])
-                    currentNode.setEOFCallback(data[1])
+                    currentNode.subscribe(END_OF_FILE, data[1])
                 elif cmd == "setOpacity":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.opacity = float(data[1])
