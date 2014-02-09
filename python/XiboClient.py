@@ -4495,7 +4495,7 @@ class XiboPlayer(Thread):
                     self.player.setTimeout(data[0],data[1])
                 elif cmd == "eofCallback":
                     currentNode = self.player.getElementByID(data[0])
-                    currentNode.subscribe(END_OF_FILE, data[1])
+                    currentNode.subscribe(avg.Node.END_OF_FILE, data[1])
                 elif cmd == "setOpacity":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.opacity = float(data[1])
