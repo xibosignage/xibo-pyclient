@@ -70,7 +70,7 @@ class GetResourceBase(XiboMedia):
                     if "<!-- NUMITEMS=" in line:
                         numItems = line.partition('=')[2]
                         numItems = numItems.partition('-')[0]
-                        self.duration = int(numItems) * self.duration
+                        self.duration = int(numItems) * int(self.duration)
                 
         except KeyError:
             pass
