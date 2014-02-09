@@ -125,6 +125,10 @@ class BrowserMediaBase(XiboMedia):
         else:
             if self.retryCount > 3:
                 print "Error rendering %s. Skipping" % self.mediaNodeName
+                # Tell the RegionManager we had a problem
+                self.parent.textError()
+                
+                # Expire the media item
                 self.timerElapsed()
             else:
                 if self.retryCount > 1:

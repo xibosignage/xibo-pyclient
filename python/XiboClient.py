@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009-2013 Alex Harrington
+# Copyright (C) 2009-2014 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -21,7 +21,7 @@
 # along with Xibo.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libavg import avg, anim
+from libavg import *
 from SOAPpy import WSDL
 import SOAPpy.Types
 import SOAPpy.Errors
@@ -47,10 +47,11 @@ import urlparse
 import PIL.Image
 import math
 import platform
+import shutil
 
 from ThirdParty.period.period import in_period
 
-version = "1.5.2"
+version = "1.6.0"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -1603,13 +1604,16 @@ class XiboLayoutManager(Thread):
                 log.log(3,'info',_("%s: Resizing image %s to %dx%d") % (self.layoutNodeName,fName,w,h))
                 image = PIL.Image.open(fName)
                 
-                if config.get('Main','lowTextureMemory') == "true":
-                    image.thumbnail((w,h),PIL.Image.ANTIALIAS)
+                if image.size == (w,h):
+                    shutil.copyfile(fName, thumb)
                 else:
-                    image.resize((w,h),PIL.Image.ANTIALIAS)
-                    
-                image.save(thumb, image.format)
-                del image
+                    if config.get('Main','lowTextureMemory') == "true":
+                        image.thumbnail((w,h),PIL.Image.ANTIALIAS)
+                    else:
+                        image.resize((w,h),PIL.Image.ANTIALIAS)
+                        
+                    image.save(thumb, image.format, quality=95)
+                    del image
             
             tmpXML = str('<image width="%d" height="%d" id="bg%s" opacity="1.0" />' % (self.l.sWidth,self.l.sHeight,self.layoutNodeNameExt))
             self.p.enqueue('add',(tmpXML,self.layoutNodeName))
@@ -1740,6 +1744,7 @@ class XiboRegionManager(Thread):
         self.currentMedia = None
         self.regionId = None
         self.numNodes = 0
+        self.textError = False
 
         # Calculate the region ID name
         try:
@@ -1943,8 +1948,11 @@ class XiboRegionManager(Thread):
 
             # If there's only one item, render it and leave it alone!
             if mediaCount == 1:
-                self.oneItemOnly = True
-                log.log(3,"info",_("Region has only one media: ") + self.regionNodeName)
+                if not self.textError:
+                    self.oneItemOnly = True
+                    log.log(3,"info",_("Region has only one media: ") + self.regionNodeName)
+                    
+                self.textError = False
         # End while loop
 
     def next(self):
@@ -1963,6 +1971,10 @@ class XiboRegionManager(Thread):
             return
 
         self.tLock.release()
+    
+    def textError(self):
+        # Flag that the text rendering for the child media failed
+        self.textError = True
 
     def dispose(self):
         self.disposing = True
@@ -4291,7 +4303,7 @@ class XiboPlayer(Thread):
         
         self.player.loadString(avgContent)
         avgNode = self.player.getElementByID("main")
-        avgNode.setEventHandler(avg.KEYDOWN,avg.NONE,self.keyDown)
+        self.player.subscribe(avg.Player.KEY_DOWN, self.keyDown)
         self.currentFH = self.player.setInterval(0, self.frameHandle)
         
         # Release the lock so other threads can add content
@@ -4442,13 +4454,13 @@ class XiboPlayer(Thread):
                     if data[0] == "fadeOut":
                         animation = avg.fadeOut(currentNode,data[2],data[3])
                     if data[0] == "linear":
-                        animation = anim.LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
+                        animation = LinearAnim(currentNode,data[3],data[2],data[4],data[5],False,data[6])
                         animation.start()
                     if data[0] == "ease":
-                        animation = anim.EaseInOutAnim(currentNode,data[3],data[2],data[4],data[5],data[7],data[8],False,data[6],None)
+                        animation = EaseInOutAnim(currentNode,data[3],data[2],data[4],data[5],data[7],data[8],False,data[6],None)
                         animation.start()
                     if data[0] == "continuous":
-                        animation = anim.ContinuousAnim(currentNode,data[2],data[3],data[4])
+                        animation = ContinuousAnim(currentNode,data[2],data[3],data[4])
                         animation.start()
                 elif cmd == "play":
                     currentNode = self.player.getElementByID(data)
@@ -4483,7 +4495,7 @@ class XiboPlayer(Thread):
                     self.player.setTimeout(data[0],data[1])
                 elif cmd == "eofCallback":
                     currentNode = self.player.getElementByID(data[0])
-                    currentNode.setEOFCallback(data[1])
+                    currentNode.subscribe(avg.Node.END_OF_FILE, data[1])
                 elif cmd == "setOpacity":
                     currentNode = self.player.getElementByID(data[0])
                     currentNode.opacity = float(data[1])
