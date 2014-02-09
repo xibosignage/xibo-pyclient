@@ -4303,7 +4303,7 @@ class XiboPlayer(Thread):
         
         self.player.loadString(avgContent)
         avgNode = self.player.getElementByID("main")
-        avgNode.setEventHandler(avg.KEYDOWN,avg.NONE,self.keyDown)
+        self.player.subscribe(avg.Player.KEY_DOWN, self.keyDown)
         self.currentFH = self.player.setInterval(0, self.frameHandle)
         
         # Release the lock so other threads can add content
