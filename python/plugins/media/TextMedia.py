@@ -29,7 +29,7 @@ class TextMedia(GetResourceBase):
     def cacheIsExpired(self):
         # Check if the file we have downloaded (if it exists) is newer than the last
         # layout modification date
-        layout = self.parent.parent
+        layout = self.parent.parent.l
         
         if layout.builtWithNoXLF:
             return False
