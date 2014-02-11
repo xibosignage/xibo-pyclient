@@ -2320,6 +2320,9 @@ class XiboLayout:
 
     def children(self):
         return self.iter
+    
+    def getMtime(self):
+        return self.__mtime
 
 class DummyScheduler(XiboScheduler):
     "Dummy scheduler - returns a list of layouts in rotation forever"

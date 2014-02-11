@@ -3,7 +3,7 @@
 
 #
 # Xibo - Digitial Signage - http://www.xibo.org.uk
-# Copyright (C) 2009-2012 Alex Harrington
+# Copyright (C) 2009-2014 Alex Harrington
 #
 # This file is part of Xibo.
 #
@@ -22,28 +22,26 @@
 #
 
 import os
-import time
-import sys
-
-from BrowserMediaAnimatedBase import BrowserMediaAnimatedBase
+from GetResourceBase import GetResourceBase
 from threading import Thread
 
-class TextMedia(BrowserMediaAnimatedBase):
-    def getContent(self):
-
-	self.mediaType = 'text'
+class TextMedia(GetResourceBase):
+    def cacheIsExpired(self):
+        # Check if the file we have downloaded (if it exists) is newer than the last
+        # layout modification date
+        layout = self.parent.parent
         
-        # Parse out the text element from the raw tag.
+        if layout.builtWithNoXLF:
+            return False
+        
         try:
-            for t in self.rawNode.getElementsByTagName('text'):
-                self.textNode = t
-        
-            for node in self.textNode.childNodes:
-                if node.nodeType == node.CDATA_SECTION_NODE:
-                    self.text = node.data.strip()
-                    self.log.log(5,'audit','Text is: ' + self.text)
+    	    mtime = os.path.getmtime(os.path.join(self.libraryDir,self.mediaId + '-cache.xml'))
+            if mtime > layout.getMtime()
+                return False
         except:
-            self.log.log(2,'error','%s Error parsing out the text from the xlf' % self.mediaNodeName)
-            return []
+            # File probably doesn't exist.
+            # Fall through to the default
+            pass
         
-        return [self.text]
+        return True
+
