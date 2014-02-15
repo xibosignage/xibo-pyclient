@@ -1744,7 +1744,7 @@ class XiboRegionManager(Thread):
         self.currentMedia = None
         self.regionId = None
         self.numNodes = 0
-        self.textError = False
+        self.textErrorFlag = False
 
         # Calculate the region ID name
         try:
@@ -1948,11 +1948,11 @@ class XiboRegionManager(Thread):
 
             # If there's only one item, render it and leave it alone!
             if mediaCount == 1:
-                if not self.textError:
+                if not self.textErrorFlag:
                     self.oneItemOnly = True
                     log.log(3,"info",_("Region has only one media: ") + self.regionNodeName)
                     
-                self.textError = False
+                self.textErrorFlag = False
         # End while loop
 
     def next(self):
@@ -1974,7 +1974,7 @@ class XiboRegionManager(Thread):
     
     def textError(self):
         # Flag that the text rendering for the child media failed
-        self.textError = True
+        self.textErrorFlag = True
 
     def dispose(self):
         self.disposing = True
@@ -2320,6 +2320,9 @@ class XiboLayout:
 
     def children(self):
         return self.iter
+    
+    def getMtime(self):
+        return self.__mtime
 
 class DummyScheduler(XiboScheduler):
     "Dummy scheduler - returns a list of layouts in rotation forever"
@@ -3273,7 +3276,15 @@ class XMDS:
                 tries = tries + 1
                 log.log(2,"info",_("Connecting to XMDS at URL: %s Attempt Number: %s") % (self.xmdsUrl, tries))
                 try:
-                    self.server = WSDL.Proxy(self.wsdlFile)
+                    if os.environ.has_key('http_proxy'):
+                        http_proxy_conf = os.environ['http_proxy'].replace('http://', '')
+                    elif os.environ.has_key('HTTP_PROXY'):
+                        http_proxy_conf = os.environ['HTTP_PROXY'].replace('http://', '')
+                    else:
+                        http_proxy_conf = None
+                    
+                    self.server = WSDL.Proxy(self.wsdlFile, http_proxy=http_proxy_conf)
+                    
                     self.hasInitialised = True
                     log.log(2,"info",_("Connected to XMDS via WSDL at %s") % self.wsdlFile)
                 except xml.parsers.expat.ExpatError:

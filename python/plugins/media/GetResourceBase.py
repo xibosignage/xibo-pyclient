@@ -40,7 +40,13 @@ class GetResourceBase(XiboMedia):
         try:
             tmpUI = int(self.options['updateInterval'])
         except KeyError:
-            self.options['updateInterval'] = 10        
+            self.options['updateInterval'] = 10
+        
+        # Make sure we have fresh content from the CMS ahead of it needing to run
+        # On a layout where the object is actually going to run, this should just return
+        # since the pre-run layout check would have cached the content. The only exception
+        # being tickers with 0 duration.
+        self.download()      
 
     def run(self):
         # Check if cached content is too old
@@ -96,6 +102,7 @@ class GetResourceBase(XiboMedia):
         bo = self.browserOptions()
         optionsTuple = (self.mediaNodeName,bo[0],bo[1])
         self.p.enqueue('browserOptions',optionsTuple)
+        self.p.enqueue('executeJavascript', (self.mediaNodeName, "document.body.style.zoom='%s';" % self.parent.parent.l.scaleFactor))
                 
         # Make the browser visible
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
@@ -107,19 +114,13 @@ class GetResourceBase(XiboMedia):
         return (trans,scroll)
 
     def download(self):
+        # Only process a download if we need it
+        if not self.cacheIsExpired():
+            return
         
         tries = 3
         i = 0
         flag = False
-        
-        # If libraryDir/self.mediaId-cache.xml exists then check if it's too old to use
-        try:
-    	    mtime = os.path.getmtime(os.path.join(self.libraryDir,self.mediaId + '-cache.xml'))
-            if time.time() < (mtime + (int(self.options['updateInterval']) * 60)):
-                return
-        except:
-            # File probably doesn't exist. Do nothing.
-            pass
         
         while i < tries and flag == False:
             try:
@@ -138,4 +139,16 @@ class GetResourceBase(XiboMedia):
                 finally:
                     f.close()
             except:
-                self.log.log(0,"error",_("Unable to write %s") % os.path.join(self.libraryDir,self.mediaId) + '-cache.xml')     
+                self.log.log(0,"error",_("Unable to write %s") % os.path.join(self.libraryDir,self.mediaId) + '-cache.xml')
+
+    def cacheIsExpired(self):
+        # If libraryDir/self.mediaId-cache.xml exists then check if it's too old to use
+        try:
+    	    mtime = os.path.getmtime(os.path.join(self.libraryDir,self.mediaId + '-cache.xml'))
+            if time.time() < (mtime + (int(self.options['updateInterval']) * 60)):
+                return False
+        except:
+            # File probably doesn't exist. Do nothing.
+            pass
+        
+        return True
