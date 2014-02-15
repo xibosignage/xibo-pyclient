@@ -35,8 +35,8 @@ class TextMedia(GetResourceBase):
             return False
         
         try:
-    	    mtime = os.path.getmtime(os.path.join(self.libraryDir,self.mediaId + '-cache.xml'))
-            if mtime > layout.getMtime()
+    	    mtime = os.path.getmtime(os.path.join(self.libraryDir, self.mediaId + '-cache.xml'))
+            if mtime > layout.getMtime():
                 return False
         except:
             # File probably doesn't exist.

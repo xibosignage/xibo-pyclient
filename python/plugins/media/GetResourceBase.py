@@ -102,6 +102,7 @@ class GetResourceBase(XiboMedia):
         bo = self.browserOptions()
         optionsTuple = (self.mediaNodeName,bo[0],bo[1])
         self.p.enqueue('browserOptions',optionsTuple)
+        self.p.enqueue('executeJavascript', (self.mediaNodeName, "document.body.style.zoom='%s';" % self.parent.parent.l.scaleFactor))
                 
         # Make the browser visible
         self.p.enqueue('setOpacity',(self.mediaNodeName,1))
