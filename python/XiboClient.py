@@ -897,36 +897,46 @@ class XiboResourceFile(object):
         self.checkTime = 1
         self.fileType = fileType
         self.fileId = fileId
-
+        self.paranoid = False
         self.targetHash = targetHash
+        self.mtime = mtime
+
+        try:
+            if os.path.getmtime(self.__path) == self.mtime:
+                self.md5 = self.targetHash
+            else:
+                self.update()
+        except:
+            self.update()
 
     def update(self):
-        # Generate MD5
-        self.mtime = os.path.getmtime(self.__path)
+        try:
+            tmpMtime = os.path.getmtime(self.__path)
+        except:
+            return False
+
+        self.mtime = tmpMtime
         self.checkTime = time.time()
         return True
 
     def isExpired(self):
-        if self.paranoid:
-            return self.checkTime + 3600 < time.time()
-        else:
-            try:
-                tmpMtime = os.path.getmtime(self.__path)
-            except:
-                return False
-            
-            return not self.mtime == tmpMtime
+        try:
+            tmpMtime = os.path.getmtime(self.__path)
+        except:
+            return False
+        
+        return not self.mtime == tmpMtime
 
     def isValid(self):
         try:
             tmpMtime = os.path.getmtime(self.__path)
         except:
             return False
-        
+
         return True
     
     def toTuple(self):
-        return (self.__fileName,self.md5,self.targetHash,self.checkTime,self.mtime,self.fileId,self.fileType)
+        return (self.__fileName,self.targetHash,self.targetHash,self.checkTime,self.mtime,self.fileId,self.fileType)
 
 class XiboDownloadManager(Thread):
     def __init__(self,xmds,player,parent):
@@ -963,7 +973,10 @@ class XiboDownloadManager(Thread):
                     tmpMtime = float(f.attributes['mtime'].value)
                     tmpId = int(f.attributes['id'].value)
                     tmpType = str(f.attributes['type'].value)
-                    tmpFile = XiboFile(tmpFileName,tmpHash,tmpId,tmpType,tmpMtime)
+                    if tmpType == 'resource':
+                        tmpFile = XiboResourceFile(tmpFileName,tmpHash,tmpId,tmpType,tmpMtime)
+                    else:
+                        tmpFile = XiboFile(tmpFileName,tmpHash,tmpId,tmpType,tmpMtime)
                     md5Cache[tmpFileName] = tmpFile
             except IOError:
                 log.log(0,"warning",_("Could not open cache.xml. Starting with an empty cache"),True)

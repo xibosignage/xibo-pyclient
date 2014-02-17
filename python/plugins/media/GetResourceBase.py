@@ -154,4 +154,4 @@ class GetResourceBase(XiboMedia):
         return True
     
     def requiredFiles(self):
-        return [os.path.join(self.libraryDir,self.mediaId) + '-cache.xml']
+        return [self.mediaId + '-cache.xml']
