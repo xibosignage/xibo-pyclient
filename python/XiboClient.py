@@ -4007,6 +4007,23 @@ class XMDSOffline(Thread):
 
         log.lights('GF','green')
         return response
+    
+    def GetResource(self,layoutID, regionID, mediaID):
+        tmpFilePath = os.path.join(self.updatePath,'library',mediaID + '-cache.xml')
+        
+        response = None
+        log.lights('GF','amber')
+        if self.check():
+            try:
+                fh = open(tmpFilePath, 'r')
+                response = fh.read()
+                fh.close()
+            except:
+                log.lights('GF','red')
+                raise XMDSException("XMDS could not be initialised")
+        
+        log.lights('GF','green')
+        return response
 
     def RegisterDisplay(self):
         log.lights('RD','amber')
