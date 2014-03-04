@@ -49,10 +49,6 @@ class GetResourceBase(XiboMedia):
         self.download()      
 
     def run(self):
-        # Check if cached content is too old
-        # Download new content if needed
-        self.download()
-          
         try:
             if int(self.options['durationIsPerItem']) == 1:
                 # Media item is a ticker with duration per item
