@@ -84,10 +84,6 @@ class GetResourceBase(XiboMedia):
     def dispose(self):
         self.returnStats()
         self.p.enqueue('del',self.mediaNodeName)
-        try:
-            os.remove(self.tmpPath)
-        except:
-            self.log.log(0,"error","Unable to delete file %s" % (self.tmpPath))
         self.parent.tNext()
  
     def finishedRendering(self):
