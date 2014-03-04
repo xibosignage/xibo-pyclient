@@ -1133,8 +1133,8 @@ class XiboDownloadManager(Thread):
                     elif str(f.attributes['type'].value) == 'resource':
                         # It's a Layout node.
                         try:
-                            tmpPath = os.path.join(config.get('Main','libraryDir'),str(f.attributes['mediaid'].value) + '-cache.xml')
-                            tmpFileName = str(f.attributes['mediaid'].value) + '-cache.xml'
+                            tmpPath = os.path.join(config.get('Main','libraryDir'),str(f.attributes['mediaid'].value) + '-cache.html')
+                            tmpFileName = str(f.attributes['mediaid'].value) + '-cache.html'
                             tmpRegionId = str(f.attributes['regionid'].value)
                             tmpType = str(f.attributes['type'].value)
                             tmpLayoutId = int(f.attributes['layoutid'].value)
@@ -1630,7 +1630,7 @@ class XiboDownloadThread(Thread):
         # Actually download the Layout file
         finished = False
         tries = 0
-        self.tmpMediaId = self.tmpFileName.replace('-cache.xml','')
+        self.tmpMediaId = self.tmpFileName.replace('-cache.html','')
 
         if os.path.isfile(self.tmpPath):
             try:
@@ -4022,7 +4022,7 @@ class XMDSOffline(Thread):
         return response
     
     def GetResource(self,layoutID, regionID, mediaID):
-        tmpFilePath = os.path.join(self.updatePath,'library',mediaID + '-cache.xml')
+        tmpFilePath = os.path.join(self.updatePath,'library',mediaID + '-cache.html')
         
         response = None
         log.lights('GF','amber')

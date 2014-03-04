@@ -30,7 +30,7 @@ import codecs
 
 class GetResourceBase(XiboMedia):
     def add(self):
-        self.tmpPath = os.path.join(self.libraryDir,self.mediaNodeName + "-tmp.html")
+        self.tmpPath = os.path.join(self.libraryDir,self.mediaId + "-cache.html")
         tmpXML = '<browser id="' + self.mediaNodeName + '" opacity="0" width="' + str(self.width) + '" height="' + str(self.height) + \
                 '" />'
         self.p.enqueue('add',(tmpXML,self.regionNodeName))
@@ -52,16 +52,7 @@ class GetResourceBase(XiboMedia):
         # Check if cached content is too old
         # Download new content if needed
         self.download()
-
-        # Copy the cache to temp file
-        try:
-            shutil.copyfile(os.path.join(self.libraryDir,self.mediaId) + '-cache.xml',
-                            self.tmpPath)
-        except IOError:
-            # Unable to copy file
-            # Move on?!
-            self.dispose()
-            
+          
         try:
             if int(self.options['durationIsPerItem']) == 1:
                 # Media item is a ticker with duration per item
@@ -82,9 +73,10 @@ class GetResourceBase(XiboMedia):
             pass
 
         # Display content
-        self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),self.finishedRendering))
+        self.p.enqueue('browserNavigate',(self.mediaNodeName,"file://" + os.path.abspath(self.tmpPath),None))
         self.p.enqueue('timer',(int(self.duration) * 1000,self.parent.next))
         self.startStats()
+        self.p.enqueue('timer',(250,self.finishedRendering))
 
     def requiredFiles(self):
         return []
@@ -133,17 +125,17 @@ class GetResourceBase(XiboMedia):
         if flag:
             try:
                 try:
-                    f = open(os.path.join(self.libraryDir,self.mediaId) + '-cache.xml','w')
+                    f = open(os.path.join(self.libraryDir,self.mediaId) + '-cache.html','w')
                     f.write(s.encode("utf-8"))
                 finally:
                     f.close()
             except:
-                self.log.log(0,"error",_("Unable to write %s") % os.path.join(self.libraryDir,self.mediaId) + '-cache.xml')
+                self.log.log(0,"error",_("Unable to write %s") % os.path.join(self.libraryDir,self.mediaId) + '-cache.html')
 
     def cacheIsExpired(self):
         # If libraryDir/self.mediaId-cache.xml exists then check if it's too old to use
         try:
-    	    mtime = os.path.getmtime(os.path.join(self.libraryDir,self.mediaId + '-cache.xml'))
+    	    mtime = os.path.getmtime(os.path.join(self.libraryDir,self.mediaId + '-cache.html'))
             if time.time() < (mtime + (int(self.options['updateInterval']) * 60)):
                 return False
         except:
@@ -153,4 +145,4 @@ class GetResourceBase(XiboMedia):
         return True
     
     def requiredFiles(self):
-        return [self.mediaId + '-cache.xml']
+        return [self.mediaId + '-cache.html']
