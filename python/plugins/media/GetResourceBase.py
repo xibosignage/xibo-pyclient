@@ -136,7 +136,7 @@ class GetResourceBase(XiboMedia):
         # If libraryDir/self.mediaId-cache.xml exists then check if it's too old to use
         try:
     	    mtime = os.path.getmtime(os.path.join(self.libraryDir,self.mediaId + '-cache.html'))
-            if time.time() < (mtime + (int(self.options['updateInterval']) * 60)):
+            if time.time() < (mtime + (int(self.options['updateInterval']) * 60 * 60)):
                 return False
         except:
             # File probably doesn't exist. Do nothing.
