@@ -51,7 +51,7 @@ import shutil
 
 from ThirdParty.period.period import in_period
 
-version = "1.6.0"
+version = "1.6.0-rc2"
 
 # What layout schema version is supported
 schemaVersion = 1
