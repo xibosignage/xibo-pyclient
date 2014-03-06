@@ -51,7 +51,7 @@ import shutil
 
 from ThirdParty.period.period import in_period
 
-version = "1.6.0-rc2"
+version = "1.6.0"
 
 # What layout schema version is supported
 schemaVersion = 1
@@ -889,55 +889,6 @@ class XiboFile(object):
     def toTuple(self):
         return (self.__fileName,self.md5,self.targetHash,self.checkTime,self.mtime,self.fileId,self.fileType)
 
-class XiboResourceFile(object):
-    def __init__(self,fileName,targetHash,fileId,fileType,mtime=0):
-        self.__path = os.path.join(config.get('Main','libraryDir'),fileName)
-        self.__fileName = fileName
-        self.md5 = "NOT CALCULATED"
-        self.checkTime = 1
-        self.fileType = fileType
-        self.fileId = fileId
-        self.paranoid = False
-        self.targetHash = targetHash
-        self.mtime = mtime
-
-        try:
-            if os.path.getmtime(self.__path) == self.mtime:
-                self.md5 = self.targetHash
-            else:
-                self.update()
-        except:
-            self.update()
-
-    def update(self):
-        try:
-            tmpMtime = os.path.getmtime(self.__path)
-        except:
-            return False
-
-        self.mtime = tmpMtime
-        self.checkTime = time.time()
-        return True
-
-    def isExpired(self):
-        try:
-            tmpMtime = os.path.getmtime(self.__path)
-        except:
-            return False
-        
-        return not self.mtime == tmpMtime
-
-    def isValid(self):
-        try:
-            tmpMtime = os.path.getmtime(self.__path)
-        except:
-            return False
-
-        return True
-    
-    def toTuple(self):
-        return (self.__fileName,self.targetHash,self.targetHash,self.checkTime,self.mtime,self.fileId,self.fileType)
-
 class XiboDownloadManager(Thread):
     def __init__(self,xmds,player,parent):
         Thread.__init__(self)
@@ -973,10 +924,7 @@ class XiboDownloadManager(Thread):
                     tmpMtime = float(f.attributes['mtime'].value)
                     tmpId = int(f.attributes['id'].value)
                     tmpType = str(f.attributes['type'].value)
-                    if tmpType == 'resource':
-                        tmpFile = XiboResourceFile(tmpFileName,tmpHash,tmpId,tmpType,tmpMtime)
-                    else:
-                        tmpFile = XiboFile(tmpFileName,tmpHash,tmpId,tmpType,tmpMtime)
+                    tmpFile = XiboFile(tmpFileName,tmpHash,tmpId,tmpType,tmpMtime)
                     md5Cache[tmpFileName] = tmpFile
             except IOError:
                 log.log(0,"warning",_("Could not open cache.xml. Starting with an empty cache"),True)
@@ -1130,40 +1078,6 @@ class XiboDownloadManager(Thread):
                         except:
                             # TODO: Blacklist the media item.
                             log.log(0,"error",_("RequiredFiles XML error: File type=layout has no path attribute or no hash attribute. Blacklisting."),True)
-                    elif str(f.attributes['type'].value) == 'resource':
-                        # It's a Layout node.
-                        try:
-                            tmpPath = os.path.join(config.get('Main','libraryDir'),str(f.attributes['mediaid'].value) + '-cache.html')
-                            tmpFileName = str(f.attributes['mediaid'].value) + '-cache.html'
-                            tmpRegionId = str(f.attributes['regionid'].value)
-                            tmpType = str(f.attributes['type'].value)
-                            tmpLayoutId = int(f.attributes['layoutid'].value)
-
-                            if os.path.isfile(tmpPath):
-                                # File exists
-                                # See if we checksummed it recently
-                                if tmpFileName in md5Cache:
-                                    # Check if the md5 cache is old for this file
-                                    if md5Cache[tmpFileName].isExpired():
-                                        # Update the cache if it is
-                                        md5Cache[tmpFileName].update()
-                                else:
-                                    tmpFile = XiboResourceFile(tmpFileName,tmpHash,tmpId,tmpType)
-                                    md5Cache[tmpFileName] = tmpFile
-                                    if not tmpFile.isValid():
-                                        # The hashes don't match.
-                                        # Queue for download.
-                                        log.log(2,"warning",_("File exists and is the correct size, but the checksum is incorrect. Queueing for download. ") + tmpFileName,True)
-                                        self.dlQueue.put((tmpType,tmpFileName,0,tmpRegionId,tmpLayoutId),False)
-                            else:
-                                # Queue the file for download later.
-                                log.log(3,"info",_("File does not exist. Queueing for download. ") + tmpFileName,True)
-                                tmpFile = XiboResourceFile(tmpFileName,tmpHash,tmpId,tmpType)
-                                md5Cache[tmpFileName] = tmpFile
-                                self.dlQueue.put((tmpType,tmpFileName,0,tmpRegionId,tmpLayoutId),False)
-                        except:
-                            # TODO: Blacklist the media item.
-                            log.log(0,"error",_("RequiredFiles XML error: File type=resource has no layoutid attribute or no regionid attribute. Blacklisting."),True)
                     elif str(f.attributes['type'].value) == 'blacklist':
                         # It's a Blacklist node
                         #log.log(5,"info","Blacklist File Node found!")
@@ -1339,19 +1253,14 @@ class XiboDownloadManager(Thread):
             for tmpFileName, tmpFile in md5Cache.iteritems():
                 tmpFileInfo = tmpFile.toTuple()
                 tmpNode = inventoryXml.createElement("file")
-                
-                if str(tmpFileInfo[6]) == 'resource':
-                    tmpNode.setAttribute("regionid",str(tmpFileInfo[1]))
-                    tmpNode.setAttribute("layoutid",str(tmpFileInfo[5]))
-                else:
-                    tmpNode.setAttribute("md5",tmpFileInfo[1])
-                    tmpNode.setAttribute("id",str(tmpFileInfo[5]))
+                tmpNode.setAttribute("md5",tmpFileInfo[1])
 
                 # Convert unix timestamp to ISO format
                 tmpDt = datetime.datetime.fromtimestamp(tmpFileInfo[3])
                 tmpDt = tmpDt.strftime("%Y-%m-%d %H:%M:%S")
 
                 tmpNode.setAttribute("lastChecked",tmpDt)
+                tmpNode.setAttribute("id",str(tmpFileInfo[5]))
                 tmpNode.setAttribute("type",str(tmpFileInfo[6]))
 
                 if tmpFile.isValid():
@@ -1485,8 +1394,6 @@ class XiboDownloadThread(Thread):
             self.downloadMedia()
         elif self.tmpType == "layout":
             self.downloadLayout()
-        elif self.tmpType == "resource":
-            self.downloadResource()
 
         # Let the DownloadManager know we're complete
         self.parent.dlThreadCompleteNotify(self.tmpFileName)
@@ -1625,56 +1532,6 @@ class XiboDownloadThread(Thread):
             else:
                 log.log(4,"warning",_("File completed downloading but MD5 did not match.") + self.tmpFileName, True)
         # End while
-
-    def downloadResource(self):
-        # Actually download the Layout file
-        finished = False
-        tries = 0
-        self.tmpMediaId = self.tmpFileName.replace('-cache.html','')
-
-        if os.path.isfile(self.tmpPath):
-            try:
-                os.remove(self.tmpPath)
-            except:
-                log.log(0,"error",_("Unable to delete file: ") + self.tmpPath, True)
-                return
-
-        while tries < 5 and not finished:
-            tries = tries + 1
-
-            fh = None
-            try:
-                fh = open(self.tmpPath, 'wb')
-            except:
-                log.log(0,"error",_("Unable to write file: ") + self.tmpPath, True)
-                return
-
-            try:
-                response = self.parent.xmds.GetResource(self.tmpId,self.tmpHash,self.tmpMediaId)
-                fh.write(response)
-                fh.flush()
-            except RuntimeError:
-                # TODO: Do something sensible
-                pass
-            except XMDSException:
-                # TODO: Do we need to do anything here?
-                pass
-
-            try:
-                fh.close()
-            except:
-                # TODO: Do something sensible
-                pass
-
-            # Check size/md5 here
-            tmpFile = XiboResourceFile(self.tmpFileName,self.tmpHash,self.tmpId,self.tmpType)
-            if tmpFile.isValid():
-                finished = True
-                md5Cache[self.tmpFileName] = tmpFile
-            else:
-                log.log(4,"warning",_("File completed downloading but MD5 did not match.") + self.tmpFileName, True)
-        # End while
-
 
 #### Finish Download Manager
 
@@ -4018,23 +3875,6 @@ class XMDSOffline(Thread):
             log.lights('GF','grey')
             raise XMDSException("XMDS could not be initialised")
 
-        log.lights('GF','green')
-        return response
-    
-    def GetResource(self,layoutID, regionID, mediaID):
-        tmpFilePath = os.path.join(self.updatePath,'library',mediaID + '-cache.html')
-        
-        response = None
-        log.lights('GF','amber')
-        if self.check():
-            try:
-                fh = open(tmpFilePath, 'r')
-                response = fh.read()
-                fh.close()
-            except:
-                log.lights('GF','red')
-                raise XMDSException("XMDS could not be initialised")
-        
         log.lights('GF','green')
         return response
 
