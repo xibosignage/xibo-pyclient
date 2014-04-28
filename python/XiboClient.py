@@ -50,7 +50,7 @@ import platform
 
 from ThirdParty.period.period import in_period
 
-version = "1.4.2"
+version = "1.4.2-1"
 
 # What layout schema version is supported
 schemaVersion = 1
