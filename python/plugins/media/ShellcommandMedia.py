@@ -31,7 +31,7 @@ class ShellcommandMedia(XiboMedia):
         self.commandsEnabled = self.config.getboolean('ShellCommands', 'enabled')
         self.commandWhiteList = []
 
-        self.options['linuxCommand'] = urllib.unquote(str(self.options['linuxCommand']))
+        self.options['linuxCommand'] = urllib.unquote_plus(str(self.options['linuxCommand']))
 
         if self.config.get('ShellCommands', 'whitelist') != '':
             self.commandWhiteList = self.config.get('ShellCommands', 'whitelist').split(',')
